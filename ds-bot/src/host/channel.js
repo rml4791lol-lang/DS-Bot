@@ -885,9 +885,12 @@ export function install(rt) {
 
   // The board reads this on mount and on window focus; `no-store` keeps a check
   // for new settings from being answered by a stale copy.
+  // DSH's HTTP bridge otherwise presents a GET as a streaming request, and Fetch
+  // rejects a GET request that carries a body.
   ctx.effect(() => ctx.connection.fetch.register({
     path: `${ROUTE}/team-board.config.json`,
     methods: ['GET'],
+    requestBody: 'buffered',
     fetch: async () => new Response(JSON.stringify(teamBoardConfig(rt.home)), {
       status: 200,
       headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
@@ -899,6 +902,7 @@ export function install(rt) {
   ctx.effect(() => ctx.connection.fetch.register({
     path: `${ROUTE}/team-board.feed.json`,
     methods: ['GET'],
+    requestBody: 'buffered',
     fetch: async () => {
       let body
       try {

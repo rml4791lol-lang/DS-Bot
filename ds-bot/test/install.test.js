@@ -29,6 +29,14 @@ function start(state, { config = {}, services } = {}) {
   return { ctx, call, stop, rt, routes }
 }
 
+test('team board reads are buffered exact Fetch routes', (t) => {
+  const { routes, stop } = start()
+  t.after(stop)
+  for (const path of ['/api/bot/team-board.config.json', '/api/bot/team-board.feed.json']) {
+    assert.equal(routes.get(path)?.requestBody, 'buffered', `${path} must not reach the DSH bridge as a streaming GET`)
+  }
+})
+
 // Listeners run in registration order; the team tools are not in this list
 // because they are registered per Bot session scope, not globally.
 test('apply registers listeners and effects in a fixed order', (t) => {
