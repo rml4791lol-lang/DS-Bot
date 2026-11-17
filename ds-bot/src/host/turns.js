@@ -10,6 +10,7 @@ import { cleanText } from './diagnostics.js'
 import { absoluteLinks } from './links.js'
 import { splitRef, stripControlMarkers, textOf } from './text.js'
 import { viaOf } from '../shared/im-platforms.js'
+import { isIdleOnlyText } from '../shared/idle-text.js'
 import { reminderText } from './schedules.js'
 import { usageChunk } from './usage.js'
 
@@ -870,6 +871,7 @@ export function install(rt) {
       case 'turn/start':
         setActivity(id, 'thinking')
         entry.turn = event.data.turn
+        entry.triggerKind = undefined
         entry.since = event.time ?? Date.now()
         entry.lastEventAt = entry.since
         entry.texts = []
@@ -920,6 +922,7 @@ export function install(rt) {
         break
       case 'user/message': {
         const source = event.data?.source
+        if (entry.turn !== undefined && entry.triggerKind === undefined && typeof source?.kind === 'string') entry.triggerKind = source.kind
         rt.bindGoalAttempt?.(id, source, entry.turn)
         rt.bindWorkAttempt?.(id, source, entry.turn)
         if (source?.kind === 'subagent-settled' || source?.kind === 'agent-message') {
@@ -1145,8 +1148,10 @@ export function install(rt) {
         // A turn the plugin watched start. A turn/end replayed after a restart, whose
         // turn is settled from the Session's log, is not one (resume.js does that).
         const watched = entry.turn !== undefined
+        const triggerKind = entry.triggerKind
         entry.turn = undefined
         entry.info = undefined
+        entry.triggerKind = undefined
         entry.texts = []
         entry.shown = 0
         entry.step = undefined
@@ -1247,6 +1252,11 @@ export function install(rt) {
           return reply
         }
         const groupReply = () => rt.withRoomSteps?.(held, replyText()) ?? replyText()
+        const noOpReply = replyText()
+        const internalNoOp = failure === undefined && reason?.kind === 'completed' && !retry
+          && toolCount === 0 && !rt.groupOwners.has(id) && triggerKind !== undefined && triggerKind !== 'user'
+          && (noOpReply === '' || isIdleOnlyText(noOpReply))
+        if (internalNoOp && typeof event.data?.turn === 'number') markExchangeTurn(id, event.data.turn)
         // Whoever the turn answers gets the same three-way rule: a failure notice,
         // the turn's text (or a stopped-before-answer line), or nothing.
         const name = rt.botOf(rt.selfOf(id))?.name ?? 'The other Bot'

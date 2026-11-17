@@ -479,6 +479,31 @@ test('a joined request never claims the next turn', () => {
   assert.deepEqual(rt.state.exchangeTurns, {})
 })
 
+test('a scheduled turn that only reports no action is hidden', () => {
+  const { rt, emit } = turnsHost()
+  emit('b', 'turn/start', { turn: 1 })
+  emit('b', 'user/message', { content: textBlock('routine'), source: { kind: 'schedule' } })
+  emit('b', 'assistant/message', assistantText('（无动作）'))
+  emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.deepEqual(rt.state.exchangeTurns.b, [1])
+})
+
+test('a scheduled status-only turn is hidden, while the same reply to the user stays visible', () => {
+  const scheduled = turnsHost()
+  scheduled.emit('b', 'turn/start', { turn: 1 })
+  scheduled.emit('b', 'user/message', { content: textBlock('routine'), source: { kind: 'schedule' } })
+  scheduled.emit('b', 'assistant/message', assistantText('无新变化，本轮不报告'))
+  scheduled.emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.deepEqual(scheduled.rt.state.exchangeTurns.b, [1])
+
+  const user = turnsHost()
+  user.emit('b', 'turn/start', { turn: 1 })
+  user.emit('b', 'user/message', { content: textBlock('what changed?'), source: { kind: 'user' } })
+  user.emit('b', 'assistant/message', assistantText('无新变化，本轮不报告'))
+  user.emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.deepEqual(user.rt.state.exchangeTurns, {})
+})
+
 test('a schedule-started turn stays visible when a request joins', () => {
   const { rt, emit, delivered } = turnsHost()
   emit('b', 'turn/start', { turn: 1 })
