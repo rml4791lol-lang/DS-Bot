@@ -74,7 +74,7 @@ export class PendingCallCache {
   }
 }
 
-export const commandFromArguments = (argumentsText) => {
+const commandOf = (argumentsText) => {
   let args = argumentsText
   if (typeof argumentsText === 'string') {
     try {
@@ -85,36 +85,6 @@ export const commandFromArguments = (argumentsText) => {
   }
   const command = args?.command ?? args?.cmd ?? args?.script
   return typeof command === 'string' && command.trim() !== '' ? command.trim() : undefined
-}
-
-export function toolResultFacts({ event, command } = {}) {
-  const ok = event?.data?.message?.ok
-    ?? (event?.data?.message?.isError === false ? true : event?.data?.message?.isError === true ? false : undefined)
-  const exitCode = Number.isInteger(event?.data?.exitCode) ? event.data.exitCode
-    : Number.isInteger(event?.data?.message?.exitCode) ? event.data.message.exitCode
-      : Number.isInteger(event?.data?.meta?.exitCode) ? event.data.meta.exitCode
-        : Number.isInteger(event?.data?.message?.meta?.exitCode) ? event.data.message.meta.exitCode
-          : ok === true ? 0 : ok === false ? 1 : undefined
-  const output = contentText(event?.data?.message?.content)
-  const meta = event?.data?.meta ?? event?.data?.message?.meta
-  const diffs = Array.isArray(meta?.diffs) ? meta.diffs : []
-  const diffPaths = [...new Set(diffs.map(item => text(item.path)).filter(Boolean))].sort()
-  const hashableDiff = diffs.every(item => typeof item?.path === 'string' && item.path !== ''
-    && typeof item.oldText === 'string' && typeof item.newText === 'string')
-  return {
-    ok,
-    exitCode,
-    output,
-    command: command === undefined ? undefined : {
-      text: command,
-      ...(exitCode === undefined ? {} : { exitCode }),
-      outputDigest: digest(output),
-    },
-    diff: diffPaths.length === 0 ? undefined : {
-      paths: diffPaths,
-      ...(hashableDiff ? { digest: diffDigest(diffs) } : {}),
-    },
-  }
 }
 
 export function noteAttemptRecovery(record, { attemptId, info, sessionId, now = Date.now() } = {}) {
@@ -181,13 +151,25 @@ export function evidenceFromEvents({ sessionId, actor, events } = {}) {
       calls.set(text(event.data?.callId), {
         tool,
         arguments: text(event.data?.arguments),
-        command: COMMAND_TOOLS.has(tool) ? commandFromArguments(event.data?.arguments) : undefined,
+        command: COMMAND_TOOLS.has(tool) ? commandOf(event.data?.arguments) : undefined,
       })
     } else if (event?.type === 'tool/result') {
       const callId = text(event.data?.callId ?? event.data?.message?.toolCallId)
       const call = calls.get(callId)
       if (callId === '' || call === undefined) continue
-      const facts = toolResultFacts({ event, command: call.command })
+      const ok = event.data?.message?.ok
+        ?? (event.data?.message?.isError === false ? true : event.data?.message?.isError === true ? false : undefined)
+      const exitCode = Number.isInteger(event.data?.exitCode) ? event.data.exitCode
+        : Number.isInteger(event.data?.message?.exitCode) ? event.data.message.exitCode
+          : Number.isInteger(event.data?.meta?.exitCode) ? event.data.meta.exitCode
+            : Number.isInteger(event.data?.message?.meta?.exitCode) ? event.data.message.meta.exitCode
+          : ok === true ? 0 : ok === false ? 1 : undefined
+      const output = contentText(event.data?.message?.content)
+      const meta = event.data?.meta ?? event.data?.message?.meta
+      const diffs = Array.isArray(meta?.diffs) ? meta.diffs : []
+      const diffPaths = [...new Set(diffs.map(item => text(item.path)).filter(Boolean))].sort()
+      const hashableDiff = diffs.every(item => typeof item?.path === 'string' && item.path !== ''
+        && typeof item.oldText === 'string' && typeof item.newText === 'string')
       evidence.push({
         id: `ev:tool-result:${text(sessionId)}:${callId}`,
         state: 'executed',
@@ -196,9 +178,9 @@ export function evidenceFromEvents({ sessionId, actor, events } = {}) {
         source: 'tool-result',
         at: typeof event.time === 'number' ? event.time : null,
         actor,
-        summary: facts.output,
-        ...(facts.command === undefined ? {} : { command: facts.command }),
-        ...(facts.diff === undefined ? {} : { diff: facts.diff }),
+        summary: output,
+        ...(call.command === undefined ? {} : { command: { text: call.command, ...(exitCode === undefined ? {} : { exitCode }), outputDigest: digest(output) } }),
+        ...(diffPaths.length === 0 ? {} : { diff: { paths: diffPaths, ...(hashableDiff ? { digest: diffDigest(diffs) } : {}) } }),
         record: { sessionId, seq, callId, tool: call.tool },
       })
     } else if (event?.type === 'deliverables/presented') {

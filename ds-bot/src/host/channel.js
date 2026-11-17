@@ -75,7 +75,6 @@ export function install(rt) {
   const staged = new Map()
   const ok = value => ({ ok: true, value })
   const fail = (message, code = 'bot/error') => ({ ok: false, error: { code, message, details: {} } })
-  const readModelPayload = value => redactDeep(value, text => redactCredentialText(rt.redactSecrets?.(text) ?? text))
   // Models come from DSH, not state.json, so a provider added on the Models pages of Settings
   // changes the view without a new revision.
   const modelsKey = () => `${rt.cachedCatalog().map(entry => `${entry.ref}${entry.needsKey ? '!' : ''}${entry.reasoning ? `:${JSON.stringify(entry.reasoning)}` : ''}`).join(',')}|${rt.cachedDefault() ?? ''}`
@@ -409,7 +408,7 @@ export function install(rt) {
           return ok(await rt.usageView({ timeZone: typeof body.timeZone === 'string' ? body.timeZone.slice(0, 64) : undefined }))
         case 'team-activity': {
           await rt.load()
-          return ok(readModelPayload(teamActivitySnapshot()))
+          return ok(teamActivitySnapshot())
         }
         case 'task-detail': {
           await rt.load()
@@ -417,7 +416,7 @@ export function install(rt) {
           if (taskId === '') return fail('No task named', 'bot/invalid')
           const detail = await taskDetailFor(taskId)
           const payload = { ...detail, improvements: rt.improvementView?.(taskId) ?? { proposals: [], history: [] } }
-          return ok(readModelPayload(payload))
+          return ok(redactDeep(payload, value => redactCredentialText(rt.redactSecrets?.(value) ?? value)))
         }
         case 'room-progress': {
           // Any part id of the group's own Session means the group itself.

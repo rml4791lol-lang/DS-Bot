@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { DICTIONARY, LANGUAGES, dateLocale, hostText, installLocale, language, localText, t } from '../src/client/i18n.js'
+import { DICTIONARY, LANGUAGES, dateLocale, hostText, installLocale, language, t } from '../src/client/i18n.js'
 
 function fakeLocale(initial = 'zh') {
   let active = initial
@@ -66,22 +66,6 @@ test('every literal the client translates has an entry in all supported locales'
   assert.deepEqual(missing, [])
 })
 
-test('trace labels resolve in every supported locale', () => {
-  const keys = [
-    'Task request', 'Bot report', 'Tool call', 'Tool result', '{name} result', 'Artifacts presented',
-    'Completed', 'Failed', 'Session', 'Source', 'Task', 'Command', 'Exit code', 'Diff digest',
-  ]
-  const locales = ['zh', 'zh-TW', 'ja', 'ko', 'es', 'fr', 'de']
-  for (const locale of locales) {
-    const dictionary = DICTIONARY[locale]
-    for (const key of keys) {
-      assert.equal(typeof dictionary[key], 'string', `${locale} is missing ${key}`)
-      assert.notEqual(dictionary[key], '', `${locale} has an empty ${key}`)
-    }
-    assert.notDeepEqual(keys.map(key => dictionary[key]), keys, `${locale} leaves trace labels untranslated`)
-  }
-})
-
 test('copy follows the DSH language across all locales and stays English without a locale service', () => {
   assert.equal(t('Message {name}', { name: 'Chief' }), 'Message Chief')
   assert.equal(language(), 'en')
@@ -95,7 +79,6 @@ test('copy follows the DSH language across all locales and stays English without
     assert.equal(dateLocale(), 'zh-CN')
     assert.equal(t('Message {name}', { name: 'Chief' }), '给 Chief 发消息')
     assert.equal(t('Model'), '模型')
-    assert.equal(localText('Read-only'), '只读')
     assert.equal(hostText('A Bot named Writer already exists'), '已经有叫 Writer 的 Bot 了')
     assert.equal(hostText('The team needs at least one Main Bot'), '团队至少要有一个主 Bot')
     assert.equal(hostText('Something new'), 'Something new')
@@ -107,7 +90,6 @@ test('copy follows the DSH language across all locales and stays English without
     mock.setActive('zh-TW')
     assert.equal(dateLocale(), 'zh-TW')
     assert.equal(t('Settings'), '設定')
-    assert.equal(localText('Read-only'), '唯讀')
     assert.equal(hostText('There is no entry 9.'), '沒有第 9 條')
 
     for (const [loc, expectedDate] of [['ja', 'ja-JP'], ['ko', 'ko-KR'], ['es', 'es-ES'], ['fr', 'fr-FR'], ['de', 'de-DE']]) {

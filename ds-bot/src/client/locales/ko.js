@@ -1,18 +1,6 @@
 // Korean (ko) localization for DS Bot client and DSH settings namespaces.
 
 export const KO = {
-  'Failed': '실패',
-  'Task request': '작업 요청',
-  'Bot report': 'Bot 보고',
-  'Tool call': '도구 호출',
-  'Tool result': '도구 결과',
-  '{name} result': '{name} 결과',
-  'Artifacts presented': '제시된 산출물',
-  'Completed': '완료',
-  'Session': '세션',
-  'Command': '명령',
-  'Exit code': '종료 코드',
-  'Diff digest': '변경 내용 다이제스트',
   'Improvement proposals': '개선 제안',
   'Propose improvement': '개선 제안하기',
   'Reading verified evidence…': '검증된 근거를 읽는 중…',
@@ -256,10 +244,7 @@ export const KO = {
   'Team activity': '팀 활동',
   "Real tasks, handoffs, and recent activity": "실제 작업, 핸드오프 및 최근 활동",
   "Live data": "실시간 데이터",
-  "Preview data (not live)": "미리보기 데이터(실시간 아님)",
   "Demo data": "데모 데이터",
-  "Activity data is unavailable": "활동 데이터를 사용할 수 없습니다",
-  "This activity view is read-only": "이 활동 보기는 읽기 전용입니다",
   "Waiting": "대기 중",
   "No team activity yet. Real records appear here once Bots start working.": "아직 팀 활동이 없습니다. Bot이 작업을 시작하면 실제 기록이 여기에 표시됩니다.",
   "Activity": "활동",
@@ -321,7 +306,6 @@ export const KO = {
   "Could not refresh this task. Showing the last good detail.": "이 작업을 새로 고치지 못했습니다. 마지막 정상 세부 정보를 표시합니다.",
   "This task is no longer available.": "이 작업은 더 이상 없습니다.",
   "Task detail could not be read.": "작업 세부 정보를 읽지 못했습니다.",
-  "Task detail data mode does not match the team activity data.": "작업 세부 정보의 데이터 모드가 팀 활동과 일치하지 않습니다.",
   "Pause goal": "목표 일시 중지",
   "Resume goal": "목표 재개",
   "Stop goal": "목표 중지",
@@ -406,6 +390,7 @@ export const KO = {
   Connection: '연결 방식',
   'Local command': '로컬 명령',
   'HTTP server': 'HTTP 서버',
+  Command: '명령어',
   'Arguments (one per line)': '인수 (줄당 하나씩)',
   'Environment (JSON)': '환경 변수 (JSON)',
   '{"API_KEY": "$DSH_SECRET_MY_KEY"}': '{"API_KEY": "$DSH_SECRET_MY_KEY"}',
@@ -1777,6 +1762,7 @@ export const KO = {
   'Bcc': '숨은 참조',
   'Attachments: {names}': '첨부파일: {names}',
   'Sent': '전송됨',
+  'Failed': '실패',
 
   // Host static strings (HOST_ZH)
   'Request failed': '요청 실패',

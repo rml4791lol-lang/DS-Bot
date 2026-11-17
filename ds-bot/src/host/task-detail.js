@@ -1,8 +1,5 @@
 // A selected-task read projection over the goal task or open work DS Bot already keeps.
 // Session records are supplied by the channel; this module only joins and labels them.
-import { isLiveDataMode, resolveDataMode } from '../shared/data-mode.js'
-import { evidenceForRecord, normalizeEvidenceTrust, projectTaskVerification } from './task-verification.js'
-import { traceFor } from './task-trace.js'
 
 const text = value => (value === undefined || value === null ? '' : String(value))
 const timeOf = value => {
@@ -26,6 +23,144 @@ export const redactCredentialText = (value) => {
 
 const redactText = value => redactCredentialText(value).slice(0, 1200)
 
+const contentText = (content) => {
+  if (!Array.isArray(content)) return ''
+  return content.map(block => typeof block?.text === 'string' ? block.text : '').filter(Boolean).join('\n')
+}
+
+function eventTaskMatch(event, task, raw) {
+  const data = event?.data ?? {}
+  const source = data.source ?? {}
+  const refs = new Set([
+    data.taskId, data.goalTaskId, data.sourceId,
+    source.taskId, source.goalTaskId, source.sourceId,
+  ].map(text).filter(Boolean))
+  const goalId = text(source.goalId ?? data.goalId)
+  const stageId = text(source.stageId ?? data.stageId)
+  const taskId = text(source.taskId ?? data.taskId)
+  if (goalId && stageId && taskId) refs.add(`goal:${goalId}:${stageId}:${taskId}`)
+  const attemptExchange = text(raw?.task?.attempt?.exchangeId ?? raw?.work?.attempt?.exchangeId)
+  const matchesAttempt = attemptExchange !== '' && [source.exchangeId, data.exchangeId].some(value => text(value) === attemptExchange)
+  if (task.source === 'handoff') {
+    const workId = text(raw?.id)
+    for (const value of [data.workId, source.workId, source.work, data.work, source.exchangeId, data.exchangeId]) {
+      if (text(value) === workId) refs.add(workId)
+    }
+  }
+  return matchesAttempt || refs.has(task.sourceId) || refs.has(task.id)
+}
+
+function traceFor({ records, task, raw }) {
+  const traceRecords = []
+  const traceEvidence = []
+  const artifacts = []
+  const sessionIds = []
+  let truncated = false
+  const calls = new Map()
+  for (const page of Array.isArray(records) ? records : []) {
+    if (!page || typeof page !== 'object' || !Array.isArray(page.events)) continue
+    const sessionId = text(page.sessionId)
+    if (!sessionId) continue
+    if (page.hasMore === true) truncated = true
+    const matchedTurns = new Set()
+    let currentTurn
+    for (const event of page.events) {
+      if (event?.type === 'turn/start' && Number.isInteger(event.data?.turn)) currentTurn = event.data.turn
+      else if (Number.isInteger(event?.data?.turn)) currentTurn = event.data.turn
+      if (Number.isInteger(currentTurn) && eventTaskMatch(event, task, raw)) matchedTurns.add(currentTurn)
+    }
+    if (matchedTurns.size === 0) continue
+    sessionIds.push(sessionId)
+    currentTurn = undefined
+    for (const event of page.events) {
+      if (event?.type === 'turn/start' && Number.isInteger(event.data?.turn)) currentTurn = event.data.turn
+      else if (Number.isInteger(event?.data?.turn)) currentTurn = event.data.turn
+      if (!Number.isInteger(currentTurn) || !matchedTurns.has(currentTurn)) continue
+      const data = event.data ?? {}
+      const seq = Number.isInteger(event.seq) ? event.seq : null
+      const id = `trace:${sessionId}:${seq ?? traceRecords.length + 1}`
+      let type = event.type
+      let trust = 'reported'
+      let title = ''
+      let detail = ''
+      let artifact = null
+      if (type === 'user/message') {
+        title = 'Task request'
+        detail = redactText(contentText(data.content))
+      } else if (type === 'assistant/message') {
+        title = 'Bot report'
+        detail = redactText(contentText(data.message?.content))
+      } else if (type === 'tool/call') {
+        trust = 'requested'
+        title = text(data.name) || 'Tool call'
+        detail = redactText(data.arguments)
+        if (data.callId !== undefined) calls.set(text(data.callId), { name: title, detail })
+      } else if (type === 'tool/result') {
+        trust = 'executed'
+        const callId = text(data.message?.toolCallId)
+        const call = calls.get(callId)
+        title = call?.name ? `${call.name} result` : 'Tool result'
+        const result = redactText(contentText(data.message?.content))
+        detail = [call?.detail, data.message?.ok === false ? 'failed' : 'completed', result].filter(Boolean).join(' · ')
+      } else if (type === 'deliverables/presented') {
+        trust = 'executed'
+        const files = Array.isArray(data.files) ? data.files.filter(file => typeof file?.path === 'string') : []
+        title = 'Artifacts presented'
+        detail = files.map(file => file.path).join(', ')
+        for (const file of files) {
+          artifact = { path: file.path, name: text(file.name) || file.path.split(/[\\/]/).pop(), digest: text(file.digest) || null, trust: 'executed' }
+          artifacts.push({ ...artifact, at: event.time ?? null, sourceId: `${id}:artifact` })
+        }
+      } else {
+        continue
+      }
+      const relatedEvidenceId = type === 'assistant/message' || type === 'tool/result'
+        ? `${id}:${trust}`
+        : type === 'deliverables/presented' ? `${id}:artifact` : null
+      const record = {
+        id, type, trust, title, detail,
+        at: timeOf(event.time),
+        turn: currentTurn,
+        actor: type === 'assistant/message' ? task.ownerName : null,
+        sessionId, seq,
+        sourceTaskId: task.id,
+        sourceId: task.sourceId,
+        relatedEvidenceId,
+        ...(artifact ? { artifact } : {}),
+      }
+      traceRecords.push(record)
+      if (relatedEvidenceId !== null && detail !== '') {
+        traceEvidence.push({
+          id: relatedEvidenceId,
+          trust,
+          title,
+          text: detail,
+          at: record.at,
+          sourceId: `${sessionId}:${seq}`,
+          artifact,
+        })
+      }
+    }
+  }
+  return {
+    trace: {
+      status: traceRecords.length > 0 ? 'ready' : 'empty',
+      sourceTaskId: task.id,
+      sourceId: task.sourceId,
+      sessionIds,
+      relationships: [
+        { from: task.sourceId, to: task.sourceId, kind: 'task-source', label: 'source' },
+        ...sessionIds.map(sessionId => ({ from: task.sourceId, to: sessionId, kind: 'task-session', label: 'session' })),
+        ...sessionIds.map(sessionId => ({ from: sessionId, to: task.id, kind: 'session-task', label: 'task' })),
+      ],
+      timeline: traceRecords,
+      records: traceRecords,
+      truncated,
+    },
+    evidence: traceEvidence,
+    artifacts,
+  }
+}
 
 function goalRecord(state, sourceId) {
   for (const room of Object.values(state?.rooms ?? {})) {
@@ -72,6 +207,86 @@ function handoffsFor(state, task) {
       ]),
     }]
   }).sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0) || a.id.localeCompare(b.id))
+}
+
+function evidenceItem(item, taskId, index) {
+  if (typeof item === 'string') {
+    return { id: `${taskId}:evidence:${index}`, trust: 'reported', text: redactText(item), at: null, sourceId: taskId, artifact: null }
+  }
+  if (!item || typeof item !== 'object') return undefined
+  const declared = text(item.trust ?? item.kind).toLowerCase()
+  const trust = ['reported', 'executed', 'verified'].includes(declared) ? declared : 'reported'
+  return {
+    id: text(item.id) || `${taskId}:evidence:${index}`,
+    trust,
+    title: redactText(item.title),
+    text: redactText(item.text ?? item.summary),
+    at: timeOf(item.at ?? item.time),
+    sourceId: text(item.sourceId ?? item.source) || taskId,
+    artifact: item.artifact && typeof item.artifact === 'object' ? {
+      path: text(item.artifact.path),
+      name: text(item.artifact.name) || text(item.artifact.path).split(/[\\/]/).pop(),
+      digest: text(item.artifact.digest) || null,
+    } : null,
+    stale: item.stale === true,
+  }
+}
+
+function verificationFor(raw, evidence) {
+  const declared = raw?.task?.verification ?? raw?.work?.verification
+  if (!declared || typeof declared !== 'object') {
+    return {
+      evidence: evidence.map(item => item.trust === 'verified' ? { ...item, trust: 'reported' } : item),
+      verification: { status: 'pending', reason: 'No fresh acceptance verification is attached to this task.' },
+    }
+  }
+  const ids = new Set(Array.isArray(declared.evidenceIds) ? declared.evidenceIds.map(text) : [])
+  const bound = new Set(evidence.filter(item => ids.has(item.id) && item.trust === 'verified' && item.stale !== true && (declared.verifiedAt === undefined || item.at === null || item.at <= timeOf(declared.verifiedAt))).map(item => item.id))
+  const normalized = evidence.map(item => item.trust === 'verified' && !bound.has(item.id) ? { ...item, trust: 'reported' } : item)
+  const checks = Array.isArray(declared.checks) ? declared.checks : []
+  const checksPass = checks.every(check => check?.status === 'verified' && (check.evidenceId === undefined || bound.has(text(check.evidenceId))))
+  const declaredStatus = declared.status ?? declared.state
+  if (declaredStatus === 'stale') {
+    return {
+      evidence: evidence.map(item => item.trust === 'verified' ? { ...item, trust: 'reported' } : item),
+      verification: { status: 'stale', reason: redactText(declared.reason) || 'The verified artifact changed after acceptance.' },
+    }
+  }
+  if (declaredStatus === 'needs-review') {
+    return {
+      evidence: normalized,
+      verification: { status: 'needs-review', reason: redactText(declared.reason) || 'The task needs review before acceptance.' },
+    }
+  }
+  if (declaredStatus === 'verified' && bound.size > 0 && checksPass) {
+    return { evidence: normalized, verification: { status: 'verified', reason: redactText(declared.reason) || 'All declared acceptance checks are bound to fresh evidence.' } }
+  }
+  return { evidence: normalized, verification: { status: 'pending', reason: redactText(declared.reason) || 'Acceptance verification is not bound to fresh evidence.' } }
+}
+
+function evidenceFor(raw, taskId) {
+  const evidence = []
+  if (raw?.stage?.evidence) {
+    evidence.push({
+      id: `goal:${text(raw.goal?.id)}:${text(raw.stage?.id)}:stage-evidence`,
+      trust: 'reported',
+      title: '',
+      text: redactText(raw.stage.evidence),
+      at: timeOf(raw.stage.passedAt),
+      sourceId: `goal:${text(raw.goal?.id)}:${text(raw.stage?.id)}`,
+      artifact: null,
+    })
+  }
+  const declared = raw?.task?.evidence ?? raw?.work?.evidence
+  if (Array.isArray(declared)) {
+    for (const [index, item] of declared.entries()) {
+      const normalized = evidenceItem(item, taskId, index)
+      if (normalized !== undefined) evidence.push(normalized)
+    }
+  } else if (typeof declared === 'string' && declared !== '') {
+    evidence.push(evidenceItem(declared, taskId, 0))
+  }
+  return evidence
 }
 
 function artifactsFor(raw, evidence) {
@@ -302,11 +517,10 @@ function blockersFor(raw, task) {
 // splitting them would make the detail response contract harder to follow.
 export function buildTaskDetail({ state, activity, taskId, records = [], sourceWarnings = [], liveSessionIds = [], readOnly, now = Date.now() } = {}) {
   const at = Number.isFinite(now) ? now : Date.now()
-  const dataMode = resolveDataMode(activity)
   const activityTask = (activity?.tasks ?? []).find(task => task.id === taskId)
   if (activityTask === undefined) {
     return {
-      schema: 1, dataMode, generatedAt: at, taskId, task: null, empty: true,
+      schema: 1, mode: activity?.mode ?? 'live', generatedAt: at, taskId, task: null, empty: true,
       evidence: [], artifacts: [], handoffs: [], blockers: [], controls: [],
       verification: { status: 'unavailable', reason: 'The selected task is no longer present.' },
       trace: { status: 'empty', sourceTaskId: taskId, sourceId: taskId, sessionIds: [], relationships: [], timeline: [], records: [], truncated: false },
@@ -314,23 +528,19 @@ export function buildTaskDetail({ state, activity, taskId, records = [], sourceW
     }
   }
   const raw = activityTask.source === 'goal' ? goalRecord(state, activityTask.sourceId) : workRecord(state, activityTask.sourceId)
-  const traceParts = traceFor({ records, task: activityTask, raw, redactText })
-  const sourceEvidence = evidenceForRecord(raw, activityTask.id, redactText)
-  const projected = projectTaskVerification(raw, sourceEvidence)
-  const evidence = normalizeEvidenceTrust([...projected.evidence, ...traceParts.evidence], projected.verification)
-  const nonLive = !isLiveDataMode(dataMode)
-  const nonLiveReason = dataMode === 'preview' ? 'Preview data is not verification.'
-    : dataMode === 'demo' ? 'Demo data is not verification.'
-      : 'Data mode is unavailable, so verification cannot be trusted.'
-  const verification = nonLive ? { status: 'unavailable', reason: nonLiveReason } : projected.verification
+  const traceParts = traceFor({ records, task: activityTask, raw })
+  const checked = verificationFor(raw, [...evidenceFor(raw, activityTask.id), ...traceParts.evidence])
+  const evidence = checked.evidence
+  const demo = (activity?.mode ?? 'live') !== 'live'
+  const verification = demo ? { status: 'unavailable', reason: 'Demo data is not verification.' } : checked.verification
   const artifacts = mergedArtifacts([...artifactsFor(raw, evidence), ...traceParts.artifacts])
   const blockers = blockersFor(raw, activityTask)
   const recovery = recoveryFor(raw)
   const recoveryNeeded = recovery.state === 'needs-review'
   const hasSourceWarning = Array.isArray(sourceWarnings) && sourceWarnings.length > 0
   const trace = hasSourceWarning || recoveryNeeded ? { ...traceParts.trace, status: 'partial' } : traceParts.trace
-  const controls = controlsFor({ state, raw, task: activityTask, liveSessionIds, readOnly }).map(control => nonLive
-    ? { ...control, enabled: false, reason: 'Non-live data is read-only.' }
+  const controls = controlsFor({ state, raw, task: activityTask, liveSessionIds, readOnly }).map(control => demo
+    ? { ...control, enabled: false, reason: 'Demo data is read-only.' }
     : control)
   const safeTask = {
     ...activityTask,
@@ -344,7 +554,7 @@ export function buildTaskDetail({ state, activity, taskId, records = [], sourceW
   }
   return {
     schema: 1,
-    dataMode,
+    mode: activity?.mode ?? 'live',
     generatedAt: at,
     taskId,
     task: safeTask,
@@ -365,7 +575,6 @@ export function buildTaskDetail({ state, activity, taskId, records = [], sourceW
     nextAction: nextActionFor(raw, activityTask),
     blockers,
     evidence,
-    evidenceState: projected.evidenceState,
     artifacts,
     handoffs: handoffsFor(state, activityTask),
     verification,
