@@ -84,5 +84,5 @@ export function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useA
     menu ? createPortal(h(ContextMenu, { key: `${menu.kind ?? ''}:${menu.id}:${menu.x}:${menu.y}`, menu, roster, actions, useWork, leaving: menuLeaving }), document.body) : null,
     settings ? createPortal(h(SettingsDialog, { page: settings.page, id: settings.id, roster, actions, useUpdate, leaving: settingsLeaving }), document.body) : null,
     owner ? createPortal(h(MemoryDialog, { key: owner.id, owner, actions, leaving: memoryLeaving }), document.body) : null,
-    teamActivity ? createPortal(h(TeamActivity, { roster, actions, onClose: actions.closeTeamActivity, leaving: teamActivityLeaving }), document.body) : null)
+    teamActivity ? createPortal(h(TeamActivity, { roster, onClose: actions.closeTeamActivity, leaving: teamActivityLeaving }), document.body) : null)
 }

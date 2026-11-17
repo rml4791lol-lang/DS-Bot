@@ -1,6 +1,18 @@
 // German (de) localization for DS Bot client and DSH settings namespaces.
 
 export const DE = {
+  'Task request': 'Aufgabenanfrage',
+  'Bot report': 'Bot-Bericht',
+  'Tool call': 'Tool-Aufruf',
+  'Tool result': 'Tool-Ergebnis',
+  '{name} result': 'Ergebnis von {name}',
+  'Artifacts presented': 'Präsentierte Artefakte',
+  'Completed': 'Abgeschlossen',
+  'Failed': 'Fehlgeschlagen',
+  'Session': 'Sitzung',
+  'Command': 'Befehl',
+  'Exit code': 'Exit-Code',
+  'Diff digest': 'Diff-Digest',
   'Improvement proposals': 'Verbesserungsvorschläge',
   'Propose improvement': 'Verbesserung vorschlagen',
   'Reading verified evidence…': 'Verifizierte Nachweise werden gelesen…',
@@ -244,7 +256,10 @@ export const DE = {
   'Team activity': 'Teamaktivität',
   "Real tasks, handoffs, and recent activity": "Reale Aufgaben, Übergaben und aktuelle Aktivität",
   "Live data": "Live-Daten",
+  "Preview data (not live)": "Vorschaudaten (nicht live)",
   "Demo data": "Demodaten",
+  "Activity data is unavailable": "Aktivitätsdaten sind nicht verfügbar",
+  "This activity view is read-only": "Diese Aktivitätsansicht ist schreibgeschützt",
   "Active": "Aktiv",
   "Waiting": "Wartend",
   "No team activity yet. Real records appear here once Bots start working.": "Noch keine Teamaktivität. Sobald Bots mit der Arbeit beginnen, erscheinen hier echte Einträge.",
@@ -308,6 +323,7 @@ export const DE = {
   "Could not refresh this task. Showing the last good detail.": "Diese Aufgabe konnte nicht aktualisiert werden. Die letzten guten Details werden angezeigt.",
   "This task is no longer available.": "Diese Aufgabe ist nicht mehr verfügbar.",
   "Task detail could not be read.": "Aufgabendetails konnten nicht gelesen werden.",
+  "Task detail data mode does not match the team activity data.": "Der Datenmodus der Aufgabendetails stimmt nicht mit der Teamaktivität überein.",
   "Pause goal": "Ziel pausieren",
   "Resume goal": "Ziel fortsetzen",
   "Stop goal": "Ziel stoppen",
@@ -392,7 +408,6 @@ export const DE = {
   Connection: 'Verbindung',
   'Local command': 'Lokaler Befehl',
   'HTTP server': 'HTTP-Server',
-  Command: 'Befehl',
   'Arguments (one per line)': 'Argumente (eines pro Zeile)',
   'Environment (JSON)': 'Umgebungsvariablen (JSON)',
   '{"API_KEY": "$DSH_SECRET_MY_KEY"}': '{"API_KEY": "$DSH_SECRET_MY_KEY"}',
@@ -1764,7 +1779,6 @@ export const DE = {
   'Bcc': 'Bcc',
   'Attachments: {names}': 'Anhänge: {names}',
   'Sent': 'Gesendet',
-  'Failed': 'Fehlgeschlagen',
 
   // HOST_ZH + lines 1601-1653
   'Request failed': 'Anfrage fehlgeschlagen',
