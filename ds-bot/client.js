@@ -16379,7 +16379,7 @@ function teamActions({ call: call2, after, partFor, roster, ui, live, cards, hel
     },
     openSettings,
     openTeamOverview: () => {
-      ui.set((state) => ({ ...state, teamOverview: true, details: null, view: "details", renaming: false, tab: null, side: null, newChat: null, exchange: null, menu: null, palette: null, groupSearch: null, settings: null, memory: null }));
+      ui.set((state) => ({ ...state, teamOverview: true, teamActivity: false, details: null, view: "details", renaming: false, tab: null, side: null, newChat: null, exchange: null, menu: null, palette: null, groupSearch: null, settings: null, memory: null }));
     },
     closeTeamOverview: () => {
       ui.set((state) => state.teamOverview ? { ...state, teamOverview: false } : state);
@@ -16395,7 +16395,7 @@ function teamActions({ call: call2, after, partFor, roster, ui, live, cards, hel
       ui.set((state) => ({ ...state, teamOverview: false, memory: id, menu: null, palette: null }));
     },
     openTeamActivity: () => {
-      ui.set((state) => ({ ...state, teamActivity: true, menu: null, palette: null, newChat: null }));
+      ui.set((state) => ({ ...state, teamActivity: true, teamOverview: false, menu: null, palette: null, newChat: null }));
     },
     closeTeamActivity: () => {
       ui.set((state) => state.teamActivity ? { ...state, teamActivity: false } : state);

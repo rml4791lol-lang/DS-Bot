@@ -58,6 +58,18 @@ test('the details status line asks the host for one Bot\'s current part', async 
   assert.equal(pulls(), 0)
 })
 
+test('team overview and team activity are mutually exclusive dialogs', () => {
+  const { actions, ui } = bench()
+  actions.openTeamOverview()
+  assert.equal(ui.getSnapshot().teamOverview, true)
+  actions.openTeamActivity()
+  assert.equal(ui.getSnapshot().teamOverview, false)
+  assert.equal(ui.getSnapshot().teamActivity, true)
+  actions.openTeamOverview()
+  assert.equal(ui.getSnapshot().teamOverview, true)
+  assert.equal(ui.getSnapshot().teamActivity, false)
+})
+
 test('team activity opens as a read-only dialog and closes without changing the team', () => {
   const { actions, ui, pulls } = bench()
   actions.openTeamActivity()
