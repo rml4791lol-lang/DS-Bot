@@ -26,6 +26,7 @@ import { BtwCardView } from './btw.js'
 import { partIndexOf, withBtwRows } from './btw-model.js'
 import { ViaTag } from './user-message.js'
 import { layoutOf, thinkingShown } from './themes.js'
+import { isAcknowledgementOnlyText } from '../shared/idle-text.js'
 
 export { clockLabel }
 
@@ -258,17 +259,26 @@ function useFileMentions({ node, openFile, fileMentions, useTurnData }) {
   }, [fileMentions, openFile, seq, tail, turn])
 }
 
-export function AssistantCell({ node, groupPart, sessionId, openFile, fileMentions, useTurnData, useRoster, useUi, useTurnSteps, useTurnContext, actions }) {
+export function AssistantCell({ node, groupPart, sessionId, openFile, fileMentions, useTurnData, useRoster, useUi, useTurnSteps, useTurnContext, useTurnClock, turnProcess, actions }) {
   const roster = useRoster(value => value)
   const data = node.data
   const steps = useTurnSteps(String(data.turn))
   const contexts = useTurnContext(String(data.turn))
   const mentions = useFileMentions({ node, openFile, fileMentions, useTurnData })
-  const hidden = Boolean(roster.roomsById[sessionId]) || isHiddenTurn(roster, sessionId, data.turn)
   const texts = groupPart === 'reasoning' ? [] : data.blocks
     .filter(block => block.kind === 'text')
     .map(block => stripInternalText(stripToolCallTags(block.text)))
     .filter(text => text.trim() !== '')
+  const triggerKind = useTurnClock?.(state => state[sessionId]?.[data.turn]?.trigger)
+  // A scheduled turn that did no tool work and produced only an idle line is
+  // automation plumbing, not a reply. The trigger cell notes the source before
+  // paint, and DSH's process spec supplies the tool count for the same rule as
+  // the host-side exchange filter. A user-triggered no-change answer stays.
+  const idleOnly = texts.length > 0
+    ? texts.every(isAcknowledgementOnlyText)
+    : turnProcess?.spec?.toolCallCount === 0
+  const scheduledNoOp = data.status !== 'running' && triggerKind === 'schedule' && idleOnly
+  const hidden = Boolean(roster.roomsById[sessionId]) || isHiddenTurn(roster, sessionId, data.turn) || scheduledNoOp
   const running = data.status === 'running'
   const textInteractionSource = data.status === 'settled' && data.finalNode?.messageId !== undefined
   const members = steps.length ? steps : [data]
@@ -698,7 +708,8 @@ export function TriggerCell({ node, sessionId, useRoster, useSessions, useTurnCl
   // Noted before paint so a folded line never flashes in before its run's first line.
   useLayoutEffect(() => {
     if (relayed) actions.noteTurnPeer(sessionId, turn, source.senderSessionId)
-  }, [relayed, sessionId, turn, source.senderSessionId])
+    if (source.kind === 'schedule' && Number.isFinite(turn)) actions.noteTurnTrigger?.(sessionId, turn, 'schedule')
+  }, [relayed, sessionId, turn, source.senderSessionId, source.kind])
   const order = useSessions((list) => {
     const outline = list.projectionsBySession?.[sessionId]?.values?.turnOutline ?? list.byId[sessionId]?.projectionValues?.turnOutline
     return Array.isArray(outline) ? outline.map(entry => entry.turn).join(',') : ''

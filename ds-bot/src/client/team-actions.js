@@ -293,6 +293,15 @@ export function teamActions({ call, after, partFor, roster, ui, live, cards, hel
         return { ...state, [sessionId]: { ...turns, [turn]: { ...entry, peer: peerId } } }
       })
     },
+    noteTurnTrigger: (sessionId, turn, trigger) => {
+      if (sessionId === undefined || !Number.isFinite(turn) || trigger === undefined) return
+      turnClock.set((state) => {
+        const turns = state[sessionId] ?? {}
+        const entry = turns[turn] ?? {}
+        if (entry.trigger === trigger) return state
+        return { ...state, [sessionId]: { ...turns, [turn]: { ...entry, trigger } } }
+      })
+    },
     noteLive: (sessionId, id, entry) => {
       if (sessionId === undefined) return
       live.set((state) => {

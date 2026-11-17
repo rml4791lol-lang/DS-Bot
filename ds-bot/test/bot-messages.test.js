@@ -389,18 +389,25 @@ const replySource = (role, extra = {}) => ({ kind: SOURCE_KIND, role, senderSess
 const textBlock = (content) => [{ type: 'text', text: content }]
 const assistantText = text => ({ message: { content: textBlock(text) } })
 
-test('a stopped notice routes the acknowledgement back like a request', () => {
+test('an idle acknowledgement to a stopped notice does not wake the sender', () => {
   const { rt, emit, delivered } = turnsHost()
   emit('b', 'turn/start', { turn: 1 })
   emit('b', 'user/message', { content: textBlock('[Stopped by Chief]\nwhy'), source: replySource('stopped', { exchangeId: 's1' }) })
   assert.deepEqual(rt.state.exchangeTurns.b, [1])
   emit('b', 'assistant/message', assistantText('understood'))
   emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
-  assert.equal(delivered.length, 1)
-  assert.equal(delivered[0].toId, 'a')
-  assert.equal(delivered[0].role, 'reply')
-  assert.equal(delivered[0].replyTo, 's1')
-  assert.equal(delivered[0].text, 'understood')
+  assert.deepEqual(delivered, [])
+  assert.deepEqual(rt.state.exchangeTurns.b, [1])
+})
+
+test('a request answered only with an acknowledgement does not wake its sender', () => {
+  const { rt, emit, delivered } = turnsHost()
+  emit('b', 'turn/start', { turn: 1 })
+  emit('b', 'user/message', { content: textBlock('[Message from Chief]\ntask'), source: replySource('request', { exchangeId: 'e0' }) })
+  emit('b', 'assistant/message', assistantText('收到'))
+  emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.deepEqual(delivered, [])
+  assert.deepEqual(rt.state.exchangeTurns.b, [1])
 })
 
 // What the turn hands back for a joined request: the request itself, to answer next.
@@ -486,6 +493,34 @@ test('a scheduled turn that only reports no action is hidden', () => {
   emit('b', 'assistant/message', assistantText('（无动作）'))
   emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
   assert.deepEqual(rt.state.exchangeTurns.b, [1])
+})
+
+test('a scheduled "this turn has no change" acknowledgement is hidden after inbox work', () => {
+  const { rt, emit } = turnsHost()
+  emit('b', 'turn/start', { turn: 1 })
+  emit('b', 'user/message', { content: textBlock('routine'), source: { kind: 'schedule' } })
+  emit('b', 'tool/call', { turn: 1, callId: 'read', name: 'read_inbox' })
+  emit('b', 'assistant/message', assistantText('（本轮无新变化，不输出内容。）'))
+  emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.deepEqual(rt.state.exchangeTurns.b, [1])
+})
+
+test('a scheduled message written before turn/start is still hidden as a no-op', () => {
+  const { rt, emit } = turnsHost()
+  emit('b', 'user/message', { content: textBlock('routine'), source: { kind: 'schedule' } })
+  emit('b', 'turn/start', { turn: 1 })
+  emit('b', 'assistant/message', assistantText('（无动作）'))
+  emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.deepEqual(rt.state.exchangeTurns.b, [1])
+})
+
+test('a scheduled completion word is not treated as a no-op', () => {
+  const { rt, emit } = turnsHost()
+  emit('b', 'turn/start', { turn: 1 })
+  emit('b', 'user/message', { content: textBlock('routine'), source: { kind: 'schedule' } })
+  emit('b', 'assistant/message', assistantText('done'))
+  emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.deepEqual(rt.state.exchangeTurns, {})
 })
 
 test('a scheduled status-only turn is hidden, while the same reply to the user stays visible', () => {

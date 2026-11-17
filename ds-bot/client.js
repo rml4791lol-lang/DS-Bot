@@ -16639,6 +16639,15 @@ function teamActions({ call: call2, after, partFor, roster, ui, live, cards, hel
         return { ...state, [sessionId]: { ...turns, [turn]: { ...entry, peer: peerId } } };
       });
     },
+    noteTurnTrigger: (sessionId, turn, trigger) => {
+      if (sessionId === void 0 || !Number.isFinite(turn) || trigger === void 0) return;
+      turnClock.set((state) => {
+        const turns = state[sessionId] ?? {};
+        const entry = turns[turn] ?? {};
+        if (entry.trigger === trigger) return state;
+        return { ...state, [sessionId]: { ...turns, [turn]: { ...entry, trigger } } };
+      });
+    },
     noteLive: (sessionId, id, entry) => {
       if (sessionId === void 0) return;
       live.set((state) => {
@@ -28608,6 +28617,55 @@ var USER_MESSAGE_CSS = `
 .bt-umsg:hover .bt-utools,.bt-umsg:focus-within .bt-utools{opacity:1;visibility:visible}
 `;
 
+// src/shared/idle-text.js
+var ACK_WORDS = "收到|好的|好|明白|明白了|了解|了解了|没问题|谢谢|多谢|感谢|辛苦了|辛苦|不客气|不用谢|好嘞|行|got\\s+it|understood|noted|thanks|thank\\s+you|you\\s+are\\s+welcome|you're\\s+welcome|welcome|np|no\\s+problem|roger|ack";
+var IDLE_ACK_WORDS = `${ACK_WORDS}|ok|okay`;
+var IDLE_CLOSING_WORDS = "完毕|完成|done|all\\s+good|sounds\\s+good";
+var IDLE_STATUS_WORDS = [
+  "(?:收口)?(?:当前|目前|今日|今天|本轮|本次)*(?:暂无|没有|无)+(?:待办|任务|新进展|新内容|新变化|进展|动作|变化|安排|操作|内容)",
+  "(?:本轮|本次)*(?:不|无需)(?:输出|报告|回复)(?:任何)?(?:内容|文字|消息)?",
+  "待命",
+  "保持待命",
+  "继续待命",
+  "原地待命",
+  "静候",
+  "静候下一步",
+  "静候指令",
+  "等候指令",
+  "等待指令",
+  "等待指示",
+  "等待下一步",
+  "等待安排",
+  "等待新任务",
+  "无事可做",
+  "空转",
+  "(?:本轮|本次)(?:不报告|无变化|无更新)",
+  "standby",
+  "standing\\s+by",
+  "idle",
+  "nothing\\s+(?:pending|to\\s+do|new)",
+  "nothing\\s+to\\s+report(?:\\s+this\\s+turn)?",
+  "no\\s+pending\\s+(?:tasks?|work)",
+  "no\\s+new\\s+(?:work|tasks?|progress|updates?)",
+  "no\\s+changes?(?:\\s+this\\s+turn)?",
+  "no\\s+updates?(?:\\s+this\\s+turn)?",
+  "no\\s+action(?:\\s+needed)?",
+  "this\\s+turn\\s+(?:has\\s+)?no\\s+(?:action|changes?|updates?)",
+  "waiting\\s+for\\s+(?:instructions?|the\\s+next\\s+steps?)"
+].join("|");
+var IDLE_BODY = new RegExp(`^(?:(?:${IDLE_ACK_WORDS}|${IDLE_CLOSING_WORDS}|${IDLE_STATUS_WORDS})(?:[\\s，,、。.!！~～：:；;]+|$))+$`, "i");
+var ACK_BODY = new RegExp(`^(?:(?:${ACK_WORDS}|${IDLE_STATUS_WORDS})(?:[\\s，,、。.!！~～：:；;]+|$))+$`, "i");
+var IDLE_TEXT_MAX = 45;
+var normalizeIdleText = (text) => String(text ?? "").replace(/[\s，,、。.!！?？;；:：'"“”‘’()（）[\]【】~～-]+/g, " ").trim().toLowerCase();
+var isIdleOnlyText = (text) => {
+  const normalized = normalizeIdleText(text);
+  return normalized !== "" && normalized.length <= IDLE_TEXT_MAX && IDLE_BODY.test(normalized);
+};
+var isAcknowledgementOnlyText = (text) => {
+  const normalized = normalizeIdleText(text);
+  return normalized !== "" && normalized.length <= IDLE_TEXT_MAX && ACK_BODY.test(normalized);
+};
+
 // src/client/cells.js
 var import_react32 = require("react");
 var import_react_dom3 = require("react-dom");
@@ -28867,14 +28925,17 @@ function useFileMentions({ node, openFile, fileMentions, useTurnData }) {
     return tail?.closing?.finalNode.seq === seq ? fileMentions({ turn, seq, openFile }) : void 0;
   }, [fileMentions, openFile, seq, tail, turn]);
 }
-function AssistantCell({ node, groupPart, sessionId, openFile, fileMentions, useTurnData, useRoster, useUi, useTurnSteps, useTurnContext, actions }) {
+function AssistantCell({ node, groupPart, sessionId, openFile, fileMentions, useTurnData, useRoster, useUi, useTurnSteps, useTurnContext, useTurnClock, turnProcess, actions }) {
   const roster = useRoster((value) => value);
   const data = node.data;
   const steps = useTurnSteps(String(data.turn));
   const contexts = useTurnContext(String(data.turn));
   const mentions = useFileMentions({ node, openFile, fileMentions, useTurnData });
-  const hidden = Boolean(roster.roomsById[sessionId]) || isHiddenTurn(roster, sessionId, data.turn);
   const texts2 = groupPart === "reasoning" ? [] : data.blocks.filter((block) => block.kind === "text").map((block) => stripInternalText(stripToolCallTags(block.text))).filter((text) => text.trim() !== "");
+  const triggerKind = useTurnClock?.((state) => state[sessionId]?.[data.turn]?.trigger);
+  const idleOnly = texts2.length > 0 ? texts2.every(isAcknowledgementOnlyText) : turnProcess?.spec?.toolCallCount === 0;
+  const scheduledNoOp = data.status !== "running" && triggerKind === "schedule" && idleOnly;
+  const hidden = Boolean(roster.roomsById[sessionId]) || isHiddenTurn(roster, sessionId, data.turn) || scheduledNoOp;
   const running = data.status === "running";
   const textInteractionSource = data.status === "settled" && data.finalNode?.messageId !== void 0;
   const members = steps.length ? steps : [data];
@@ -29322,7 +29383,8 @@ function TriggerCell({ node, sessionId, useRoster, useSessions, useTurnClock, us
   const turn = node.location?.turn?.turn ?? data.turn;
   (0, import_react32.useLayoutEffect)(() => {
     if (relayed) actions.noteTurnPeer(sessionId, turn, source.senderSessionId);
-  }, [relayed, sessionId, turn, source.senderSessionId]);
+    if (source.kind === "schedule" && Number.isFinite(turn)) actions.noteTurnTrigger?.(sessionId, turn, "schedule");
+  }, [relayed, sessionId, turn, source.senderSessionId, source.kind]);
   const order = useSessions((list) => {
     const outline = list.projectionsBySession?.[sessionId]?.values?.turnOutline ?? list.byId[sessionId]?.projectionValues?.turnOutline;
     return Array.isArray(outline) ? outline.map((entry) => entry.turn).join(",") : "";
