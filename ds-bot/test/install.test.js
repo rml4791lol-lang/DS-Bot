@@ -436,7 +436,7 @@ test('the team board feed merges the one file each Bot owns', async (t) => {
 })
 
 test('team activity returns real records and redacts credential-shaped text recursively', async (t) => {
-  const credential = 'sk-live-team-activity-secret-1234567890'
+  const credential = 'sk-test-team-activity-secret-1234567890'
   const atlasState = mkdtempSync(join(tmpdir(), 'ds-bot-team-activity-'))
   const before = process.env.DSH_ATLAS_STATE_DIR
   process.env.DSH_ATLAS_STATE_DIR = atlasState
