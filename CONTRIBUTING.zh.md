@@ -85,13 +85,13 @@
 
 ```sh
 git clone https://github.com/Fei2411/DS-Bot.git ds-bot-repo
-cd ds-bot-repo/ds-bot
+cd ds-bot-repo
 
-# 插件自己的构建工具（只有 esbuild）。
-npm ci
+# 一次装好三处依赖（都按 lockfile）：ds-bot 的构建工具（esbuild）、手机链路的包（../link），
+# 以及单元测试和 lint 加载的 DSH 包（ds-bot/dev/harness）。
+sh scripts/setup.sh
 
-# 单元测试和 lint 要加载的 DSH 包，从 npm 装进 dev/harness/。
-npm run harness
+cd ds-bot
 ```
 
 测试台需要把 DeepSeek Harness 源码放在插件目录旁边（这个目录被 Git 忽略）：

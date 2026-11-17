@@ -30,8 +30,7 @@ The Bot team:
 Run in `ds-bot/`. The unit tests and the linter load the `@deepseek-ai/*` packages from `dev/harness/`, which `npm run harness` installs from npm at the DSH version in `dev/harness/package.json`. `DSH_HARNESS` points them at another install or at a DeepSeek Harness checkout instead. The test bench needs a checkout at `../deepseek-harness` (or `DSH_HARNESS`), at the DSH version in the README.
 
 ```sh
-npm ci                                 # build tool only (esbuild)
-npm run harness                        # once: the DSH packages for the tests and the linter
+npm run setup                          # once: ds-bot, ../link and dev/harness packages
 npm run build                          # src/client → client.js
 npm test                               # unit tests; also fail if client.js is stale
 node scripts/build-client.mjs --check  # client.js matches src/client

@@ -226,7 +226,7 @@ The chats themselves are dsh Sessions and are not in `bot/`: they are in `~/.dsh
 You need Node 24, pnpm and a deepseek-harness checkout with its dependencies installed, next to this repository (`../deepseek-harness`, or set `DSH_HARNESS`). The Desktop test bench also needs `xvfb-run` and `ffmpeg`. Web screenshots need Chrome or Chromium (`CHROME_BIN`; by default `google-chrome` or `chromium`).
 
 ```sh
-npm ci                                   # esbuild, for the client build
+npm run setup                            # ds-bot, ../link and dev/harness packages
 npm run build                            # src/client → client.js
 npm test                                 # unit tests
 npm run lint                             # oxlint from the dsh repository (.oxlintrc.json)
