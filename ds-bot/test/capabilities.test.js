@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -692,6 +692,43 @@ test('a secret in an HTTP MCP URL query is encoded as one parameter value', asyn
   assert.equal(saved.includes(encodeURIComponent(value)), false)
 })
 
+test('a shortlist saved to disk still masks the same names after a restart', async t => {
+  const state = team()
+  state.bots.chief.skillShortlist = [{ name: 'visible', purpose: 'use it' }]
+  const first = await setup({ state })
+  await first.rt.save()
+  const saved = JSON.parse(readFileSync(join(first.home, 'state.json'), 'utf8'))
+  await first.dispose()
+  const second = await setup({ state: saved })
+  t.after(() => second.dispose())
+  const catalog = [
+    { name: 'visible', description: 'visible', provider: 'filesystem' },
+    { name: 'hidden', description: 'hidden', provider: 'filesystem' },
+  ]
+  const agent = testAgent('chief', second.mounts, second.skills, { catalog })
+  assert.deepEqual(second.rt.state.bots.chief.skillShortlist.map(skill => skill.name), ['visible'])
+  await second.rt.applySkillMasks(agent, second.rt.state.bots.chief)
+  assert.equal(second.skills.get('chief').get('hidden').invocation.modelInvocable, false)
+  assert.equal(second.skills.get('chief').has('visible'), false)
+})
+
+test('a skill installed after the Agent started is masked on the next pass', async t => {
+  const env = await setup()
+  t.after(() => env.dispose())
+  const catalog = [{ name: 'visible', description: 'visible', provider: 'filesystem' }]
+  const agent = testAgent('chief', env.mounts, env.skills, { catalog })
+  const bot = env.rt.state.bots.chief
+  bot.skillShortlist = [{ name: 'visible', purpose: 'use it' }]
+  await env.rt.applySkillMasks(agent, bot)
+  assert.equal(env.skills.get('chief').has('late'), false)
+  catalog.push({ name: 'late', description: 'installed later', provider: 'filesystem' })
+  await env.rt.applySkillMasks(agent, bot)
+  const mask = env.skills.get('chief').get('late')
+  assert.equal(mask.invocation.modelInvocable, false)
+  assert.equal(mask.invocation.userInvocable, false)
+  assert.equal(env.skills.get('chief').has('visible'), false)
+})
+
 test('a failed HTTP MCP mount does not show the encoded secret from its URL', async t => {
   const value = "mock key/+&?=#'!()* 中文"
   const env = await mountUrlCapability(t, {
@@ -702,4 +739,40 @@ test('a failed HTTP MCP mount does not show the encoded secret from its URL', as
   const status = env.rt.capabilityStatusesView().chief['exa-cap']
   assert.equal(status.state, 'error')
   assert.equal(status.error, 'Connection failed: fetch https://mcp.exa.test/mcp?apiKey=[secret:EXA_API_KEY]')
+})
+
+test('a host side save reads the profile catalog through the Bot Agent', async t => {
+  const env = await setup()
+  t.after(() => env.dispose())
+  // The host context has no skill service; only the Agent scope carries one.
+  const agent = testAgent('chief', env.mounts, env.skills, {
+    catalog: [{ name: 'code-review-and-quality', description: 'review a diff', provider: 'filesystem' }],
+  })
+  env.rt.resolveAgent = async () => agent
+  assert.deepEqual(
+    await env.rt.validateSkillShortlist([{ name: 'code-review-and-quality', purpose: 'review a diff' }], { botId: 'chief' }),
+    [{ name: 'code-review-and-quality', purpose: 'review a diff' }],
+  )
+  await assert.rejects(
+    env.rt.validateSkillShortlist([{ name: 'not-installed', purpose: 'ghost' }], { botId: 'chief' }),
+    /No skill named not-installed/,
+  )
+})
+
+test('a save with no reachable profile catalog keeps the shape rules and accepts the names', async t => {
+  const env = await setup()
+  t.after(() => env.dispose())
+  env.rt.resolveAgent = async () => { throw new Error('Session unavailable') }
+  assert.deepEqual(
+    await env.rt.validateSkillShortlist([{ name: 'impeccable', purpose: 'polish a frontend' }], { botId: 'chief' }),
+    [{ name: 'impeccable', purpose: 'polish a frontend' }],
+  )
+  await assert.rejects(
+    env.rt.validateSkillShortlist([0, 1, 2, 3, 4, 5].map(index => ({ name: `skill-${index}`, purpose: 'use it' })), { botId: 'chief' }),
+    /at most 5 skills/,
+  )
+  await assert.rejects(
+    env.rt.validateSkillShortlist([{ name: 'Bad Name', purpose: 'x' }], { botId: 'chief' }),
+    /must be a skill name/,
+  )
 })

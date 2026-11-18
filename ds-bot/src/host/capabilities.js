@@ -91,6 +91,9 @@ export function install(rt) {
   let masking = 0
   let skillChangePending = false
   let catalogCache = []
+  // The last Agent that could read the profile catalog, reused so a catalog
+  // refresh does not load a Session it already has.
+  let profileAgentRef
 
   const library = () => state.capabilities.items
   const ensureLibrary = () => {
@@ -124,14 +127,36 @@ export function install(rt) {
       return process.cwd()
     }
   }
+  // The scoped skill registry reaches the host only through an Agent's own
+  // context on some hosts. One probe decides whether a profile catalog is
+  // reachable at all, so validation never mistakes "unreachable" for "missing".
+  const isSkillService = service => typeof service?.list === 'function' || typeof service?.snapshot === 'function'
+  const skillService = (agent) => {
+    let service
+    try { service = agent?.ctx?.skills } catch { /* the caller has no skill scope */ }
+    if (!isSkillService(service)) {
+      try { service = ctx.skills } catch { /* this context did not inject the registry */ }
+    }
+    if (!isSkillService(service)) service = ctx.get?.('skills')
+    return isSkillService(service) ? service : undefined
+  }
+  // A Bot's own Agent is the scope that carries the profile catalog, and the
+  // host side saves shortlists without ever holding that Agent.
+  const skillAgentOf = async (botId) => {
+    if (botId === undefined) return undefined
+    const bot = state.bots?.[botId]
+    if (bot === undefined) return undefined
+    try { return await rt.resolveAgent(bot.sessionId) } catch { return undefined }
+  }
+  const liveAgentOf = (sessionId) => {
+    try { return agents.get(sessionId)?.deref?.() } catch { return undefined }
+  }
   const listProfileSkills = async ({ agent, cwd, strict = false } = {}) => {
     // `agent.ctx.skills` is the scoped view. A host without that service (for
     // example an older embedder or a focused unit test) simply has no profile
     // catalog; reading through `ctx.get` avoids Cordis' inject guard.
-    let service
-    try { service = agent?.ctx?.skills } catch { /* the caller has no skill scope */ }
-    service ??= ctx.get?.('skills')
-    if (typeof service?.list !== 'function' && typeof service?.snapshot !== 'function') return []
+    const service = skillService(agent)
+    if (service === undefined) return []
     if (strict && typeof service.snapshot !== 'function') throw new Error('This DSH cannot verify the skill catalog.')
     const options = { cwd, ...(agent === undefined ? {} : { scope: agent }) }
     try {
@@ -163,17 +188,32 @@ export function install(rt) {
     const before = catalogSignature(catalogCache)
     try {
       const bots = Object.values(state.bots ?? {})
-      const byCwd = new Map()
+      // One scoped read per Agent: a Bot's mask removes names from its own view
+      // only, so the picker mirrors what each Agent can actually run. An idle
+      // Bot still needs the profile names, and reading them through a live or
+      // resolved sibling Agent is the only scoped path the host has.
+      const byScope = new Map()
       const merged = new Map()
-      const readAt = async cwd => {
-        if (!byCwd.has(cwd)) byCwd.set(cwd, await buildCatalog({ cwd }))
-        return byCwd.get(cwd)
+      const readAt = async (agent, cwd) => {
+        const key = `${agent?.session?.id ?? 'host'}:${cwd}`
+        if (!byScope.has(key)) byScope.set(key, await buildCatalog({ agent, cwd }))
+        return byScope.get(key)
       }
       if (bots.length === 0) {
-        catalogCache = await readAt(skillCwd({}))
+        catalogCache = await readAt(undefined, skillCwd({}))
       } else {
+        // Never load a Session just to read the catalog: a team of idle Bots must
+        // not wake up for a picker refresh. The first live Agent (or the one a
+        // save already resolved) reads for the Bots that are not running yet.
+        let sibling = profileAgentRef?.deref?.()
+        if (sibling === undefined) {
+          for (const bot of bots) {
+            sibling = liveAgentOf(bot.sessionId)
+            if (sibling !== undefined) break
+          }
+        }
         for (const bot of bots) {
-          for (const skill of await readAt(skillCwd({ botId: bot.id }))) {
+          for (const skill of await readAt(liveAgentOf(bot.sessionId) ?? sibling, skillCwd({ botId: bot.id }))) {
             const previous = merged.get(skill.name)
             const variant = { ...skill }
             if (previous === undefined) {
@@ -206,7 +246,14 @@ export function install(rt) {
   rt.refreshSkillCatalog = refreshSkillCatalog
   rt.validateSkillShortlist = async (list, options = {}) => {
     if (list === undefined) return undefined
-    const catalog = await buildCatalog(options)
+    // A save from the host side holds no Agent, and the profile catalog is only
+    // reachable through one. Read the Bot's own scope before deciding a name is
+    // missing; when no scope can be reached at all, keep the shape rules and
+    // accept the names rather than rejecting every real skill.
+    const agent = options.agent ?? await skillAgentOf(options.botId)
+    if (skillService(agent) === undefined) return readSkillShortlist(list)
+    if (agent !== undefined) profileAgentRef = new WeakRef(agent)
+    const catalog = await buildCatalog({ ...options, agent })
     return validateShortlistAgainstCatalog(list, catalog)
   }
   // Hide every profile skill this Bot did not choose. Registration goes through a

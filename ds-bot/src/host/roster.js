@@ -207,8 +207,9 @@ export function install(rt) {
     const clash = dir === undefined ? undefined : await rt.privateClash(dir)
     if (clash) throw new Error(`${dir} is in or around the folder of ${clash.name}, a private Bot, so ${cleanName} cannot work there`)
     // The picker and the host validate against the same live catalog; a name that is
-    // not there is refused instead of being saved as a dead entry.
-    if (skills !== undefined) await rt.validateSkillShortlist?.(skills, { cwd: dir })
+    // not there is refused instead of being saved as a dead entry. A new Bot has no
+    // Session yet, so the creator's own scope reads the profile catalog.
+    if (skills !== undefined) await rt.validateSkillShortlist?.(skills, { botId: createdBy, cwd: dir })
     if (!main && (section !== undefined || sectionId !== undefined)) resolveSectionInput({ section, sectionId }, { allowCreate: false })
     const id = await createSession(cleanName, { dir })
     try {
