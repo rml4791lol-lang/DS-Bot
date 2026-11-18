@@ -11,6 +11,12 @@ test('a scheduled acknowledgement-only turn is internal', () => {
   assert.deepEqual(classifyInternalNoOpTurns([start(), user(), say('（无动作）'), end()]), [1])
 })
 
+test('coordinator no-op lines are internal too', () => {
+  for (const text of ['无需操作。', '当前没有需要向你汇报的内容。', '本次没有需要回复的内容。', '本次巡检无变化。']) {
+    assert.deepEqual(classifyInternalNoOpTurns([start(), user(), say(text), end()]), [1], text)
+  }
+})
+
 test('a user no-change answer and a scheduled completion stay visible', () => {
   assert.deepEqual(classifyInternalNoOpTurns([start(1), user('user', 1), say('无新变化，本轮不报告。', [], 1), end(1)]), [])
   assert.deepEqual(classifyInternalNoOpTurns([start(2), user('schedule', 2), say('done', [], 2), end(2)]), [])
