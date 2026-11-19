@@ -75,6 +75,7 @@ export function install(rt) {
   const staged = new Map()
   const ok = value => ({ ok: true, value })
   const fail = (message, code = 'bot/error') => ({ ok: false, error: { code, message, details: {} } })
+  const readModelPayload = value => redactDeep(value, text => redactCredentialText(rt.redactSecrets?.(text) ?? text))
   // Models come from DSH, not state.json, so a provider added on the Models pages of Settings
   // changes the view without a new revision.
   const modelsKey = () => `${rt.cachedCatalog().map(entry => `${entry.ref}${entry.needsKey ? '!' : ''}${entry.reasoning ? `:${JSON.stringify(entry.reasoning)}` : ''}`).join(',')}|${rt.cachedDefault() ?? ''}`
@@ -126,6 +127,9 @@ export function install(rt) {
     // Key names and who may use them; values never leave the host.
     secrets: rt.secretsView(),
     capabilities: rt.capabilityLibraryView(),
+    // The names a Bot may put in its shortlist: DSH's live catalog plus DS-Bot
+    // skill capabilities, already merged and labelled by the host.
+    skillCatalog: rt.skillCatalogView?.() ?? [],
     secretRequests: state.secretRequests ?? {},
     connectorRequests: state.connectorRequests ?? {},
     mailRequests: state.mailRequests ?? {},
@@ -162,6 +166,9 @@ export function install(rt) {
     learningSettled: rt.learningSettledView(),
     connectors: rt.connectorsView(),
     capabilityStatuses: rt.capabilityStatusesView(),
+    // A skill installed or removed changes this list without a team save; the
+    // live key makes windows ask for the state carrying the new catalog.
+    skillCatalog: rt.skillCatalogView?.() ?? [],
     phone: rt.phoneView(),
     imStatus: rt.imStatusView?.() ?? {},
     imVia: rt.imViaView?.() ?? {},
@@ -408,7 +415,7 @@ export function install(rt) {
           return ok(await rt.usageView({ timeZone: typeof body.timeZone === 'string' ? body.timeZone.slice(0, 64) : undefined }))
         case 'team-activity': {
           await rt.load()
-          return ok(teamActivitySnapshot())
+          return ok(readModelPayload(teamActivitySnapshot()))
         }
         case 'task-detail': {
           await rt.load()
@@ -416,7 +423,7 @@ export function install(rt) {
           if (taskId === '') return fail('No task named', 'bot/invalid')
           const detail = await taskDetailFor(taskId)
           const payload = { ...detail, improvements: rt.improvementView?.(taskId) ?? { proposals: [], history: [] } }
-          return ok(redactDeep(payload, value => redactCredentialText(rt.redactSecrets?.(value) ?? value)))
+          return ok(readModelPayload(payload))
         }
         case 'room-progress': {
           // Any part id of the group's own Session means the group itself.
@@ -446,12 +453,12 @@ export function install(rt) {
         }
         case 'create-bot': {
           await rt.bootstrap()
-          const bot = await rt.createBot({ name: body.name, role: body.role, color: body.color, instructions: body.instructions, brief: body.brief, avatar: body.avatar, model: body.model, effort: body.effort, workDir: body.workDir, section: body.section, sectionId: body.sectionId })
+          const bot = await rt.createBot({ name: body.name, role: body.role, color: body.color, instructions: body.instructions, brief: body.brief, avatar: body.avatar, model: body.model, effort: body.effort, workDir: body.workDir, section: body.section, sectionId: body.sectionId, skillShortlist: body.skills })
           return ok(bot)
         }
         case 'update-bot':
           await rt.load()
-          return ok(await rt.updateBot(body.id, body))
+          return ok(await rt.updateBot(body.id, body.skills === undefined ? body : { ...body, skillShortlist: body.skills }))
         // Give up one wait for a hand-off that will not come back: only that sub-work
         // closes, with an explicit result for the work above it.
         case 'abandon-work':

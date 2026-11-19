@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { mkdir } from 'node:fs/promises'
 import { MAX_AVATAR_IMAGE, ROOM_MAX_MEMBERS, ROOM_MODES, ROOM_NAME_MAX, ROOM_NOTICE_MAX, ROOM_TODO_MAX, ROOM_TODO_TEXT_MAX, SECTION_COLORS, SECTION_NAME_MAX } from './constants.js'
 import { currentColor, isColor, normalize, unquote } from './text.js'
+import { readSkillShortlist } from './skill-shortlist.js'
 import { nameProblem } from '../shared/mentions.js'
 
 const BROWSER_GRANT_KINDS = new Set(['post', 'upload', 'download', 'delete', '*'])
@@ -188,8 +189,10 @@ export function install(rt) {
     return holdName('bot', cleanName, () => buildBot(cleanName, options))
   }
 
-  async function buildBot(cleanName, { role = '', instructions = '', color, brief = '', createdBy, main = false, avatar, model, effort, workDir, copyOf, pickModel = false, section, sectionId }) {
+  async function buildBot(cleanName, { role = '', instructions = '', color, brief = '', createdBy, main = false, avatar, model, effort, workDir, copyOf, pickModel = false, section, sectionId, skillShortlist }) {
     const cleanAvatarValue = cleanAvatar(avatar)
+    // Read before the Session exists, so a shortlist that does not pass leaves no half-made Bot.
+    const skills = skillShortlist === null ? undefined : readSkillShortlist(skillShortlist)
     // The model is fixed at creation, so a later change of the DSH default leaves it alone.
     const modelRef = model ? await rt.resolveModel(model) : pickModel ? undefined : await rt.defaultBotModel()
     // A thinking level needs a model to resolve against; with none it would be dropped
@@ -203,6 +206,9 @@ export function install(rt) {
     const dir = workDir === undefined || workDir === null ? undefined : await rt.cleanWorkDir(workDir)
     const clash = dir === undefined ? undefined : await rt.privateClash(dir)
     if (clash) throw new Error(`${dir} is in or around the folder of ${clash.name}, a private Bot, so ${cleanName} cannot work there`)
+    // The picker and the host validate against the same live catalog; a name that is
+    // not there is refused instead of being saved as a dead entry.
+    if (skills !== undefined) await rt.validateSkillShortlist?.(skills, { cwd: dir })
     if (!main && (section !== undefined || sectionId !== undefined)) resolveSectionInput({ section, sectionId }, { allowCreate: false })
     const id = await createSession(cleanName, { dir })
     try {
@@ -222,6 +228,7 @@ export function install(rt) {
         createdAt: Date.now(),
         createdBy: createdBy ?? null,
         capabilities: [],
+        ...(skills === undefined ? {} : { skillShortlist: skills }),
       }
       if (main) state.mainBotIds.push(id)
       const creator = rt.botOf(createdBy)
@@ -376,12 +383,19 @@ export function install(rt) {
       resolveSectionInput({ section: patch.section, sectionId: patch.sectionId }, { allowCreate: false })
     }
     const browserGrants = patch.browserGrants === undefined ? undefined : cleanBrowserGrants(patch.browserGrants)
+    // Read before anything is written, so a shortlist that does not pass leaves the Bot as it was.
+    // `null` explicitly returns to inherit-all, while an omitted field leaves
+    // the current shortlist alone and an array replaces it.
+    const skillShortlist = patch.skillShortlist === null ? null : readSkillShortlist(patch.skillShortlist)
     // Checked first, so a folder, model or level that does not pass leaves the rest
     // unchanged too.
     const moving = patch.workDir !== undefined
     const workDir = moving ? await rt.cleanWorkDir(patch.workDir ?? '') : undefined
     const flag = patch.private === undefined ? undefined : patch.private === true
     await rt.checkPrivacyChange(bot, { flag, moving, workDir })
+    if (skillShortlist !== undefined && skillShortlist !== null) {
+      await rt.validateSkillShortlist?.(skillShortlist, { botId: id, cwd: workDir ?? bot.workDir })
+    }
     const modelRef = patch.model === undefined ? undefined
       : patch.model === null || patch.model === '' ? null
       : await rt.resolveModel(patch.model)
@@ -445,6 +459,8 @@ export function install(rt) {
       modelChanged = true
     }
     if (patch.permission !== undefined) await rt.setPermission(bot, patch.permission)
+    if (skillShortlist === null) delete bot.skillShortlist
+    else if (skillShortlist !== undefined) bot.skillShortlist = skillShortlist
     if (browserGrants !== undefined) {
       if (browserGrants === null) delete bot.browserGrants
       else bot.browserGrants = browserGrants
@@ -462,6 +478,7 @@ export function install(rt) {
       else bot.workDir = workDir
     }
     await rt.save()
+    if (skillShortlist !== undefined) await rt.capabilityChanged?.(bot.id)
     // The system prompt reads the live profile every turn, but a Session with
     // several rounds behind it follows the old kickoff's pull until a message
     // lands; notify the Bot's chat so the next turn honors the new profile.

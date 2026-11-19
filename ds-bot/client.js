@@ -113,6 +113,27 @@ function convertHostErrors(pairs) {
 
 // src/client/locales/ja.js
 var JA = {
+  "No skills are installed for this DSH profile yet.": "この DSH プロファイルにはまだスキルがインストールされていません。",
+  "Up to 5 skills. The prompt lists each name with one line saying when to use it.": "最大 5 個のスキル。プロンプトには各スキルの名前と使う場面を 1 行ずつ表示します。",
+  "Search skills": "スキルを検索",
+  "Not in the current catalog": "現在のカタログにありません",
+  "All profile skills are available.": "プロファイルのスキルはすべて利用できます。",
+  "All profile skills are disabled.": "プロファイルのスキルはすべて無効です。",
+  "Only the selected skills are available.": "選択したスキルだけを利用できます。",
+  "Use all skills": "すべてのスキルを使用",
+  "Disable all profile skills": "プロファイルのスキルをすべて無効化",
+  "Task request": "タスクリクエスト",
+  "Bot report": "Bot レポート",
+  "Tool call": "ツール呼び出し",
+  "Tool result": "ツール結果",
+  "{name} result": "{name} の結果",
+  "Artifacts presented": "提示された成果物",
+  "Completed": "完了",
+  "Failed": "失敗",
+  "Session": "セッション",
+  "Command": "コマンド",
+  "Exit code": "終了コード",
+  "Diff digest": "差分ダイジェスト",
   "Improvement proposals": "改善提案",
   "Propose improvement": "改善を提案",
   "Reading verified evidence…": "検証済みの根拠を読み込んでいます…",
@@ -352,7 +373,10 @@ var JA = {
   "Team activity": "チームアクティビティ",
   "Real tasks, handoffs, and recent activity": "実際のタスク、引き継ぎ、最近のアクティビティ",
   "Live data": "ライブデータ",
+  "Preview data (not live)": "プレビューデータ（ライブではありません）",
   "Demo data": "デモデータ",
+  "Activity data is unavailable": "アクティビティデータを利用できません",
+  "This activity view is read-only": "このアクティビティ表示は読み取り専用です",
   "Waiting": "待機中",
   "No team activity yet. Real records appear here once Bots start working.": "チームのアクティビティはまだありません。Bot が作業を始めると実際の記録がここに表示されます。",
   "Activity": "アクティビティ",
@@ -414,6 +438,7 @@ var JA = {
   "Could not refresh this task. Showing the last good detail.": "このタスクを更新できませんでした。最後に正常に取得した詳細を表示しています。",
   "This task is no longer available.": "このタスクはもうありません。",
   "Task detail could not be read.": "タスク詳細を読み取れませんでした。",
+  "Task detail data mode does not match the team activity data.": "タスク詳細のデータモードがチームアクティビティと一致しません。",
   "Pause goal": "目標を一時停止",
   "Resume goal": "目標を再開",
   "Stop goal": "目標を停止",
@@ -498,7 +523,6 @@ var JA = {
   "Connection": "接続方式",
   "Local command": "ローカルコマンド",
   "HTTP server": "HTTP サーバー",
-  "Command": "コマンド",
   "Arguments (one per line)": "引数（1 行に 1 つ）",
   "Environment (JSON)": "環境変数（JSON）",
   '{"API_KEY": "$DSH_SECRET_MY_KEY"}': '{"API_KEY": "$DSH_SECRET_MY_KEY"}',
@@ -520,6 +544,7 @@ var JA = {
   "Edit": "編集",
   "Click again to delete.": "もう一度クリックすると削除します。",
   "Ready": "準備完了",
+  "Partially ready": "一部準備完了",
   "Needs approval": "承認が必要",
   "No items": "項目なし",
   "Save an MCP server or skill first.": "先に MCP サーバーまたはスキルを保存してください。",
@@ -1841,7 +1866,6 @@ var JA = {
   "Bcc": "Bcc",
   "Attachments: {names}": "添付ファイル: {names}",
   "Sent": "送信済み",
-  "Failed": "失敗",
   "Request failed": "リクエストに失敗しました",
   "Permissions are not available in this DeepSeek Harness": "この DeepSeek Harness では権限設定を利用できません",
   "Avatar images must be PNG, JPEG, WebP, or GIF": "アバター画像は PNG、JPEG、WebP、または GIF 形式である必要があります",
@@ -2794,6 +2818,27 @@ var DSH_JA = {
 
 // src/client/locales/ko.js
 var KO = {
+  "No skills are installed for this DSH profile yet.": "이 DSH 프로필에는 아직 스킬이 설치되어 있지 않습니다.",
+  "Up to 5 skills. The prompt lists each name with one line saying when to use it.": "최대 5개 스킬. 프롬프트에는 각 스킬 이름과 사용 시점을 한 줄씩 표시합니다.",
+  "Search skills": "스킬 검색",
+  "Not in the current catalog": "현재 카탈로그에 없음",
+  "All profile skills are available.": "모든 프로필 스킬을 사용할 수 있습니다.",
+  "All profile skills are disabled.": "모든 프로필 스킬이 비활성화되어 있습니다.",
+  "Only the selected skills are available.": "선택한 스킬만 사용할 수 있습니다.",
+  "Use all skills": "모든 스킬 사용",
+  "Disable all profile skills": "모든 프로필 스킬 비활성화",
+  "Failed": "실패",
+  "Task request": "작업 요청",
+  "Bot report": "Bot 보고",
+  "Tool call": "도구 호출",
+  "Tool result": "도구 결과",
+  "{name} result": "{name} 결과",
+  "Artifacts presented": "제시된 산출물",
+  "Completed": "완료",
+  "Session": "세션",
+  "Command": "명령",
+  "Exit code": "종료 코드",
+  "Diff digest": "변경 내용 다이제스트",
   "Improvement proposals": "개선 제안",
   "Propose improvement": "개선 제안하기",
   "Reading verified evidence…": "검증된 근거를 읽는 중…",
@@ -3035,7 +3080,10 @@ var KO = {
   "Team activity": "팀 활동",
   "Real tasks, handoffs, and recent activity": "실제 작업, 핸드오프 및 최근 활동",
   "Live data": "실시간 데이터",
+  "Preview data (not live)": "미리보기 데이터(실시간 아님)",
   "Demo data": "데모 데이터",
+  "Activity data is unavailable": "활동 데이터를 사용할 수 없습니다",
+  "This activity view is read-only": "이 활동 보기는 읽기 전용입니다",
   "Waiting": "대기 중",
   "No team activity yet. Real records appear here once Bots start working.": "아직 팀 활동이 없습니다. Bot이 작업을 시작하면 실제 기록이 여기에 표시됩니다.",
   "Activity": "활동",
@@ -3097,6 +3145,7 @@ var KO = {
   "Could not refresh this task. Showing the last good detail.": "이 작업을 새로 고치지 못했습니다. 마지막 정상 세부 정보를 표시합니다.",
   "This task is no longer available.": "이 작업은 더 이상 없습니다.",
   "Task detail could not be read.": "작업 세부 정보를 읽지 못했습니다.",
+  "Task detail data mode does not match the team activity data.": "작업 세부 정보의 데이터 모드가 팀 활동과 일치하지 않습니다.",
   "Pause goal": "목표 일시 중지",
   "Resume goal": "목표 재개",
   "Stop goal": "목표 중지",
@@ -3181,7 +3230,6 @@ var KO = {
   Connection: "연결 방식",
   "Local command": "로컬 명령",
   "HTTP server": "HTTP 서버",
-  Command: "명령어",
   "Arguments (one per line)": "인수 (줄당 하나씩)",
   "Environment (JSON)": "환경 변수 (JSON)",
   '{"API_KEY": "$DSH_SECRET_MY_KEY"}': '{"API_KEY": "$DSH_SECRET_MY_KEY"}',
@@ -3203,6 +3251,7 @@ var KO = {
   Edit: "편집",
   "Click again to delete.": "삭제하려면 한 번 더 클릭하세요.",
   Ready: "준비됨",
+  "Partially ready": "일부 준비됨",
   "Needs approval": "승인 필요",
   "No items": "항목 없음",
   "Save an MCP server or skill first.": "먼저 MCP 서버나 스킬을 저장하세요.",
@@ -4564,7 +4613,6 @@ var KO = {
   "Bcc": "숨은 참조",
   "Attachments: {names}": "첨부파일: {names}",
   "Sent": "전송됨",
-  "Failed": "실패",
   // Host static strings (HOST_ZH)
   "Request failed": "요청 실패",
   "Permissions are not available in this DeepSeek Harness": "이 DeepSeek Harness에서는 권한 설정을 지원하지 않습니다",
@@ -5520,6 +5568,26 @@ var DSH_KO = {
 
 // src/client/locales/es.js
 var ES = {
+  "No skills are installed for this DSH profile yet.": "Este perfil de DSH aún no tiene habilidades instaladas.",
+  "Up to 5 skills. The prompt lists each name with one line saying when to use it.": "Hasta 5 habilidades. El prompt muestra cada nombre y una línea sobre cuándo usarla.",
+  "Search skills": "Buscar habilidades",
+  "Not in the current catalog": "No está en el catálogo actual",
+  "All profile skills are available.": "Todas las habilidades del perfil están disponibles.",
+  "All profile skills are disabled.": "Todas las habilidades del perfil están desactivadas.",
+  "Only the selected skills are available.": "Solo están disponibles las habilidades seleccionadas.",
+  "Use all skills": "Usar todas las habilidades",
+  "Disable all profile skills": "Desactivar todas las habilidades del perfil",
+  "Task request": "Solicitud de tarea",
+  "Bot report": "Informe del Bot",
+  "Tool call": "Llamada de herramienta",
+  "Tool result": "Resultado de herramienta",
+  "{name} result": "Resultado de {name}",
+  "Artifacts presented": "Artefactos presentados",
+  "Completed": "Completado",
+  "Session": "Sesión",
+  "Command": "Comando",
+  "Exit code": "Código de salida",
+  "Diff digest": "Resumen de diferencias",
   "Improvement proposals": "Propuestas de mejora",
   "Propose improvement": "Proponer mejora",
   "Reading verified evidence…": "Leyendo evidencia verificada…",
@@ -5761,7 +5829,10 @@ var ES = {
   "Team activity": "Actividad del equipo",
   "Real tasks, handoffs, and recent activity": "Tareas, traspasos y actividad reciente reales",
   "Live data": "Datos en vivo",
+  "Preview data (not live)": "Datos de vista previa (no en vivo)",
   "Demo data": "Datos de demostración",
+  "Activity data is unavailable": "Los datos de actividad no están disponibles",
+  "This activity view is read-only": "Esta vista de actividad es de solo lectura",
   "Active": "Activo",
   "Waiting": "En espera",
   "No team activity yet. Real records appear here once Bots start working.": "Aún no hay actividad del equipo. Los registros reales aparecerán aquí cuando los Bots empiecen a trabajar.",
@@ -5824,6 +5895,7 @@ var ES = {
   "Could not refresh this task. Showing the last good detail.": "No se pudo actualizar esta tarea. Se muestra el último detalle correcto.",
   "This task is no longer available.": "Esta tarea ya no está disponible.",
   "Task detail could not be read.": "No se pudo leer el detalle de la tarea.",
+  "Task detail data mode does not match the team activity data.": "El modo de datos del detalle de la tarea no coincide con el de la actividad del equipo.",
   "Pause goal": "Pausar objetivo",
   "Resume goal": "Reanudar objetivo",
   "Stop goal": "Detener objetivo",
@@ -5908,7 +5980,6 @@ var ES = {
   Connection: "Conexión",
   "Local command": "Comando local",
   "HTTP server": "Servidor HTTP",
-  Command: "Comando",
   "Arguments (one per line)": "Argumentos (uno por línea)",
   "Environment (JSON)": "Entorno (JSON)",
   '{"API_KEY": "$DSH_SECRET_MY_KEY"}': '{"API_KEY": "$DSH_SECRET_MY_KEY"}',
@@ -5930,6 +6001,7 @@ var ES = {
   Edit: "Editar",
   "Click again to delete.": "Haz clic de nuevo para eliminar.",
   Ready: "Listo",
+  "Partially ready": "Parcialmente listo",
   "Needs approval": "Requiere aprobación",
   "No items": "Sin elementos",
   "Save an MCP server or skill first.": "Guarda primero un servidor MCP o una habilidad.",
@@ -8246,6 +8318,27 @@ var DSH_ES = {
 
 // src/client/locales/fr.js
 var FR = {
+  "No skills are installed for this DSH profile yet.": "Ce profil DSH n’a pas encore de compétences installées.",
+  "Up to 5 skills. The prompt lists each name with one line saying when to use it.": "Jusqu’à 5 compétences. Le prompt indique chaque nom et une ligne expliquant quand l’utiliser.",
+  "Search skills": "Rechercher des compétences",
+  "Not in the current catalog": "Absent du catalogue actuel",
+  "All profile skills are available.": "Toutes les compétences du profil sont disponibles.",
+  "All profile skills are disabled.": "Toutes les compétences du profil sont désactivées.",
+  "Only the selected skills are available.": "Seules les compétences sélectionnées sont disponibles.",
+  "Use all skills": "Utiliser toutes les compétences",
+  "Disable all profile skills": "Désactiver toutes les compétences du profil",
+  "Failed": "Échoué",
+  "Task request": "Demande de tâche",
+  "Bot report": "Rapport du Bot",
+  "Tool call": "Appel d’outil",
+  "Tool result": "Résultat d’outil",
+  "{name} result": "Résultat de {name}",
+  "Artifacts presented": "Artefacts présentés",
+  "Completed": "Terminé",
+  "Session": "Session",
+  "Command": "Commande",
+  "Exit code": "Code de sortie",
+  "Diff digest": "Empreinte du diff",
   "Improvement proposals": "Propositions d’amélioration",
   "Propose improvement": "Proposer une amélioration",
   "Reading verified evidence…": "Lecture des preuves vérifiées…",
@@ -8485,7 +8578,10 @@ var FR = {
   "Team activity": "Activité de l’équipe",
   "Real tasks, handoffs, and recent activity": "Tâches, transferts et activité récente réels",
   "Live data": "Données en direct",
+  "Preview data (not live)": "Données d’aperçu (pas en direct)",
   "Demo data": "Données de démonstration",
+  "Activity data is unavailable": "Les données d’activité sont indisponibles",
+  "This activity view is read-only": "Cette vue d’activité est en lecture seule",
   "Waiting": "En attente",
   "No team activity yet. Real records appear here once Bots start working.": "Aucune activité d’équipe pour le moment. Les enregistrements réels apparaîtront ici dès que les Bots commenceront à travailler.",
   "Activity": "Activité",
@@ -8548,6 +8644,7 @@ var FR = {
   "Could not refresh this task. Showing the last good detail.": "Impossible d’actualiser cette tâche. Le dernier détail valide est affiché.",
   "This task is no longer available.": "Cette tâche n’est plus disponible.",
   "Task detail could not be read.": "Impossible de lire le détail de la tâche.",
+  "Task detail data mode does not match the team activity data.": "Le mode de données du détail de la tâche ne correspond pas à celui de l’activité de l’équipe.",
   "Pause goal": "Mettre l’objectif en pause",
   "Resume goal": "Reprendre l’objectif",
   "Stop goal": "Arrêter l’objectif",
@@ -8632,7 +8729,6 @@ var FR = {
   "Connection": "Connexion",
   "Local command": "Commande locale",
   "HTTP server": "Serveur HTTP",
-  "Command": "Commande",
   "Arguments (one per line)": "Arguments (un par ligne)",
   "Environment (JSON)": "Environnement (JSON)",
   '{"API_KEY": "$DSH_SECRET_MY_KEY"}': '{"API_KEY": "$DSH_SECRET_MY_KEY"}',
@@ -8654,6 +8750,7 @@ var FR = {
   "Edit": "Modifier",
   "Click again to delete.": "Cliquez à nouveau pour supprimer.",
   "Ready": "Prêt",
+  "Partially ready": "Partiellement prêt",
   "Needs approval": "Approbation requise",
   "No items": "Aucun élément",
   "Save an MCP server or skill first.": "Enregistrez d’abord un serveur MCP ou une compétence.",
@@ -9975,7 +10072,6 @@ var FR = {
   "Bcc": "Cci",
   "Attachments: {names}": "Pièces jointes : {names}",
   "Sent": "Envoyé",
-  "Failed": "Échec",
   "Request failed": "Échec de la requête",
   "Permissions are not available in this DeepSeek Harness": "Les autorisations ne sont pas disponibles dans ce DeepSeek Harness",
   "Avatar images must be PNG, JPEG, WebP, or GIF": "Les images d’avatar doivent être au format PNG, JPEG, WebP ou GIF",
@@ -10927,6 +11023,27 @@ var DSH_FR = {
 
 // src/client/locales/de.js
 var DE = {
+  "No skills are installed for this DSH profile yet.": "Für dieses DSH-Profil sind noch keine Skills installiert.",
+  "Up to 5 skills. The prompt lists each name with one line saying when to use it.": "Bis zu 5 Skills. Der Prompt zeigt jeden Namen mit einer Zeile, wann er zu verwenden ist.",
+  "Search skills": "Skills durchsuchen",
+  "Not in the current catalog": "Nicht im aktuellen Katalog",
+  "All profile skills are available.": "Alle Profil-Skills sind verfügbar.",
+  "All profile skills are disabled.": "Alle Profil-Skills sind deaktiviert.",
+  "Only the selected skills are available.": "Nur die ausgewählten Skills sind verfügbar.",
+  "Use all skills": "Alle Skills verwenden",
+  "Disable all profile skills": "Alle Profil-Skills deaktivieren",
+  "Task request": "Aufgabenanfrage",
+  "Bot report": "Bot-Bericht",
+  "Tool call": "Tool-Aufruf",
+  "Tool result": "Tool-Ergebnis",
+  "{name} result": "Ergebnis von {name}",
+  "Artifacts presented": "Präsentierte Artefakte",
+  "Completed": "Abgeschlossen",
+  "Failed": "Fehlgeschlagen",
+  "Session": "Sitzung",
+  "Command": "Befehl",
+  "Exit code": "Exit-Code",
+  "Diff digest": "Diff-Digest",
   "Improvement proposals": "Verbesserungsvorschläge",
   "Propose improvement": "Verbesserung vorschlagen",
   "Reading verified evidence…": "Verifizierte Nachweise werden gelesen…",
@@ -11168,7 +11285,10 @@ var DE = {
   "Team activity": "Teamaktivität",
   "Real tasks, handoffs, and recent activity": "Reale Aufgaben, Übergaben und aktuelle Aktivität",
   "Live data": "Live-Daten",
+  "Preview data (not live)": "Vorschaudaten (nicht live)",
   "Demo data": "Demodaten",
+  "Activity data is unavailable": "Aktivitätsdaten sind nicht verfügbar",
+  "This activity view is read-only": "Diese Aktivitätsansicht ist schreibgeschützt",
   "Active": "Aktiv",
   "Waiting": "Wartend",
   "No team activity yet. Real records appear here once Bots start working.": "Noch keine Teamaktivität. Sobald Bots mit der Arbeit beginnen, erscheinen hier echte Einträge.",
@@ -11232,6 +11352,7 @@ var DE = {
   "Could not refresh this task. Showing the last good detail.": "Diese Aufgabe konnte nicht aktualisiert werden. Die letzten guten Details werden angezeigt.",
   "This task is no longer available.": "Diese Aufgabe ist nicht mehr verfügbar.",
   "Task detail could not be read.": "Aufgabendetails konnten nicht gelesen werden.",
+  "Task detail data mode does not match the team activity data.": "Der Datenmodus der Aufgabendetails stimmt nicht mit der Teamaktivität überein.",
   "Pause goal": "Ziel pausieren",
   "Resume goal": "Ziel fortsetzen",
   "Stop goal": "Ziel stoppen",
@@ -11316,7 +11437,6 @@ var DE = {
   Connection: "Verbindung",
   "Local command": "Lokaler Befehl",
   "HTTP server": "HTTP-Server",
-  Command: "Befehl",
   "Arguments (one per line)": "Argumente (eines pro Zeile)",
   "Environment (JSON)": "Umgebungsvariablen (JSON)",
   '{"API_KEY": "$DSH_SECRET_MY_KEY"}': '{"API_KEY": "$DSH_SECRET_MY_KEY"}',
@@ -11338,6 +11458,7 @@ var DE = {
   Edit: "Bearbeiten",
   "Click again to delete.": "Zum Löschen erneut klicken.",
   Ready: "Bereit",
+  "Partially ready": "Teilweise bereit",
   "Needs approval": "Freigabe erforderlich",
   "No items": "Keine Einträge",
   "Save an MCP server or skill first.": "Speichere zuerst einen MCP-Server oder Skill.",
@@ -12699,7 +12820,6 @@ var DE = {
   "Bcc": "Bcc",
   "Attachments: {names}": "Anhänge: {names}",
   "Sent": "Gesendet",
-  "Failed": "Fehlgeschlagen",
   // HOST_ZH + lines 1601-1653
   "Request failed": "Anfrage fehlgeschlagen",
   "Permissions are not available in this DeepSeek Harness": "Berechtigungen werden in diesem DeepSeek Harness nicht unterstützt",
@@ -13654,6 +13774,26 @@ var DSH_DE = {
 // src/client/i18n.js
 var NAMESPACE = "ds-bot";
 var ZH = {
+  "No skills are installed for this DSH profile yet.": "这个 DSH 配置还没有安装技能。",
+  "Up to 5 skills. The prompt lists each name with one line saying when to use it.": "最多 5 个技能。提示词只列出每个技能的名称和一句使用时机。",
+  "Search skills": "搜索技能",
+  "Not in the current catalog": "不在当前技能目录中",
+  "All profile skills are available.": "所有 DSH 配置技能都可用。",
+  "All profile skills are disabled.": "所有 DSH 配置技能都已禁用。",
+  "Only the selected skills are available.": "只有选中的技能可用。",
+  "Use all skills": "使用全部技能",
+  "Disable all profile skills": "禁用全部配置技能",
+  "Failed": "失败",
+  "Task request": "任务请求",
+  "Bot report": "Bot 报告",
+  "Tool call": "工具调用",
+  "Tool result": "工具结果",
+  "{name} result": "{name} 结果",
+  "Artifacts presented": "已呈现产物",
+  "Completed": "已完成",
+  "Session": "会话",
+  "Exit code": "退出码",
+  "Diff digest": "差异摘要",
   // Shared
   "Main Bot": "主 Bot",
   Working: "进行中",
@@ -13859,7 +13999,10 @@ var ZH = {
   "Team activity": "团队动态",
   "Real tasks, handoffs, and recent activity": "真实任务、交接和最近活动",
   "Live data": "实时数据",
+  "Preview data (not live)": "预览数据（非实时）",
   "Demo data": "演示数据",
+  "Activity data is unavailable": "活动数据不可用",
+  "This activity view is read-only": "此活动视图为只读",
   "Active": "进行中",
   "Waiting": "等待",
   "No team activity yet. Real records appear here once Bots start working.": "还没有团队活动。Bot 开始工作后，真实记录会出现在这里。",
@@ -13923,6 +14066,7 @@ var ZH = {
   "Could not refresh this task. Showing the last good detail.": "无法刷新此任务，正在显示上次成功读取的详情。",
   "This task is no longer available.": "此任务已不存在。",
   "Task detail could not be read.": "无法读取任务详情。",
+  "Task detail data mode does not match the team activity data.": "任务详情的数据模式与团队动态不一致。",
   "Pause goal": "暂停目标",
   "Resume goal": "继续目标",
   "Stop goal": "停止目标",
@@ -14044,6 +14188,7 @@ var ZH = {
   Edit: "编辑",
   "Click again to delete.": "再点一次删除。",
   Ready: "就绪",
+  "Partially ready": "部分就绪",
   "Needs approval": "需要批准",
   "No items": "没有项目",
   "Save an MCP server or skill first.": "请先保存 MCP 服务或技能。",
@@ -15429,8 +15574,7 @@ var ZH = {
   "Cc": "抄送",
   "Bcc": "密送",
   "Attachments: {names}": "附件：{names}",
-  "Sent": "已发送",
-  "Failed": "失败"
+  "Sent": "已发送"
 };
 var HOST_ERRORS = [
   [/^Could not reach the mail server at (.+)\. Check the server address\.$/, "连不上邮件服务器 $1，请检查服务器地址。"],
@@ -15888,6 +16032,9 @@ function installLocale(locale) {
 function t(key, params) {
   return bound ? bound(key, params) : fill(key, params);
 }
+function localText(key) {
+  return DICTIONARY[resolveLangKey(language())]?.[key] ?? key;
+}
 function hostText(message) {
   const lang = resolveLangKey(language());
   if (lang === "en") return message;
@@ -16292,7 +16439,7 @@ function teamActions({ call: call2, after, partFor, roster, ui, live, cards, hel
     },
     openSettings,
     openTeamOverview: () => {
-      ui.set((state) => ({ ...state, teamOverview: true, details: null, view: "details", renaming: false, tab: null, side: null, newChat: null, exchange: null, menu: null, palette: null, groupSearch: null, settings: null, memory: null }));
+      ui.set((state) => ({ ...state, teamOverview: true, teamActivity: false, details: null, view: "details", renaming: false, tab: null, side: null, newChat: null, exchange: null, menu: null, palette: null, groupSearch: null, settings: null, memory: null }));
     },
     closeTeamOverview: () => {
       ui.set((state) => state.teamOverview ? { ...state, teamOverview: false } : state);
@@ -16308,7 +16455,7 @@ function teamActions({ call: call2, after, partFor, roster, ui, live, cards, hel
       ui.set((state) => ({ ...state, teamOverview: false, memory: id, menu: null, palette: null }));
     },
     openTeamActivity: () => {
-      ui.set((state) => ({ ...state, teamActivity: true, menu: null, palette: null, newChat: null }));
+      ui.set((state) => ({ ...state, teamActivity: true, teamOverview: false, menu: null, palette: null, newChat: null }));
     },
     closeTeamActivity: () => {
       ui.set((state) => state.teamActivity ? { ...state, teamActivity: false } : state);
@@ -16550,6 +16697,15 @@ function teamActions({ call: call2, after, partFor, roster, ui, live, cards, hel
         const entry = turns[turn] ?? {};
         if (entry.peer === peerId) return state;
         return { ...state, [sessionId]: { ...turns, [turn]: { ...entry, peer: peerId } } };
+      });
+    },
+    noteTurnTrigger: (sessionId, turn, trigger) => {
+      if (sessionId === void 0 || !Number.isFinite(turn) || trigger === void 0) return;
+      turnClock.set((state) => {
+        const turns = state[sessionId] ?? {};
+        const entry = turns[turn] ?? {};
+        if (entry.trigger === trigger) return state;
+        return { ...state, [sessionId]: { ...turns, [turn]: { ...entry, trigger } } };
       });
     },
     noteLive: (sessionId, id, entry) => {
@@ -17976,6 +18132,7 @@ button.bt-set-row:hover .bt-chevron{transform:translateX(2px);color:var(--bt-ink
 .bt-set-row:last-child{border-bottom-left-radius:12px;border-bottom-right-radius:12px}
 .bt-set-copy{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
 .bt-set-hint{font-size:12px;line-height:17px;color:color-mix(in srgb,var(--bt-ink-2) 55%,var(--bt-ink-3))}
+.bt-set-search{margin:12px 16px 0;padding:8px 10px;border:.5px solid var(--bt-line-2);border-radius:8px;background:var(--bt-card);color:var(--bt-ink);font:inherit;font-size:13px;outline:none}.bt-set-search:focus{border-color:var(--bt-accent)}
 .bt-set-control{flex:none;display:flex;align-items:center;gap:8px}
 .bt-set-places .bt-set-control{flex:0 1 auto;max-width:50%;min-width:0}
 /* Shrinkable, so a long model name gets its ellipsis instead of pushing Reset out of the card. */
@@ -20447,14 +20604,14 @@ function ComputerView({ bot, actions, hooks }) {
       current = false;
     };
   }, [entry.lastShot?.attachmentId]);
-  const controlLabel2 = { idle: "Idle", bot: "Operating", user: "You have the computer", waiting: "Waiting for you" }[entry.state] ?? "Idle";
+  const controlLabel = { idle: "Idle", bot: "Operating", user: "You have the computer", waiting: "Waiting for you" }[entry.state] ?? "Idle";
   return (0, import_react11.createElement)(
     "div",
     { className: "bt-cview" },
     (0, import_react11.createElement)(
       "div",
       { className: "bt-cview-head" },
-      (0, import_react11.createElement)("span", { className: "bt-cview-state", "data-state": entry.state }, t(controlLabel2)),
+      (0, import_react11.createElement)("span", { className: "bt-cview-state", "data-state": entry.state }, t(controlLabel)),
       entry.app ? (0, import_react11.createElement)("span", { className: "bt-cview-app" }, entry.app) : null
     ),
     shot?.dataUrl ? (0, import_react11.createElement)("img", { className: "bt-cview-shot", src: shot.dataUrl, alt: t("Latest screenshot") }) : null,
@@ -25367,7 +25524,7 @@ var parseMap = (text, label) => {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(t("{label} must be a JSON object.", { label }));
   return value;
 };
-var statusText = (status) => !status ? void 0 : status.state === "ready" ? t("Ready") : status.state === "needs-approval" ? t("Needs approval") : status.state === "error" ? t("Could not connect: {error}", { error: status.error ?? "" }) : t("Connecting…");
+var statusText = (status) => !status ? void 0 : status.state === "ready" ? t("Ready") : status.state === "partial" ? t("Partially ready") : status.state === "needs-approval" ? t("Needs approval") : status.state === "error" ? t("Could not connect: {error}", { error: status.error ?? "" }) : t("Connecting…");
 function Field({ label, value, onChange, multiline = false, disabled = false, placeholder }) {
   return (0, import_react23.createElement)(
     "label",
@@ -25560,6 +25717,12 @@ function CapabilitiesPage({ roster, actions, run: run2 }) {
 function BotCapabilitiesCard({ bot, roster, actions, run: run2, Card: Card3, SwitchRow: SwitchRow2 }) {
   const items = [...roster.capabilities ?? []].sort((a, b) => Number(b.kind === "pack") - Number(a.kind === "pack") || a.name.localeCompare(b.name));
   const attached = new Set(bot.capabilities ?? []);
+  const shortlisted = new Set((bot.skillShortlist ?? []).map((skill) => skill.name));
+  for (const item of items) {
+    if (item.kind !== "skill") continue;
+    if (Array.isArray(bot.skillShortlist) && !shortlisted.has(item.name)) attached.delete(item.name);
+    else if (shortlisted.has(item.name)) attached.add(item.name);
+  }
   const statuses = roster.capabilityStatuses?.[bot.id] ?? {};
   if (items.length === 0) return null;
   return (0, import_react23.createElement)(
@@ -26603,6 +26766,116 @@ function MemoryCard({ bot, actions }) {
     )
   );
 }
+var SKILL_SHORTLIST_MAX = 5;
+var SKILL_PURPOSE_MAX = 160;
+var skillPurpose = (skill) => {
+  const text = String(skill.description || skill.name).replace(/\s+/g, " ").trim();
+  return text.length <= SKILL_PURPOSE_MAX ? text : `${text.slice(0, SKILL_PURPOSE_MAX - 3)}...`;
+};
+function BotSkillShortlistCard({ bot, roster, actions, run: run2, Card: Card3, SwitchRow: SwitchRow2 }) {
+  const [query, setQuery] = (0, import_react26.useState)("");
+  const [draft, setDraft] = (0, import_react26.useState)(null);
+  const [draftActive, setDraftActive] = (0, import_react26.useState)(false);
+  const catalog = (Array.isArray(roster.skillCatalog) ? roster.skillCatalog : []).filter((skill) => !Array.isArray(skill.bots) || skill.bots.includes(bot.id)).map((skill) => skill.byBot?.[bot.id] === void 0 ? skill : { ...skill, ...skill.byBot[bot.id] });
+  const saved = Array.isArray(bot.skillShortlist) ? bot.skillShortlist : void 0;
+  const chosen = draftActive ? draft : saved;
+  const current = (0, import_react26.useRef)(chosen);
+  const confirmed = (0, import_react26.useRef)(saved);
+  const queue = (0, import_react26.useRef)(Promise.resolve());
+  current.current = chosen;
+  if (!draftActive) confirmed.current = saved;
+  const known = new Set(catalog.map((skill) => skill.name));
+  const rows2 = [
+    ...catalog,
+    ...(chosen ?? []).filter((skill) => !known.has(skill.name)).map((skill) => ({
+      name: skill.name,
+      description: "",
+      provider: "",
+      missing: true
+    }))
+  ];
+  if (rows2.length === 0) {
+    return (0, import_react26.createElement)(
+      Card3,
+      { title: t("Skills") },
+      (0, import_react26.createElement)("div", { className: "bt-set-row" }, (0, import_react26.createElement)("span", { className: "bt-set-hint" }, t("No skills are installed for this DSH profile yet.")))
+    );
+  }
+  const full2 = (chosen?.length ?? 0) >= SKILL_SHORTLIST_MAX;
+  const save = (next, payload = next) => {
+    current.current = next;
+    setDraft(next);
+    setDraftActive(true);
+    queue.current = queue.current.then(() => run2(actions.updateBot(bot.id, { skills: payload }))).then((done) => {
+      if (done === false && current.current === next) {
+        current.current = confirmed.current;
+        setDraft(confirmed.current);
+        setDraftActive(false);
+      } else if (current.current === next) {
+        confirmed.current = next;
+        setDraftActive(false);
+        setDraft(null);
+      }
+      return done;
+    }, () => {
+      if (current.current === next) {
+        current.current = confirmed.current;
+        setDraft(confirmed.current);
+        setDraftActive(false);
+      }
+      return false;
+    });
+  };
+  const useAll = () => save(void 0, null);
+  const disableAll = () => save([]);
+  const status = chosen === void 0 ? t("All profile skills are available.") : chosen.length === 0 ? t("All profile skills are disabled.") : t("Only the selected skills are available.");
+  const needle = query.trim().toLowerCase();
+  const visible2 = rows2.filter((item) => needle === "" || `${item.name} ${item.description} ${item.provider}`.toLowerCase().includes(needle)).sort((a, b) => ((chosen ?? []).some((skill) => skill.name === a.name) ? 0 : 1) - ((chosen ?? []).some((skill) => skill.name === b.name) ? 0 : 1));
+  return (0, import_react26.createElement)(
+    Card3,
+    { title: t("Skills") },
+    (0, import_react26.createElement)(
+      "div",
+      { className: "bt-set-row" },
+      (0, import_react26.createElement)("span", { className: "bt-set-copy" }, (0, import_react26.createElement)("span", { className: "bt-bs-label" }, t("Skills")), (0, import_react26.createElement)("span", { className: "bt-set-hint" }, status)),
+      (0, import_react26.createElement)(
+        "span",
+        { className: "bt-set-control" },
+        chosen === void 0 ? null : (0, import_react26.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: useAll }, t("Use all skills")),
+        chosen === void 0 || chosen.length > 0 ? (0, import_react26.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: disableAll }, t("Disable all profile skills")) : null
+      )
+    ),
+    (0, import_react26.createElement)("div", { className: "bt-set-row" }, (0, import_react26.createElement)("span", { className: "bt-set-hint" }, t("Up to 5 skills. The prompt lists each name with one line saying when to use it."))),
+    rows2.length > 8 ? (0, import_react26.createElement)("input", {
+      type: "search",
+      className: "bt-set-search",
+      placeholder: t("Search skills"),
+      value: query,
+      onChange: (event) => setQuery(event.target.value),
+      "aria-label": t("Search skills")
+    }) : null,
+    visible2.map((item) => {
+      const selected = (chosen ?? []).find((skill) => skill.name === item.name);
+      const source = item.missing ? t("Not in the current catalog") : item.provider;
+      return (0, import_react26.createElement)(SwitchRow2, {
+        key: item.name,
+        label: item.name,
+        hint: `${source}${item.description ? ` — ${item.description}` : ""}`,
+        on: selected !== void 0,
+        disabled: selected === void 0 && full2,
+        onChange: (enabled) => {
+          const list = Array.isArray(current.current) ? current.current : [];
+          if (enabled) {
+            if (list.length >= SKILL_SHORTLIST_MAX || list.some((skill) => skill.name === item.name)) return;
+            save([...list, { name: item.name, purpose: skillPurpose(item) }]);
+          } else {
+            save(list.filter((skill) => skill.name !== item.name));
+          }
+        }
+      });
+    })
+  );
+}
 function BotSettingsForm({ bot, roster, actions, run: run2 }) {
   const [editing, setEditing] = (0, import_react26.useState)(false);
   const [editorShown, editorLeaving] = useLinger(editing, 120);
@@ -26700,6 +26973,7 @@ function BotSettingsForm({ bot, roster, actions, run: run2 }) {
       )
     ),
     (0, import_react26.createElement)(BotCapabilitiesCard, { bot, roster, actions, run: run2, Card: Card2, SwitchRow }),
+    (0, import_react26.createElement)(BotSkillShortlistCard, { bot, roster, actions, run: run2, Card: Card2, SwitchRow }),
     (0, import_react26.createElement)(BotComputerCard, { bot, roster, actions, run: run2, Card: Card2, Row }),
     roster.memory === false ? null : (0, import_react26.createElement)(MemoryCard, { bot, actions }),
     (0, import_react26.createElement)(BotSchedules, { bot, roster, actions }),
@@ -28521,6 +28795,60 @@ var USER_MESSAGE_CSS = `
 .bt-umsg:hover .bt-utools,.bt-umsg:focus-within .bt-utools{opacity:1;visibility:visible}
 `;
 
+// src/shared/idle-text.js
+var ACK_WORDS = "收到|好的|好|明白|明白了|了解|了解了|没问题|谢谢|多谢|感谢|辛苦了|辛苦|不客气|不用谢|好嘞|行|got\\s+it|understood|noted|thanks|thank\\s+you|you\\s+are\\s+welcome|you're\\s+welcome|welcome|np|no\\s+problem|roger|ack";
+var IDLE_ACK_WORDS = `${ACK_WORDS}|ok|okay`;
+var IDLE_CLOSING_WORDS = "完毕|完成|done|all\\s+good|sounds\\s+good";
+var IDLE_STATUS_WORDS = [
+  "(?:收口)?(?:当前|目前|今日|今天|本轮|本次)*(?:暂无|没有|无)+(?:待办|任务|新进展|新内容|新变化|进展|动作|变化|安排|操作|内容)",
+  "(?:本轮|本次)*(?:不|无需)(?:输出|报告|回复)(?:任何)?(?:内容|文字|消息)?",
+  "(?:当前|目前|本次|本轮)?(?:没有|无)(?:需要)?(?:向|向您|向你)?(?:汇报|回复|报告|说明|处理)(?:的)?(?:事项|内容|问题|动作|操作)?",
+  "(?:无需|不用|不需要)(?:向|向您|向你)?(?:操作|处理|回复|汇报|报告|说明)(?:任何)?(?:事项|内容|动作|操作)?",
+  "(?:本次|本轮|当前)?(?:巡检|检查|检查后|运行)?无(?:新)?变化",
+  "无动作",
+  "无需操作",
+  "待命",
+  "保持待命",
+  "继续待命",
+  "原地待命",
+  "静候",
+  "静候下一步",
+  "静候指令",
+  "等候指令",
+  "等待指令",
+  "等待指示",
+  "等待下一步",
+  "等待安排",
+  "等待新任务",
+  "无事可做",
+  "空转",
+  "(?:本轮|本次)(?:不报告|无变化|无更新)",
+  "standby",
+  "standing\\s+by",
+  "idle",
+  "nothing\\s+(?:pending|to\\s+do|new)",
+  "nothing\\s+to\\s+report(?:\\s+this\\s+turn)?",
+  "no\\s+pending\\s+(?:tasks?|work)",
+  "no\\s+new\\s+(?:work|tasks?|progress|updates?)",
+  "no\\s+changes?(?:\\s+this\\s+turn)?",
+  "no\\s+updates?(?:\\s+this\\s+turn)?",
+  "no\\s+action(?:\\s+needed)?",
+  "this\\s+turn\\s+(?:has\\s+)?no\\s+(?:action|changes?|updates?)",
+  "waiting\\s+for\\s+(?:instructions?|the\\s+next\\s+steps?)"
+].join("|");
+var IDLE_BODY = new RegExp(`^(?:(?:${IDLE_ACK_WORDS}|${IDLE_CLOSING_WORDS}|${IDLE_STATUS_WORDS})(?:[\\s，,、。.!！~～：:；;]+|$))+$`, "i");
+var ACK_BODY = new RegExp(`^(?:(?:${ACK_WORDS}|${IDLE_STATUS_WORDS})(?:[\\s，,、。.!！~～：:；;]+|$))+$`, "i");
+var IDLE_TEXT_MAX = 45;
+var normalizeIdleText = (text) => String(text ?? "").replace(/[\s，,、。.!！?？;；:：'"“”‘’()（）[\]【】~～-]+/g, " ").trim().toLowerCase();
+var isIdleOnlyText = (text) => {
+  const normalized = normalizeIdleText(text);
+  return normalized !== "" && normalized.length <= IDLE_TEXT_MAX && IDLE_BODY.test(normalized);
+};
+var isAcknowledgementOnlyText = (text) => {
+  const normalized = normalizeIdleText(text);
+  return normalized !== "" && normalized.length <= IDLE_TEXT_MAX && ACK_BODY.test(normalized);
+};
+
 // src/client/cells.js
 var import_react32 = require("react");
 var import_react_dom3 = require("react-dom");
@@ -28780,14 +29108,17 @@ function useFileMentions({ node, openFile, fileMentions, useTurnData }) {
     return tail?.closing?.finalNode.seq === seq ? fileMentions({ turn, seq, openFile }) : void 0;
   }, [fileMentions, openFile, seq, tail, turn]);
 }
-function AssistantCell({ node, groupPart, sessionId, openFile, fileMentions, useTurnData, useRoster, useUi, useTurnSteps, useTurnContext, actions }) {
+function AssistantCell({ node, groupPart, sessionId, openFile, fileMentions, useTurnData, useRoster, useUi, useTurnSteps, useTurnContext, useTurnClock, turnProcess, actions }) {
   const roster = useRoster((value) => value);
   const data = node.data;
   const steps = useTurnSteps(String(data.turn));
   const contexts = useTurnContext(String(data.turn));
   const mentions = useFileMentions({ node, openFile, fileMentions, useTurnData });
-  const hidden = Boolean(roster.roomsById[sessionId]) || isHiddenTurn(roster, sessionId, data.turn);
   const texts2 = groupPart === "reasoning" ? [] : data.blocks.filter((block) => block.kind === "text").map((block) => stripInternalText(stripToolCallTags(block.text))).filter((text) => text.trim() !== "");
+  const triggerKind = useTurnClock?.((state) => state[sessionId]?.[data.turn]?.trigger);
+  const idleOnly = texts2.length > 0 ? texts2.every(isAcknowledgementOnlyText) : turnProcess?.spec?.toolCallCount === 0;
+  const scheduledNoOp = data.status !== "running" && triggerKind === "schedule" && idleOnly;
+  const hidden = Boolean(roster.roomsById[sessionId]) || isHiddenTurn(roster, sessionId, data.turn) || scheduledNoOp;
   const running = data.status === "running";
   const textInteractionSource = data.status === "settled" && data.finalNode?.messageId !== void 0;
   const members = steps.length ? steps : [data];
@@ -29235,7 +29566,8 @@ function TriggerCell({ node, sessionId, useRoster, useSessions, useTurnClock, us
   const turn = node.location?.turn?.turn ?? data.turn;
   (0, import_react32.useLayoutEffect)(() => {
     if (relayed) actions.noteTurnPeer(sessionId, turn, source.senderSessionId);
-  }, [relayed, sessionId, turn, source.senderSessionId]);
+    if (source.kind === "schedule" && Number.isFinite(turn)) actions.noteTurnTrigger?.(sessionId, turn, "schedule");
+  }, [relayed, sessionId, turn, source.senderSessionId, source.kind]);
   const order = useSessions((list) => {
     const outline = list.projectionsBySession?.[sessionId]?.values?.turnOutline ?? list.byId[sessionId]?.projectionValues?.turnOutline;
     return Array.isArray(outline) ? outline.map((entry) => entry.turn).join(",") : "";
@@ -45442,264 +45774,29 @@ body:has(.tbh) .bt-teamov-tab,body:has(.tbh-toggle) .bt-teamov-tab{display:none}
 ${SITES_CSS}
 `;
 
-// src/client/learning-card-model.js
-function proposalPlacement(proposal, turns) {
-  const settled = proposal?.outcome !== void 0;
-  if (!Number.isFinite(proposal?.at) || typeof turns?.values !== "function") return { kind: settled ? "none" : "dock" };
-  const lastBy = (time) => {
-    let found;
-    for (const location2 of turns.values()) {
-      const end = location2?.end?.time;
-      if (location2?.status !== "closed" || !Number.isFinite(end) || end > time) continue;
-      if (found === void 0 || end > found.end.time || end === found.end.time && location2.turn > found.turn) found = location2;
-    }
-    return found;
-  };
-  const turn = (lastBy(proposal.at) ?? lastBy(settled ? proposal.settledAt ?? proposal.at : Infinity))?.turn;
-  if (turn === void 0) return { kind: settled ? "none" : "dock" };
-  return { kind: "turn", turn };
+// src/shared/data-mode.js
+var DATA_MODES = Object.freeze(["live", "preview", "demo"]);
+var VALID = new Set(DATA_MODES);
+function resolveDataMode(record) {
+  if (record === null || typeof record !== "object") return "unknown";
+  const dataMode = record.dataMode;
+  if (!VALID.has(dataMode)) return "unknown";
+  if (record.mode !== void 0 && record.mode !== dataMode) return "unknown";
+  return dataMode;
 }
-function fileLines(text) {
-  const body = String(text ?? "").replace(/\n+$/, "");
-  return body === "" ? [] : body.split("\n");
-}
-function editLines(text) {
-  return typeof text === "string" ? text.split(/\r?\n/) : [];
-}
-var DIFF_CELLS = 25e4;
-function lineDiff(before, after) {
-  const a = fileLines(before);
-  const b = fileLines(after);
-  let start = 0;
-  while (start < a.length && start < b.length && a[start] === b[start]) start++;
-  let tail = 0;
-  while (tail < a.length - start && tail < b.length - start && a[a.length - 1 - tail] === b[b.length - 1 - tail]) tail++;
-  const midA = a.slice(start, a.length - tail);
-  const midB = b.slice(start, b.length - tail);
-  const rows2 = b.slice(0, start).map((line, index) => ({ kind: "same", line, number: index + 1 }));
-  const added = (j) => ({ kind: "added", line: midB[j], number: start + j + 1 });
-  if (midA.length * midB.length > DIFF_CELLS) {
-    rows2.push(...midA.map((line) => ({ kind: "removed", line })), ...midB.map((_, j) => added(j)));
-  } else {
-    const keep = Array.from({ length: midA.length + 1 }, () => new Array(midB.length + 1).fill(0));
-    for (let i2 = midA.length - 1; i2 >= 0; i2--) {
-      for (let j2 = midB.length - 1; j2 >= 0; j2--) {
-        keep[i2][j2] = midA[i2] === midB[j2] ? keep[i2 + 1][j2 + 1] + 1 : Math.max(keep[i2 + 1][j2], keep[i2][j2 + 1]);
-      }
-    }
-    let i = 0;
-    let j = 0;
-    while (i < midA.length || j < midB.length) {
-      if (i < midA.length && j < midB.length && midA[i] === midB[j]) {
-        rows2.push({ kind: "same", line: midB[j], number: start + j + 1 });
-        i++;
-        j++;
-      } else if (i < midA.length && (j === midB.length || keep[i + 1][j] >= keep[i][j + 1])) {
-        rows2.push({ kind: "removed", line: midA[i] });
-        i++;
-      } else {
-        rows2.push(added(j));
-        j++;
-      }
-    }
-  }
-  const offset = b.length - tail;
-  rows2.push(...b.slice(offset).map((line, index) => ({ kind: "same", line, number: offset + index + 1 })));
-  return rows2;
-}
-var answerKeepsCard = (failure) => failure?.code !== "bot/stale";
-var withoutEntry = (state, key) => {
-  if (!(key in state)) return state;
-  const next = { ...state };
-  delete next[key];
-  return next;
-};
-function answerFailure(record, proposal, failure) {
-  if (!answerKeepsCard(failure)) return withoutEntry(record, proposal.id);
-  return { ...record, [proposal.id]: { proposal, error: failure?.message ?? String(failure) } };
-}
-function proposalCards({ proposals = [], settled = [], failures = {} }) {
-  const visible2 = [...settled.filter((entry) => !proposals.some((proposal) => proposal.id === entry.id)), ...proposals];
-  for (const entry of Object.values(failures)) {
-    if (!proposals.some((proposal) => proposal.id === entry.proposal.id) && !visible2.some((proposal) => proposal.id === entry.proposal.id)) visible2.push(entry.proposal);
-  }
-  return visible2.sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
-}
-
-// src/client/learning-card-view.js
-var import_react68 = require("react");
-function ProposalCard({ proposal, initialError = "", onFailure = () => {
-}, onResolved = () => {
-}, actions, disabledReason = "" }) {
-  const outcome = proposal.outcome;
-  const [busy, setBusy] = (0, import_react68.useState)(false);
-  const [error, setError] = (0, import_react68.useState)(initialError);
-  const [open, setOpen] = (0, import_react68.useState)(false);
-  const busyRef = (0, import_react68.useRef)(false);
-  const titleId = (0, import_react68.useId)();
-  const answer = (approve) => {
-    if (busyRef.current) return;
-    busyRef.current = true;
-    setBusy(true);
-    setError("");
-    void Promise.resolve().then(() => actions.learningAnswer(proposal.id, approve)).then(() => onResolved(proposal.id, approve), (failure) => {
-      setError(failure?.message ?? String(failure));
-      onFailure(proposal, failure);
-    }).finally(() => {
-      busyRef.current = false;
-      setBusy(false);
-    });
-  };
-  const update = proposal.action === "update";
-  const agents = proposal.kind === "agents";
-  const rows2 = (0, import_react68.useMemo)(() => lineDiff(update ? proposal.previous?.content : "", proposal.content), [update, proposal.previous?.content, proposal.content]);
-  const change = agents ? [
-    (0, import_react68.createElement)(FileBox, { key: "file", name: "AGENTS.md", path: proposal.folder, state: proposal.exists === false ? "Added" : "Modified", blocks: proposal.edits.map((edit) => [
-      ...(edit.op === "add" ? [] : editLines(edit.old)).map((line) => ({ kind: "removed", line })),
-      ...(edit.op === "remove" ? [] : editLines(edit.text)).map((line) => ({ kind: "added", line }))
-    ]) }),
-    ...proposal.edits.map((edit, index) => edit.why ? (0, import_react68.createElement)("p", { className: "bt-learning-why", key: `why-${index}` }, edit.why) : null)
-  ] : [
-    (0, import_react68.createElement)(FileBox, { key: "file", name: "SKILL.md", path: `skills/${proposal.name}`, state: update ? "Updated" : "Added", blocks: [rows2] }),
-    proposal.why ? (0, import_react68.createElement)("p", { className: "bt-learning-why", key: "why" }, proposal.why) : null
-  ];
-  const kind = t(agents ? "AGENTS.md update" : update ? "Skill update" : "New skill");
-  const reviewReason = proposal.requiresReview ? `${t("Review required")}: ${proposal.reviewReason}` : "";
-  if (outcome) {
-    const what = agents ? proposal.folder : proposal.name;
-    return (0, import_react68.createElement)(
-      "section",
-      { className: "bt-q bt-q-settled bt-learning-card bt-learning-settled", role: "group", "aria-label": `${kind} · ${what}`, "data-outcome": outcome },
-      (0, import_react68.createElement)(
-        "button",
-        { type: "button", className: "bt-learning-fold", "aria-expanded": open, onClick: () => setOpen(!open) },
-        (0, import_react68.createElement)("span", { className: "bt-learning-icon", "aria-hidden": true }, (0, import_react68.createElement)(agents ? PencilIcon : MemoryIcon)),
-        (0, import_react68.createElement)("span", { className: "bt-learning-kind" }, kind),
-        (0, import_react68.createElement)("span", { className: "bt-learning-sum" }, `${t(outcome === "approved" ? "Approved" : "Declined")} · ${what}`)
-      ),
-      open ? [change, proposal.improvement ? (0, import_react68.createElement)(ImprovementDetails, { key: "improvement", improvement: proposal.improvement, proposal }) : null] : null
-    );
-  }
-  const oldDetail = update && typeof proposal.previous?.description === "string" && proposal.previous.description !== proposal.description ? proposal.previous.description : void 0;
-  return (0, import_react68.createElement)(
-    "section",
-    { className: "bt-q bt-learning-card", role: "group", "aria-labelledby": titleId, "aria-busy": busy },
-    agents ? (0, import_react68.createElement)(ProposalHead, { titleId, icon: PencilIcon, title: kind }) : (0, import_react68.createElement)(ProposalHead, { titleId, title: proposal.name, kind, detail: proposal.description, oldDetail }),
-    change,
-    proposal.improvement ? (0, import_react68.createElement)(ImprovementDetails, { improvement: proposal.improvement, proposal }) : null,
-    error ? (0, import_react68.createElement)("div", { className: "bt-learning-error", role: "alert" }, error) : null,
-    (0, import_react68.createElement)(ProposalFoot, { busy, answer, disabledReason, approveDisabledReason: reviewReason })
-  );
-}
-function ImprovementDetails({ improvement, proposal }) {
-  const evidence = [...improvement.evidenceIds ?? [], ...improvement.sourceIds ?? []].join(", ");
-  const audit = proposal.audit;
-  return (0, import_react68.createElement)(
-    "section",
-    { className: "bt-learning-improvement", "aria-label": t("Verified improvement") },
-    (0, import_react68.createElement)("p", { className: "bt-learning-improvement-title" }, t("Verified improvement")),
-    (0, import_react68.createElement)(
-      "dl",
-      null,
-      (0, import_react68.createElement)("div", null, (0, import_react68.createElement)("dt", null, t("Affects")), (0, import_react68.createElement)("dd", null, `${improvement.affectedBot.name} · ${improvement.scope.label}`)),
-      (0, import_react68.createElement)("div", null, (0, import_react68.createElement)("dt", null, t("Observed problem")), (0, import_react68.createElement)("dd", null, improvement.observedProblem)),
-      (0, import_react68.createElement)("div", null, (0, import_react68.createElement)("dt", null, t("Proposed change")), (0, import_react68.createElement)("dd", null, improvement.proposedChange)),
-      (0, import_react68.createElement)("div", null, (0, import_react68.createElement)("dt", null, t("Expected benefit")), (0, import_react68.createElement)("dd", null, improvement.expectedBenefit)),
-      (0, import_react68.createElement)("div", null, (0, import_react68.createElement)("dt", null, t("Rollback path")), (0, import_react68.createElement)("dd", null, improvement.rollbackPath)),
-      (0, import_react68.createElement)("div", null, (0, import_react68.createElement)("dt", null, t("Source")), (0, import_react68.createElement)("dd", null, (0, import_react68.createElement)("span", { className: "bt-activity-id" }, `${improvement.taskId} · ${evidence}`))),
-      audit ? (0, import_react68.createElement)("div", null, (0, import_react68.createElement)("dt", null, t("Audit")), (0, import_react68.createElement)("dd", null, `${t("Version {version}", { version: audit.version })} · ${audit.beforeHash} → ${audit.afterHash}`)) : null
-    ),
-    proposal.requiresReview ? (0, import_react68.createElement)("p", { className: "bt-learning-review", role: "alert" }, `${t("Review required")}: ${proposal.reviewReason}`) : null
-  );
-}
-function ProposalHead({ titleId, icon: icon2 = MemoryIcon, title, kind, detail, oldDetail }) {
-  return (0, import_react68.createElement)(
-    "div",
-    { className: "bt-q-head" },
-    (0, import_react68.createElement)("span", { className: "bt-learning-icon", "aria-hidden": true }, (0, import_react68.createElement)(icon2)),
-    (0, import_react68.createElement)(
-      "div",
-      { className: "bt-q-text" },
-      (0, import_react68.createElement)("p", { className: "bt-q-title", id: titleId }, title),
-      kind ? (0, import_react68.createElement)("div", { className: "bt-q-detail" }, kind) : null,
-      oldDetail ? (0, import_react68.createElement)("p", { className: "bt-learning-description bt-learning-old" }, (0, import_react68.createElement)("del", null, oldDetail)) : null,
-      detail ? (0, import_react68.createElement)("p", { className: "bt-learning-description" }, detail) : null
-    ),
-    (0, import_react68.createElement)("span", { className: "bt-q-badge bt-learning-status" }, (0, import_react68.createElement)("span", { className: "bt-learning-dot", "aria-hidden": true }), t("Awaiting approval"))
-  );
-}
-function ProposalFoot({ busy, answer, disabledReason, approveDisabledReason = "" }) {
-  const declineDisabled = busy || Boolean(disabledReason);
-  const approveDisabled = declineDisabled || Boolean(approveDisabledReason);
-  return (0, import_react68.createElement)(
-    "div",
-    { className: "bt-q-foot bt-learning-foot" },
-    (0, import_react68.createElement)("button", { type: "button", className: "bt-learning-btn bt-learning-decline", disabled: declineDisabled, title: disabledReason || void 0, onClick: () => answer(false) }, t("Decline")),
-    (0, import_react68.createElement)(
-      "button",
-      { type: "button", className: "bt-learning-btn bt-learning-approve", disabled: approveDisabled, title: approveDisabledReason || disabledReason || void 0, onClick: () => answer(true) },
-      (0, import_react68.createElement)(CheckIcon),
-      t("Approve")
-    )
-  );
-}
-var COLLAPSE_ROWS = 8;
-var SIGNS = { added: "+", removed: "−", same: "" };
-function FileBox({ name, path: path2, state, blocks }) {
-  const [open, setOpen] = (0, import_react68.useState)(false);
-  const all = blocks.flat();
-  const added = all.filter((row) => row.kind === "added").length;
-  const removed = all.filter((row) => row.kind === "removed").length;
-  const folds = all.length > COLLAPSE_ROWS;
-  const shut = folds && !open;
-  return (0, import_react68.createElement)(
-    "div",
-    { className: "bt-learning-file" },
-    (0, import_react68.createElement)(
-      "div",
-      { className: "bt-learning-filehead" },
-      (0, import_react68.createElement)("span", { className: "bt-learning-name" }, name),
-      path2 ? (0, import_react68.createElement)("span", { className: "bt-learning-path" }, path2) : null,
-      (0, import_react68.createElement)("span", { className: "bt-learning-spacer" }),
-      added > 0 ? (0, import_react68.createElement)("span", { className: "bt-learning-plus" }, `+${added}`) : null,
-      removed > 0 ? (0, import_react68.createElement)("span", { className: "bt-learning-minus" }, `−${removed}`) : null,
-      (0, import_react68.createElement)("span", { className: `bt-learning-state bt-learning-state-${state.toLowerCase()}` }, t(state))
-    ),
-    (0, import_react68.createElement)(
-      "div",
-      { className: shut ? "bt-learning-code bt-learning-shut" : "bt-learning-code" },
-      blocks.map((rows2, blockIndex) => [
-        blockIndex > 0 ? (0, import_react68.createElement)("div", { className: "bt-learning-gap", key: `gap-${blockIndex}` }) : null,
-        ...rows2.map((row, rowIndex) => (0, import_react68.createElement)(
-          "div",
-          { className: `bt-learning-row bt-learning-${row.kind}`, key: `${blockIndex}-${rowIndex}` },
-          (0, import_react68.createElement)("span", { className: "bt-learning-num", "aria-hidden": true }, row.number ?? ""),
-          (0, import_react68.createElement)("span", { className: "bt-learning-sign", "aria-hidden": true }, SIGNS[row.kind]),
-          (0, import_react68.createElement)("span", { className: "bt-learning-text" }, row.line || " ")
-        ))
-      ])
-    ),
-    folds ? (0, import_react68.createElement)(
-      "div",
-      { className: shut ? "bt-learning-morebar bt-learning-morebar-shut" : "bt-learning-morebar" },
-      (0, import_react68.createElement)(
-        "button",
-        { type: "button", className: "bt-learning-more", "aria-expanded": open, onClick: () => setOpen(!open) },
-        t(open ? "Show less" : "Show all {count} lines", { count: all.length })
-      )
-    ) : null
-  );
-}
+var isLiveDataMode = (mode) => mode === "live";
 
 // src/client/team-activity.js
-var import_react69 = require("react");
+var import_react68 = require("react");
 var copyText = () => ({
   title: t("Team activity"),
   subtitle: t("Real tasks, handoffs, and recent activity"),
-  live: t("Live data"),
-  demo: t("Demo data"),
-  readOnly: t("Read-only"),
-  readOnlyHost: t("Read-only host"),
+  live: localText("Live data"),
+  preview: localText("Preview data (not live)"),
+  demo: localText("Demo data"),
+  dataUnavailable: localText("Activity data is unavailable"),
+  readOnly: localText("This activity view is read-only"),
+  readOnlyHost: localText("Read-only host"),
   close: t("Close"),
   active: t("Active"),
   waiting: t("Waiting"),
@@ -45758,6 +45855,20 @@ var copyText = () => ({
   verified: t("Verified"),
   requested: t("Requested"),
   pending: t("Pending"),
+  taskRequest: t("Task request"),
+  botReport: t("Bot report"),
+  toolCall: t("Tool call"),
+  toolResult: t("Tool result"),
+  toolResultNamed: t("{name} result"),
+  artifactsPresented: t("Artifacts presented"),
+  completed: t("Completed"),
+  failed: t("Failed"),
+  session: t("Session"),
+  command: t("Command"),
+  exitCode: t("Exit code"),
+  diffDigest: t("Diff digest"),
+  staleEvidence: t("Stale"),
+  needsReview: t("Needs review"),
   noBlockers: t("No known blockers."),
   noEvidence: t("No evidence is attached yet."),
   noArtifacts: t("No artifacts are attached yet."),
@@ -45769,20 +45880,8 @@ var copyText = () => ({
   detailStale: t("Could not refresh this task. Showing the last good detail."),
   detailUnavailable: t("This task is no longer available."),
   detailError: t("Task detail could not be read."),
-  pauseGoal: t("Pause goal"),
-  resumeGoal: t("Resume goal"),
-  stopGoal: t("Stop goal"),
-  retryBot: t("Retry Bot"),
-  cancelWork: t("Stop current work"),
-  abandonWait: t("Abandon wait"),
-  verification: t("Verification"),
-  improvements: t("Improvement proposals"),
-  proposeImprovement: t("Propose improvement"),
-  proposingImprovement: t("Reading verified evidence…"),
-  noImprovement: t("No reusable improvement was found in this verified evidence."),
-  noImprovements: t("No improvements have been proposed for this task yet."),
-  proposalError: t("The improvement proposal could not be created."),
-  verifiedOnly: t("Only verified task evidence can produce an improvement proposal.")
+  detailModeMismatch: t("Task detail data mode does not match the team activity data."),
+  verification: t("Verification")
 });
 var sourceLabel = (source, copy2) => source === "goal" ? copy2.goalTask : source === "handoff" ? copy2.handoff : source === "board" ? copy2.board : source === "ledger" ? copy2.ledger : source;
 var permissionOf = (role, copy2) => !role ? "" : role.main ? copy2.mainBot : copy2.member;
@@ -45809,83 +45908,101 @@ var when3 = (at) => {
 };
 function OwnerMark({ task, roster, role, copy: copy2, size }) {
   if (task.ownerKind !== "bot" || !task.ownerId) {
-    return (0, import_react69.createElement)("span", { className: "bt-activity-owner-mark", style: { width: size, height: size }, "aria-label": task.ownerName || copy2.noOwner }, task.ownerKind === "group" ? "G" : "?");
+    return (0, import_react68.createElement)("span", { className: "bt-activity-owner-mark", style: { width: size, height: size }, "aria-label": task.ownerName || copy2.noOwner }, task.ownerKind === "group" ? "G" : "?");
   }
-  return (0, import_react69.createElement)(BotAvatar, { bot: botFor(roster, task, role), size, state: task.displayState ?? "idle", main: role?.main === true });
+  return (0, import_react68.createElement)(BotAvatar, { bot: botFor(roster, task, role), size, state: task.displayState ?? "idle", main: role?.main === true });
 }
-function DialogHead({ copy: copy2, onClose, data, partial, roster }) {
+function DialogHead({ copy: copy2, onClose, dataMode, partial, roster }) {
   const lockReason = typeof roster?.readOnly === "string" ? roster.readOnly.trim() : "";
-  return (0, import_react69.createElement)(
+  const modeLabel = dataMode === "preview" ? copy2.preview : dataMode === "demo" ? copy2.demo : isLiveDataMode(dataMode) ? copy2.live : copy2.dataUnavailable;
+  return (0, import_react68.createElement)(
     "header",
     { className: "bt-activity-head" },
-    (0, import_react69.createElement)("div", null, (0, import_react69.createElement)("h2", null, copy2.title), (0, import_react69.createElement)("p", null, copy2.subtitle)),
-    (0, import_react69.createElement)(
+    (0, import_react68.createElement)("div", null, (0, import_react68.createElement)("h2", null, copy2.title), (0, import_react68.createElement)("p", null, copy2.subtitle)),
+    (0, import_react68.createElement)(
       "div",
       { className: "bt-activity-head-meta" },
-      data ? (0, import_react69.createElement)("span", { className: "bt-activity-mode", "data-mode": data.mode ?? "live" }, data.mode === "live" ? copy2.live : copy2.demo) : null,
-      partial ? (0, import_react69.createElement)("span", { className: "bt-activity-mode", "data-partial": true }, copy2.partial) : null,
-      (0, import_react69.createElement)("span", { className: "bt-activity-mode", "data-host-locked": lockReason || void 0, title: lockReason ? hostText(lockReason) : void 0 }, lockReason ? copy2.readOnlyHost : copy2.readOnly),
-      (0, import_react69.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-activity-close", onClick: onClose }, copy2.close)
+      dataMode ? (0, import_react68.createElement)("span", { className: "bt-activity-mode", "data-mode": dataMode }, modeLabel) : null,
+      partial ? (0, import_react68.createElement)("span", { className: "bt-activity-mode", "data-partial": true }, copy2.partial) : null,
+      (0, import_react68.createElement)("span", { className: "bt-activity-mode", "data-host-locked": lockReason || void 0, title: lockReason ? hostText(lockReason) : void 0 }, lockReason ? copy2.readOnlyHost : copy2.readOnly),
+      (0, import_react68.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-activity-close", onClick: onClose }, copy2.close)
     )
   );
 }
 function Filter({ label, value, options, allLabel, onChange }) {
-  return (0, import_react69.createElement)(
+  return (0, import_react68.createElement)(
     "label",
     { className: "bt-activity-filter" },
-    (0, import_react69.createElement)("span", null, label),
-    (0, import_react69.createElement)(
+    (0, import_react68.createElement)("span", null, label),
+    (0, import_react68.createElement)(
       "select",
       { className: "bt-select", value, onChange: (event) => onChange(event.target.value) },
-      (0, import_react69.createElement)("option", { value: "all" }, allLabel),
-      options.map((option) => (0, import_react69.createElement)("option", { key: option.value, value: option.value }, option.label))
+      (0, import_react68.createElement)("option", { value: "all" }, allLabel),
+      options.map((option) => (0, import_react68.createElement)("option", { key: option.value, value: option.value }, option.label))
     )
   );
 }
 function RoleStrip({ roles, copy: copy2 }) {
   if (roles.length === 0) return null;
-  return (0, import_react69.createElement)(
+  return (0, import_react68.createElement)(
     "div",
     { className: "bt-activity-roster-wrap" },
-    (0, import_react69.createElement)("div", { className: "bt-activity-section-head" }, (0, import_react69.createElement)("span", null, copy2.roster)),
-    (0, import_react69.createElement)(
+    (0, import_react68.createElement)("div", { className: "bt-activity-section-head" }, (0, import_react68.createElement)("span", null, copy2.roster)),
+    (0, import_react68.createElement)(
       "div",
       { className: "bt-activity-roster", "aria-label": copy2.roster },
-      roles.map((role) => (0, import_react69.createElement)(
+      roles.map((role) => (0, import_react68.createElement)(
         "div",
         { key: role.id, className: "bt-activity-role", "data-main": role.main || void 0 },
-        (0, import_react69.createElement)(BotAvatar, { bot: role, size: 28, main: role.main }),
-        (0, import_react69.createElement)(
+        (0, import_react68.createElement)(BotAvatar, { bot: role, size: 28, main: role.main }),
+        (0, import_react68.createElement)(
           "span",
           { className: "bt-activity-role-copy" },
-          (0, import_react69.createElement)("b", null, role.name),
-          (0, import_react69.createElement)("small", null, role.role || copy2.member)
+          (0, import_react68.createElement)("b", null, role.name),
+          (0, import_react68.createElement)("small", null, role.role || copy2.member)
         ),
-        (0, import_react69.createElement)("em", null, permissionOf(role, copy2))
+        (0, import_react68.createElement)("em", null, permissionOf(role, copy2))
       ))
     )
   );
 }
 function TaskRow3({ task, roster, role, selected, copy: copy2, onSelect }) {
   const roleLabel = task.ownerRole || role?.role;
-  return (0, import_react69.createElement)(
+  return (0, import_react68.createElement)(
     "button",
     { type: "button", className: "bt-activity-task", "data-task-id": task.id, "data-source": task.source, "data-status": task.sourceStatus, "data-owner-kind": task.ownerKind, "data-selected": selected || void 0, onClick: () => onSelect(task.id) },
-    (0, import_react69.createElement)(OwnerMark, { task, roster, role, copy: copy2, size: 30 }),
-    (0, import_react69.createElement)(
+    (0, import_react68.createElement)(OwnerMark, { task, roster, role, copy: copy2, size: 30 }),
+    (0, import_react68.createElement)(
       "span",
       { className: "bt-activity-task-main" },
-      (0, import_react69.createElement)("span", { className: "bt-activity-task-title" }, task.title || task.sourceId),
-      (0, import_react69.createElement)("span", { className: "bt-activity-task-meta" }, `${sourceLabel(task.source, copy2)} · ${task.ownerName || copy2.noOwner}${roleLabel ? ` · ${roleLabel}` : ""}`),
-      (0, import_react69.createElement)("span", { className: "bt-activity-task-state", "data-status": task.sourceStatus }, task.sourceStatus)
+      (0, import_react68.createElement)("span", { className: "bt-activity-task-title" }, task.title || task.sourceId),
+      (0, import_react68.createElement)("span", { className: "bt-activity-task-meta" }, `${sourceLabel(task.source, copy2)} · ${task.ownerName || copy2.noOwner}${roleLabel ? ` · ${roleLabel}` : ""}`),
+      (0, import_react68.createElement)("span", { className: "bt-activity-task-state", "data-status": task.sourceStatus }, task.sourceStatus),
+      (0, import_react68.createElement)("span", { className: "bt-activity-task-evidence", "data-evidence-state": task.evidenceState ?? "pending" }, evidenceStateLabel(task.evidenceState, copy2))
     ),
-    (0, import_react69.createElement)("time", { className: "bt-activity-task-time" }, when3(task.updatedAt))
+    (0, import_react68.createElement)("time", { className: "bt-activity-task-time" }, when3(task.updatedAt))
   );
 }
 var trustLabel = (trust, copy2) => trust === "verified" ? copy2.verified : trust === "executed" ? copy2.executed : trust === "requested" ? copy2.requested : trust === "reported" ? copy2.reported : copy2.pending;
-var controlLabel = (id, copy2) => id === "pause-goal" ? copy2.pauseGoal : id === "resume-goal" ? copy2.resumeGoal : id === "stop-goal" ? copy2.stopGoal : id === "retry-bot" ? copy2.retryBot : id === "cancel-work" || id === "cancel-room" ? copy2.cancelWork : id === "abandon-work" ? copy2.abandonWait : id;
+var evidenceStateLabel = (state, copy2) => state === "verified" ? copy2.verified : state === "executed" ? copy2.executed : state === "reported" ? copy2.reported : state === "stale" ? copy2.staleEvidence : state === "needs-review" ? copy2.needsReview : copy2.pending;
+var traceTitle = (item, copy2) => {
+  if (item.titleKey === "trace.request") return copy2.taskRequest;
+  if (item.titleKey === "trace.report") return copy2.botReport;
+  if (item.titleKey === "trace.toolCall") return item.toolName || copy2.toolCall;
+  if (item.titleKey === "trace.toolResult") return item.toolName ? copy2.toolResultNamed.replace("{name}", item.toolName) : copy2.toolResult;
+  if (item.titleKey === "trace.artifacts") return copy2.artifactsPresented;
+  return item.title || item.type;
+};
+var traceResultLabel = (item, copy2) => item.resultKey === "trace.completed" ? copy2.completed : item.resultKey === "trace.failed" ? copy2.failed : "";
+var traceDetail = (item, copy2) => [item.requestDetail, traceResultLabel(item, copy2), item.detail].filter(Boolean).join(" · ");
+var relationLabel = (item, copy2) => item.labelKey === "trace.source" ? copy2.source : item.labelKey === "trace.session" ? copy2.session : item.labelKey === "trace.task" ? copy2.task : item.kind;
+var evidenceFacts = (item, copy2) => [
+  ...item.command ? [`${copy2.command}: ${item.command.text}${Number.isInteger(item.command.exitCode) ? ` · ${copy2.exitCode} ${item.command.exitCode}` : ""}`] : [],
+  ...item.diff ? [`${copy2.diffDigest}: ${item.diff.digest || copy2.none}${item.diff.paths?.length ? ` · ${item.diff.paths.join(", ")}` : ""}`] : [],
+  ...item.stale === true ? [copy2.staleEvidence] : []
+];
 function TraceRow({ item, copy: copy2, selected, onSelect }) {
-  return (0, import_react69.createElement)(
+  return (0, import_react68.createElement)(
     "button",
     {
       type: "button",
@@ -45895,21 +46012,22 @@ function TraceRow({ item, copy: copy2, selected, onSelect }) {
       "data-selected": selected || void 0,
       onClick: () => onSelect(item)
     },
-    (0, import_react69.createElement)(
+    (0, import_react68.createElement)(
       "span",
       { className: "bt-trace-record-main" },
-      (0, import_react69.createElement)("b", null, item.title || item.type),
-      (0, import_react69.createElement)("span", null, item.detail || ""),
-      (0, import_react69.createElement)("small", null, [item.sessionId, item.seq === null || item.seq === void 0 ? "" : `#${item.seq}`].filter(Boolean).join(" · "))
+      (0, import_react68.createElement)("b", null, traceTitle(item, copy2)),
+      (0, import_react68.createElement)("span", null, traceDetail(item, copy2)),
+      ...evidenceFacts(item, copy2).map((fact, index) => (0, import_react68.createElement)("span", { key: `fact:${index}`, className: "bt-evidence-fact" }, fact)),
+      (0, import_react68.createElement)("small", null, [item.sessionId, item.seq === null || item.seq === void 0 ? "" : `#${item.seq}`].filter(Boolean).join(" · "))
     ),
-    (0, import_react69.createElement)("span", { className: "bt-trace-trust", "data-trust": item.trust }, trustLabel(item.trust, copy2)),
-    (0, import_react69.createElement)("time", null, when3(item.at))
+    (0, import_react68.createElement)("span", { className: "bt-trace-trust", "data-trust": item.trust }, trustLabel(item.trust, copy2)),
+    (0, import_react68.createElement)("time", null, when3(item.at))
   );
 }
 function TraceExplorer({ trace, copy: copy2, view: forcedView, onSelectEvidence = () => {
 } }) {
-  const [localView, setLocalView] = (0, import_react69.useState)("timeline");
-  const [selectedRecordId, setSelectedRecordId] = (0, import_react69.useState)(null);
+  const [localView, setLocalView] = (0, import_react68.useState)("timeline");
+  const [selectedRecordId, setSelectedRecordId] = (0, import_react68.useState)(null);
   const view = forcedView ?? localView;
   const changeView = (next) => {
     if (forcedView === void 0) setLocalView(next);
@@ -45920,32 +46038,32 @@ function TraceExplorer({ trace, copy: copy2, view: forcedView, onSelectEvidence 
   };
   const records = Array.isArray(trace?.timeline) ? trace.timeline : [];
   const relationships = Array.isArray(trace?.relationships) ? trace.relationships : [];
-  const recordRows = records.map((item) => (0, import_react69.createElement)(TraceRow, { key: item.id, item, copy: copy2, selected: selectedRecordId === item.id, onSelect: selectRecord }));
-  const tab = (id, label) => (0, import_react69.createElement)("button", {
+  const recordRows = records.map((item) => (0, import_react68.createElement)(TraceRow, { key: item.id, item, copy: copy2, selected: selectedRecordId === item.id, onSelect: selectRecord }));
+  const tab = (id, label) => (0, import_react68.createElement)("button", {
     type: "button",
     className: "bt-trace-tab",
     "data-view": id,
     "aria-pressed": view === id,
     onClick: () => changeView(id)
   }, label);
-  return (0, import_react69.createElement)(
+  return (0, import_react68.createElement)(
     "section",
     { className: "bt-trace-explorer", "aria-label": copy2.traceExplorer },
-    (0, import_react69.createElement)("div", { className: "bt-trace-head" }, (0, import_react69.createElement)("h4", null, copy2.traceExplorer), (0, import_react69.createElement)("small", { className: "bt-activity-id" }, trace?.sourceId || trace?.sourceTaskId || "")),
-    (0, import_react69.createElement)("div", { className: "bt-trace-tabs", role: "tablist" }, tab("timeline", copy2.timeline), tab("relationships", copy2.relationships), tab("records", copy2.records)),
-    trace?.status === "partial" ? (0, import_react69.createElement)("p", { className: "bt-trace-note", role: "status" }, copy2.tracePartial) : null,
-    view === "relationships" ? relationships.length > 0 ? (0, import_react69.createElement)("div", { className: "bt-trace-relations" }, relationships.map((item, index) => (0, import_react69.createElement)(
+    (0, import_react68.createElement)("div", { className: "bt-trace-head" }, (0, import_react68.createElement)("h4", null, copy2.traceExplorer), (0, import_react68.createElement)("small", { className: "bt-activity-id" }, trace?.sourceId || trace?.sourceTaskId || "")),
+    (0, import_react68.createElement)("div", { className: "bt-trace-tabs", role: "tablist" }, tab("timeline", copy2.timeline), tab("relationships", copy2.relationships), tab("records", copy2.records)),
+    trace?.status === "partial" ? (0, import_react68.createElement)("p", { className: "bt-trace-note", role: "status" }, copy2.tracePartial) : null,
+    view === "relationships" ? relationships.length > 0 ? (0, import_react68.createElement)("div", { className: "bt-trace-relations" }, relationships.map((item, index) => (0, import_react68.createElement)(
       "div",
       { key: `${item.kind}:${index}`, className: "bt-trace-relation", "data-kind": item.kind },
-      (0, import_react69.createElement)("b", null, item.kind),
-      (0, import_react69.createElement)("span", null, `${item.from} → ${item.to}`)
-    ))) : (0, import_react69.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noTrace) : records.length > 0 ? (0, import_react69.createElement)("div", { className: "bt-trace-list", role: view === "timeline" ? "list" : void 0 }, recordRows) : (0, import_react69.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noTrace),
-    trace?.truncated ? (0, import_react69.createElement)("p", { className: "bt-trace-note" }, copy2.traceTruncated) : null
+      (0, import_react68.createElement)("b", null, relationLabel(item, copy2)),
+      (0, import_react68.createElement)("span", null, `${item.from} → ${item.to}`)
+    ))) : (0, import_react68.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noTrace) : records.length > 0 ? (0, import_react68.createElement)("div", { className: "bt-trace-list", role: view === "timeline" ? "list" : void 0 }, recordRows) : (0, import_react68.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noTrace),
+    trace?.truncated ? (0, import_react68.createElement)("p", { className: "bt-trace-note" }, copy2.traceTruncated) : null
   );
 }
 function EvidenceList({ evidence, selectedId, copy: copy2, onSelect }) {
-  if (evidence.length === 0) return (0, import_react69.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noEvidence);
-  return (0, import_react69.createElement)("div", { className: "bt-task-evidence-list" }, evidence.map((item) => (0, import_react69.createElement)(
+  if (evidence.length === 0) return (0, import_react68.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noEvidence);
+  return (0, import_react68.createElement)("div", { className: "bt-task-evidence-list" }, evidence.map((item) => (0, import_react68.createElement)(
     "button",
     {
       key: item.id,
@@ -45956,28 +46074,20 @@ function EvidenceList({ evidence, selectedId, copy: copy2, onSelect }) {
       "data-selected": selectedId === item.id || void 0,
       onClick: () => onSelect(item.id)
     },
-    (0, import_react69.createElement)(
+    (0, import_react68.createElement)(
       "span",
       null,
-      (0, import_react69.createElement)("b", null, item.title || item.text || item.id),
-      item.title && item.text ? (0, import_react69.createElement)("span", null, item.text) : null,
-      (0, import_react69.createElement)("small", null, `${item.sourceId || ""}${item.at ? ` · ${when3(item.at)}` : ""}`)
+      (0, import_react68.createElement)("b", null, traceTitle(item, copy2) || item.text || item.id),
+      (item.title || item.titleKey) && item.text ? (0, import_react68.createElement)("span", null, item.text) : null,
+      ...evidenceFacts(item, copy2).map((fact, index) => (0, import_react68.createElement)("span", { key: `fact:${index}`, className: "bt-evidence-fact" }, fact)),
+      (0, import_react68.createElement)("small", null, `${item.sourceId || ""}${item.at ? ` · ${when3(item.at)}` : ""}`)
     ),
-    (0, import_react69.createElement)("em", null, trustLabel(item.trust, copy2))
+    (0, import_react68.createElement)("em", null, trustLabel(item.trust, copy2))
   )));
 }
-function Detail2({ task, detail, detailStatus, detailError, roster, rolesById, allTasks, actions, copy: copy2 }) {
-  const [selectedEvidenceId, setSelectedEvidenceId] = (0, import_react69.useState)(null);
-  const [improvements, setImprovements] = (0, import_react69.useState)(detail?.improvements ?? { proposals: [], history: [] });
-  const [proposalBusy, setProposalBusy] = (0, import_react69.useState)(false);
-  const [proposalError, setProposalError] = (0, import_react69.useState)("");
-  const [proposalNotice, setProposalNotice] = (0, import_react69.useState)("");
-  (0, import_react69.useEffect)(() => {
-    if (detail?.improvements) setImprovements(detail.improvements);
-    setProposalError("");
-    setProposalNotice("");
-  }, [detail?.taskId, detail?.generatedAt]);
-  if (!task) return (0, import_react69.createElement)("aside", { className: "bt-activity-detail" }, (0, import_react69.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noDetail));
+function Detail2({ task, detail, detailStatus, detailError, roster, rolesById, allTasks, copy: copy2 }) {
+  const [selectedEvidenceId, setSelectedEvidenceId] = (0, import_react68.useState)(null);
+  if (!task) return (0, import_react68.createElement)("aside", { className: "bt-activity-detail" }, (0, import_react68.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noDetail));
   const shown = detail?.task ?? task;
   const role = rolesById.get(shown.ownerId);
   const parent = shown.parentId ? allTasks.find((item) => item.id === shown.parentId) : void 0;
@@ -45999,141 +46109,69 @@ function Detail2({ task, detail, detailStatus, detailError, roster, rolesById, a
   const recovery = detail?.recovery;
   const evidence = Array.isArray(detail?.evidence) ? detail.evidence : [];
   const artifacts = Array.isArray(detail?.artifacts) ? detail.artifacts : [];
-  const controls = Array.isArray(detail?.controls) ? detail.controls : [];
-  const lockReason = typeof roster?.readOnly === "string" ? roster.readOnly.trim() : "";
-  const visibleControls = controls.map((control) => lockReason ? { ...control, enabled: false, reason: lockReason } : control);
-  const verified = detail?.verification?.status === "verified" && detail?.empty !== true;
-  const canPropose = verified && shown.ownerKind === "bot" && Boolean(actions?.proposeImprovement) && !lockReason && !proposalBusy;
-  const proposalDisabledReason = lockReason || (verified ? "" : copy2.verifiedOnly);
-  const proposalCards2 = [...improvements.proposals ?? [], ...improvements.history ?? []];
-  const proposeImprovement = () => {
-    if (!canPropose) return;
-    setProposalBusy(true);
-    setProposalError("");
-    setProposalNotice("");
-    let result;
-    try {
-      result = actions.proposeImprovement(shown.id);
-    } catch (error) {
-      setProposalError(error?.message ?? String(error));
-      setProposalBusy(false);
-      return;
-    }
-    void Promise.resolve(result).then((proposal) => {
-      if (proposal) setImprovements((current) => ({ ...current, proposals: [...current.proposals ?? [], proposal] }));
-      else setProposalNotice(copy2.noImprovement);
-    }, (error) => setProposalError(error?.message ?? String(error))).finally(() => setProposalBusy(false));
-  };
-  const proposalResolved = (id, approve) => setImprovements((current) => ({
-    ...current,
-    proposals: (current.proposals ?? []).map((proposal) => proposal.id === id ? { ...proposal, outcome: approve ? "approved" : "declined" } : proposal)
-  }));
-  const runControl = (control) => {
-    if (!control.enabled || !actions) return;
-    if (control.id === "pause-goal") void actions.goalControl?.(control.roomId, control.goalId, "pause");
-    else if (control.id === "resume-goal") void actions.goalControl?.(control.roomId, control.goalId, "resume");
-    else if (control.id === "stop-goal") void actions.goalControl?.(control.roomId, control.goalId, "stop");
-    else if (control.id === "retry-bot") void actions.resume?.(control.botId);
-    else if (control.id === "cancel-work") void actions.stopMemberWork?.(control.roomId, control.botId);
-    else if (control.id === "cancel-room") void actions.stopRoomWork?.(control.roomId);
-    else if (control.id === "abandon-work") void actions.abandonWork?.(control.workId);
-  };
-  const detailNotice = detailStatus === "loading" && detail === null ? (0, import_react69.createElement)("p", { className: "bt-task-detail-state", role: "status" }, copy2.detailLoading) : detail?.empty === true ? (0, import_react69.createElement)("p", { className: "bt-task-detail-state", role: "status" }, copy2.detailUnavailable) : detailError ? (0, import_react69.createElement)("p", { className: "bt-task-detail-state", role: "alert" }, detail ? copy2.detailStale : detailError || copy2.detailError, detail ? (0, import_react69.createElement)("span", null, detailError) : null) : null;
-  return (0, import_react69.createElement)(
+  const detailNotice = detailStatus === "loading" && detail === null ? (0, import_react68.createElement)("p", { className: "bt-task-detail-state", role: "status" }, copy2.detailLoading) : detail?.empty === true ? (0, import_react68.createElement)("p", { className: "bt-task-detail-state", role: "status" }, copy2.detailUnavailable) : detailError ? (0, import_react68.createElement)("p", { className: "bt-task-detail-state", role: "alert" }, detail ? copy2.detailStale : detailError || copy2.detailError, detail ? (0, import_react68.createElement)("span", null, detailError) : null) : null;
+  return (0, import_react68.createElement)(
     "aside",
     { className: "bt-activity-detail", "aria-label": copy2.detail },
-    (0, import_react69.createElement)(
+    (0, import_react68.createElement)(
       "div",
       { className: "bt-activity-detail-head" },
-      (0, import_react69.createElement)(OwnerMark, { task: shown, roster, role, copy: copy2, size: 38 }),
-      (0, import_react69.createElement)(
+      (0, import_react68.createElement)(OwnerMark, { task: shown, roster, role, copy: copy2, size: 38 }),
+      (0, import_react68.createElement)(
         "div",
         null,
-        (0, import_react69.createElement)("b", null, shown.title || shown.sourceId),
-        (0, import_react69.createElement)("span", null, `${sourceLabel(shown.source, copy2)} · ${shown.ownerName || copy2.noOwner}`),
-        (0, import_react69.createElement)("small", { "data-main": role?.main || void 0 }, shown.ownerKind === "group" ? copy2.room : role ? `${shown.ownerRole || role.role || copy2.member} · ${permissionOf(role, copy2)}` : copy2.noOwner)
+        (0, import_react68.createElement)("b", null, shown.title || shown.sourceId),
+        (0, import_react68.createElement)("span", null, `${sourceLabel(shown.source, copy2)} · ${shown.ownerName || copy2.noOwner}`),
+        (0, import_react68.createElement)("small", { "data-main": role?.main || void 0 }, shown.ownerKind === "group" ? copy2.room : role ? `${shown.ownerRole || role.role || copy2.member} · ${permissionOf(role, copy2)}` : copy2.noOwner)
       )
     ),
     detailNotice,
-    (0, import_react69.createElement)(
+    (0, import_react68.createElement)(
       "dl",
       null,
-      (0, import_react69.createElement)("div", null, (0, import_react69.createElement)("dt", null, copy2.status), (0, import_react69.createElement)("dd", null, (0, import_react69.createElement)("span", { className: "bt-activity-status", "data-status": shown.sourceStatus }, shown.sourceStatus))),
-      (0, import_react69.createElement)("div", null, (0, import_react69.createElement)("dt", null, copy2.sourceId), (0, import_react69.createElement)("dd", { className: "bt-activity-id" }, shown.sourceId || shown.id)),
-      ...stageTitle ? [(0, import_react69.createElement)("div", { key: "stage" }, (0, import_react69.createElement)("dt", null, copy2.stage), (0, import_react69.createElement)("dd", null, stageTitle))] : [],
-      ...detail && attempt ? [(0, import_react69.createElement)("div", { key: "attempt" }, (0, import_react69.createElement)("dt", null, copy2.attempt), (0, import_react69.createElement)("dd", null, (0, import_react69.createElement)("span", { className: "bt-activity-id" }, `${attempt.id || copy2.none}${attempt.number ? ` · ${attempt.number}` : ""}${attempt.status ? ` · ${attempt.status}` : ""}`)))] : [],
-      ...detail && handoff ? [(0, import_react69.createElement)("div", { key: "handoff" }, (0, import_react69.createElement)("dt", null, copy2.handoffRoute), (0, import_react69.createElement)("dd", null, [handoff.from?.name || handoff.from?.id, handoff.to?.name || handoff.to?.id].filter(Boolean).join(" → ") || copy2.none, handoff.status ? ` · ${handoff.status}` : "", handoff.name ? ` · ${handoff.name}` : ""))] : [],
-      ...detail ? [(0, import_react69.createElement)("div", { key: "checkpoint" }, (0, import_react69.createElement)("dt", null, copy2.latestCheckpoint), (0, import_react69.createElement)("dd", null, detail.checkpoint?.text || copy2.none))] : [],
-      ...detail && recovery ? [(0, import_react69.createElement)("div", { key: "recovery" }, (0, import_react69.createElement)("dt", null, copy2.recovery), (0, import_react69.createElement)("dd", null, recovery.records?.length > 0 ? recovery.records.map((item) => `${item.kind}: ${item.summary}`).join(" · ") : copy2.none))] : [],
-      ...detail ? [(0, import_react69.createElement)("div", { key: "next" }, (0, import_react69.createElement)("dt", null, copy2.nextAction), (0, import_react69.createElement)("dd", null, detail.nextAction?.text || copy2.none))] : [],
-      ...detail ? [(0, import_react69.createElement)("div", { key: "blockers" }, (0, import_react69.createElement)("dt", null, copy2.blockers), (0, import_react69.createElement)("dd", null, blockers.length > 0 ? (0, import_react69.createElement)("ul", { className: "bt-task-blockers" }, blockers.map((item) => (0, import_react69.createElement)("li", { key: item.id, "data-kind": item.kind }, item.text))) : copy2.noBlockers))] : [],
-      ...parentText ? [(0, import_react69.createElement)("div", { key: "parent" }, (0, import_react69.createElement)("dt", null, copy2.parent), (0, import_react69.createElement)("dd", null, parentText))] : [],
-      ...childRows.length > 0 ? [(0, import_react69.createElement)("div", { key: "children" }, (0, import_react69.createElement)("dt", null, copy2.children), (0, import_react69.createElement)(
+      (0, import_react68.createElement)("div", null, (0, import_react68.createElement)("dt", null, copy2.status), (0, import_react68.createElement)("dd", null, (0, import_react68.createElement)("span", { className: "bt-activity-status", "data-status": shown.sourceStatus }, shown.sourceStatus))),
+      (0, import_react68.createElement)("div", null, (0, import_react68.createElement)("dt", null, copy2.evidence), (0, import_react68.createElement)("dd", null, (0, import_react68.createElement)("span", { className: "bt-activity-task-evidence", "data-evidence-state": shown.evidenceState ?? "pending" }, evidenceStateLabel(shown.evidenceState, copy2)))),
+      (0, import_react68.createElement)("div", null, (0, import_react68.createElement)("dt", null, copy2.sourceId), (0, import_react68.createElement)("dd", { className: "bt-activity-id" }, shown.sourceId || shown.id)),
+      ...stageTitle ? [(0, import_react68.createElement)("div", { key: "stage" }, (0, import_react68.createElement)("dt", null, copy2.stage), (0, import_react68.createElement)("dd", null, stageTitle))] : [],
+      ...detail && attempt ? [(0, import_react68.createElement)("div", { key: "attempt" }, (0, import_react68.createElement)("dt", null, copy2.attempt), (0, import_react68.createElement)("dd", null, (0, import_react68.createElement)("span", { className: "bt-activity-id" }, `${attempt.id || copy2.none}${attempt.number ? ` · ${attempt.number}` : ""}${attempt.status ? ` · ${attempt.status}` : ""}`)))] : [],
+      ...detail && handoff ? [(0, import_react68.createElement)("div", { key: "handoff" }, (0, import_react68.createElement)("dt", null, copy2.handoffRoute), (0, import_react68.createElement)("dd", null, [handoff.from?.name || handoff.from?.id, handoff.to?.name || handoff.to?.id].filter(Boolean).join(" → ") || copy2.none, handoff.status ? ` · ${handoff.status}` : "", handoff.name ? ` · ${handoff.name}` : ""))] : [],
+      ...detail ? [(0, import_react68.createElement)("div", { key: "checkpoint" }, (0, import_react68.createElement)("dt", null, copy2.latestCheckpoint), (0, import_react68.createElement)("dd", null, detail.checkpoint?.text || copy2.none))] : [],
+      ...detail && recovery ? [(0, import_react68.createElement)("div", { key: "recovery" }, (0, import_react68.createElement)("dt", null, copy2.recovery), (0, import_react68.createElement)("dd", null, recovery.records?.length > 0 ? recovery.records.map((item) => `${item.kind}: ${item.summary}`).join(" · ") : copy2.none))] : [],
+      ...detail ? [(0, import_react68.createElement)("div", { key: "next" }, (0, import_react68.createElement)("dt", null, copy2.nextAction), (0, import_react68.createElement)("dd", null, detail.nextAction?.text || copy2.none))] : [],
+      ...detail ? [(0, import_react68.createElement)("div", { key: "blockers" }, (0, import_react68.createElement)("dt", null, copy2.blockers), (0, import_react68.createElement)("dd", null, blockers.length > 0 ? (0, import_react68.createElement)("ul", { className: "bt-task-blockers" }, blockers.map((item) => (0, import_react68.createElement)("li", { key: item.id, "data-kind": item.kind }, item.text))) : copy2.noBlockers))] : [],
+      ...parentText ? [(0, import_react68.createElement)("div", { key: "parent" }, (0, import_react68.createElement)("dt", null, copy2.parent), (0, import_react68.createElement)("dd", null, parentText))] : [],
+      ...childRows.length > 0 ? [(0, import_react68.createElement)("div", { key: "children" }, (0, import_react68.createElement)("dt", null, copy2.children), (0, import_react68.createElement)(
         "dd",
         null,
-        (0, import_react69.createElement)("ul", { className: "bt-activity-children" }, childRows.map((child) => (0, import_react69.createElement)("li", { key: child.id }, child.title || child.sourceId || child.id)))
+        (0, import_react68.createElement)("ul", { className: "bt-activity-children" }, childRows.map((child) => (0, import_react68.createElement)("li", { key: child.id }, child.title || child.sourceId || child.id)))
       ))] : [],
-      ...shown.roomName ? [(0, import_react69.createElement)("div", { key: "room" }, (0, import_react69.createElement)("dt", null, copy2.room), (0, import_react69.createElement)("dd", null, shown.roomName))] : [],
-      ...shown.acceptance ? [(0, import_react69.createElement)("div", { key: "acceptance" }, (0, import_react69.createElement)("dt", null, copy2.acceptance), (0, import_react69.createElement)("dd", null, shown.acceptance))] : [],
-      ...shown.note ? [(0, import_react69.createElement)("div", { key: "note" }, (0, import_react69.createElement)("dt", null, copy2.note), (0, import_react69.createElement)("dd", null, shown.note))] : [],
-      ...!detail && shown.evidence ? [(0, import_react69.createElement)("div", { key: "evidence" }, (0, import_react69.createElement)("dt", null, copy2.evidence), (0, import_react69.createElement)("dd", null, shown.evidence))] : [],
-      ...detail ? [(0, import_react69.createElement)("div", { key: "verification" }, (0, import_react69.createElement)("dt", null, copy2.verification), (0, import_react69.createElement)("dd", null, `${detail.verification?.status || copy2.pending}${detail.verification?.reason ? ` · ${detail.verification.reason}` : ""}`))] : [],
-      ...warnings.length > 0 ? [(0, import_react69.createElement)("div", { key: "warning", className: "bt-activity-warning" }, (0, import_react69.createElement)("dt", null, copy2.warning), (0, import_react69.createElement)("dd", null, warnings.join(" · ")))] : []
+      ...shown.roomName ? [(0, import_react68.createElement)("div", { key: "room" }, (0, import_react68.createElement)("dt", null, copy2.room), (0, import_react68.createElement)("dd", null, shown.roomName))] : [],
+      ...shown.acceptance ? [(0, import_react68.createElement)("div", { key: "acceptance" }, (0, import_react68.createElement)("dt", null, copy2.acceptance), (0, import_react68.createElement)("dd", null, shown.acceptance))] : [],
+      ...shown.note ? [(0, import_react68.createElement)("div", { key: "note" }, (0, import_react68.createElement)("dt", null, copy2.note), (0, import_react68.createElement)("dd", null, shown.note))] : [],
+      ...!detail && shown.evidence ? [(0, import_react68.createElement)("div", { key: "evidence" }, (0, import_react68.createElement)("dt", null, copy2.evidence), (0, import_react68.createElement)("dd", null, shown.evidence))] : [],
+      ...detail ? [(0, import_react68.createElement)("div", { key: "verification" }, (0, import_react68.createElement)("dt", null, copy2.verification), (0, import_react68.createElement)("dd", null, `${detail.verification?.status || copy2.pending}${detail.verification?.reason ? ` · ${detail.verification.reason}` : ""}`))] : [],
+      ...warnings.length > 0 ? [(0, import_react68.createElement)("div", { key: "warning", className: "bt-activity-warning" }, (0, import_react68.createElement)("dt", null, copy2.warning), (0, import_react68.createElement)("dd", null, warnings.join(" · ")))] : []
     ),
-    detail ? (0, import_react69.createElement)(
-      "section",
-      { className: "bt-task-section bt-improvement-section" },
-      (0, import_react69.createElement)(
-        "div",
-        { className: "bt-improvement-head" },
-        (0, import_react69.createElement)("h4", null, copy2.improvements),
-        (0, import_react69.createElement)("button", {
-          type: "button",
-          className: "bt-soft bt-soft-sm bt-improvement-propose",
-          disabled: !canPropose,
-          title: proposalDisabledReason || void 0,
-          onClick: proposeImprovement
-        }, proposalBusy ? copy2.proposingImprovement : copy2.proposeImprovement)
-      ),
-      proposalError ? (0, import_react69.createElement)("p", { className: "bt-learning-error", role: "alert" }, `${copy2.proposalError} ${proposalError}`) : null,
-      proposalNotice ? (0, import_react69.createElement)("p", { className: "bt-activity-detail-empty", role: "status" }, proposalNotice) : null,
-      proposalCards2.length > 0 ? (0, import_react69.createElement)("div", { className: "bt-improvement-list" }, proposalCards2.map((proposal) => (0, import_react69.createElement)(ProposalCard, {
-        key: proposal.id,
-        proposal,
-        actions,
-        onResolved: proposalResolved,
-        disabledReason: proposal.outcome ? "" : lockReason
-      }))) : (0, import_react69.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noImprovements)
-    ) : null,
-    detail ? (0, import_react69.createElement)(
+    detail ? (0, import_react68.createElement)(
       "section",
       { className: "bt-task-section" },
-      (0, import_react69.createElement)("h4", null, copy2.evidence),
-      (0, import_react69.createElement)(EvidenceList, { evidence, selectedId: selectedEvidenceId, copy: copy2, onSelect: setSelectedEvidenceId })
+      (0, import_react68.createElement)("h4", null, copy2.evidence),
+      (0, import_react68.createElement)(EvidenceList, { evidence, selectedId: selectedEvidenceId, copy: copy2, onSelect: setSelectedEvidenceId })
     ) : null,
-    detail ? (0, import_react69.createElement)(
+    detail ? (0, import_react68.createElement)(
       "section",
       { className: "bt-task-section" },
-      (0, import_react69.createElement)("h4", null, copy2.artifacts),
-      artifacts.length > 0 ? (0, import_react69.createElement)("div", { className: "bt-task-artifacts" }, artifacts.map((item, index) => (0, import_react69.createElement)("div", {
+      (0, import_react68.createElement)("h4", null, copy2.artifacts),
+      artifacts.length > 0 ? (0, import_react68.createElement)("div", { className: "bt-task-artifacts" }, artifacts.map((item, index) => (0, import_react68.createElement)("div", {
         key: `${item.path}:${item.digest ?? index}`,
         className: "bt-task-artifact",
         "data-trust": item.trust
-      }, (0, import_react69.createElement)("b", null, item.name || item.path), (0, import_react69.createElement)("span", { className: "bt-activity-id" }, item.path), (0, import_react69.createElement)("small", null, item.digest || "")))) : (0, import_react69.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noArtifacts)
+      }, (0, import_react68.createElement)("b", null, item.name || item.path), (0, import_react68.createElement)("span", { className: "bt-activity-id" }, item.path), (0, import_react68.createElement)("small", null, item.digest || "")))) : (0, import_react68.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noArtifacts)
     ) : null,
-    detail && detail.empty !== true ? (0, import_react69.createElement)(TraceExplorer, { trace: detail.trace, copy: copy2, onSelectEvidence: setSelectedEvidenceId }) : null,
-    visibleControls.length > 0 ? (0, import_react69.createElement)("div", { className: "bt-detail-controls", "aria-label": copy2.detail }, visibleControls.map((control) => (0, import_react69.createElement)("button", {
-      key: control.id,
-      type: "button",
-      className: "bt-soft bt-soft-sm bt-detail-control",
-      "data-control": control.id,
-      disabled: !control.enabled,
-      title: control.reason || void 0,
-      onClick: () => runControl(control)
-    }, controlLabel(control.id, copy2)))) : null
+    detail && detail.empty !== true ? (0, import_react68.createElement)(TraceExplorer, { trace: detail.trace, copy: copy2, onSelectEvidence: setSelectedEvidenceId }) : null
   );
 }
-function TeamActivityView({ data, roster, status = "ready", error = "", selectedId = null, filters = {}, detail = null, detailStatus = "idle", detailError = "", actions, onSelect = () => {
+function TeamActivityView({ data, roster, status = "ready", error = "", selectedId = null, filters = {}, detail = null, detailStatus = "idle", detailError = "", onSelect = () => {
 }, onFilter = () => {
 }, onClose = () => {
 }, leaving = false }) {
@@ -46141,19 +46179,28 @@ function TeamActivityView({ data, roster, status = "ready", error = "", selected
   const partialData = data;
   const partialWarnings = Array.isArray(partialData?.warnings) ? partialData.warnings.map((item) => item.message).filter(Boolean) : [];
   if (status === "error" && !data) {
-    return (0, import_react69.createElement)(
+    return (0, import_react68.createElement)(
       "section",
       { className: "bt-team-activity", role: "dialog", "aria-modal": true, "aria-label": copy2.title, "aria-busy": false, "data-leaving": leaving || void 0 },
-      (0, import_react69.createElement)(DialogHead, { copy: copy2, onClose, roster }),
-      (0, import_react69.createElement)("p", { className: "bt-error bt-activity-error", role: "alert" }, error || copy2.error)
+      (0, import_react68.createElement)(DialogHead, { copy: copy2, onClose, roster }),
+      (0, import_react68.createElement)("p", { className: "bt-error bt-activity-error", role: "alert" }, error || copy2.error)
     );
   }
   if (status === "loading" && !data) {
-    return (0, import_react69.createElement)(
+    return (0, import_react68.createElement)(
       "section",
       { className: "bt-team-activity", role: "dialog", "aria-modal": true, "aria-label": copy2.title, "aria-busy": true, "data-leaving": leaving || void 0 },
-      (0, import_react69.createElement)(DialogHead, { copy: copy2, onClose, roster }),
-      (0, import_react69.createElement)("div", { className: "bt-activity-skeleton", role: "status", "aria-label": copy2.loading }, (0, import_react69.createElement)("span"), (0, import_react69.createElement)("span"), (0, import_react69.createElement)("span"))
+      (0, import_react68.createElement)(DialogHead, { copy: copy2, onClose, roster }),
+      (0, import_react68.createElement)("div", { className: "bt-activity-skeleton", role: "status", "aria-label": copy2.loading }, (0, import_react68.createElement)("span"), (0, import_react68.createElement)("span"), (0, import_react68.createElement)("span"))
+    );
+  }
+  const dataMode = resolveDataMode(data);
+  if (dataMode === "unknown") {
+    return (0, import_react68.createElement)(
+      "section",
+      { className: "bt-team-activity", role: "dialog", "aria-modal": true, "aria-label": copy2.title, "aria-busy": false, "data-leaving": leaving || void 0 },
+      (0, import_react68.createElement)(DialogHead, { copy: copy2, onClose, dataMode, roster }),
+      (0, import_react68.createElement)("p", { className: "bt-error bt-activity-error", role: "alert" }, copy2.dataUnavailable)
     );
   }
   const view = filterActivityModel(data, filters);
@@ -46163,7 +46210,10 @@ function TeamActivityView({ data, roster, status = "ready", error = "", selected
   const roles = data?.roles ?? [];
   const rolesById = new Map(roles.map((role) => [role.id, role]));
   const selected = tasks.find((task) => task.id === selectedId) ?? tasks[0] ?? null;
-  const selectedDetail = detail?.taskId === selected?.id || detail?.task?.id === selected?.id ? detail : null;
+  const matchingDetail = detail?.taskId === selected?.id || detail?.task?.id === selected?.id ? detail : null;
+  const detailModeMismatch = matchingDetail !== null && resolveDataMode(matchingDetail) !== dataMode;
+  const selectedDetail = detailModeMismatch ? null : matchingDetail;
+  const selectedDetailError = detailModeMismatch ? copy2.detailModeMismatch : detailError;
   const empty = allTasks.length === 0 && activity.length === 0;
   const noMatch = allTasks.length > 0 && tasks.length === 0;
   const noCurrentTasks = allTasks.length === 0;
@@ -46172,15 +46222,15 @@ function TeamActivityView({ data, roster, status = "ready", error = "", selected
   const warningMessages = partialWarnings.length > 0 ? partialWarnings : allTasks.flatMap((task) => task.warnings ?? []);
   const partial = data?.partial === true || warningMessages.length > 0;
   const lockReason = typeof roster?.readOnly === "string" ? roster.readOnly.trim() : "";
-  const heatmap = (data?.heatmap ?? []).map((cell) => (0, import_react69.createElement)("span", {
+  const heatmap = (data?.heatmap ?? []).map((cell) => (0, import_react68.createElement)("span", {
     key: cell.day,
     className: "bt-activity-heat-cell",
     "data-day": cell.day,
     "data-count": cell.count,
     style: { "--bt-heat": Math.min(4, cell.count) / 4 },
     title: `${cell.day} · ${cell.count}`
-  }, (0, import_react69.createElement)("b", null, String(cell.count)), (0, import_react69.createElement)("small", null, cell.day.slice(5))));
-  const taskRows = tasks.map((task) => (0, import_react69.createElement)(TaskRow3, {
+  }, (0, import_react68.createElement)("b", null, String(cell.count)), (0, import_react68.createElement)("small", null, cell.day.slice(5))));
+  const taskRows = tasks.map((task) => (0, import_react68.createElement)(TaskRow3, {
     key: task.id,
     task,
     roster,
@@ -46189,7 +46239,7 @@ function TeamActivityView({ data, roster, status = "ready", error = "", selected
     copy: copy2,
     onSelect
   }));
-  const activityRows = activity.slice(0, 12).map((item) => (0, import_react69.createElement)(
+  const activityRows = activity.slice(0, 12).map((item) => (0, import_react68.createElement)(
     "div",
     {
       key: item.id,
@@ -46197,52 +46247,52 @@ function TeamActivityView({ data, roster, status = "ready", error = "", selected
       "data-source": item.source,
       "data-kind": item.kind
     },
-    (0, import_react69.createElement)("b", null, item.botName || "DS Bot"),
-    (0, import_react69.createElement)("span", null, `${sourceLabel(item.source, copy2)}${item.kind ? ` · ${item.kind}` : ""} · ${item.text}`),
-    (0, import_react69.createElement)("time", null, when3(item.at))
+    (0, import_react68.createElement)("b", null, item.botName || "DS Bot"),
+    (0, import_react68.createElement)("span", null, `${sourceLabel(item.source, copy2)}${item.kind ? ` · ${item.kind}` : ""} · ${item.text}`),
+    (0, import_react68.createElement)("time", null, when3(item.at))
   ));
   const taskMessage = noMatch ? copy2.noMatch : noCurrentTasks ? copy2.noCurrentTasks : "";
-  const body = empty ? (0, import_react69.createElement)("div", { className: "bt-empty bt-activity-empty", role: "status" }, copy2.empty) : (0, import_react69.createElement)(
+  const body = empty ? (0, import_react68.createElement)("div", { className: "bt-empty bt-activity-empty", role: "status" }, copy2.empty) : (0, import_react68.createElement)(
     "div",
     { className: "bt-activity-body" },
-    (0, import_react69.createElement)("div", { className: "bt-activity-list" }, taskMessage ? (0, import_react69.createElement)("p", { className: "bt-empty bt-activity-no-task" }, taskMessage) : taskRows),
-    (0, import_react69.createElement)(Detail2, { task: selected, detail: selectedDetail, detailStatus, detailError, roster, rolesById, allTasks, actions, copy: copy2 }),
-    (0, import_react69.createElement)(
+    (0, import_react68.createElement)("div", { className: "bt-activity-list" }, taskMessage ? (0, import_react68.createElement)("p", { className: "bt-empty bt-activity-no-task" }, taskMessage) : taskRows),
+    (0, import_react68.createElement)(Detail2, { task: selected, detail: selectedDetail, detailStatus, detailError: selectedDetailError, roster, rolesById, allTasks, copy: copy2 }),
+    (0, import_react68.createElement)(
       "div",
       { className: "bt-activity-recent" },
-      (0, import_react69.createElement)("h3", null, copy2.recent),
-      activityRows.length > 0 ? activityRows : (0, import_react69.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.empty)
+      (0, import_react68.createElement)("h3", null, copy2.recent),
+      activityRows.length > 0 ? activityRows : (0, import_react68.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.empty)
     )
   );
-  return (0, import_react69.createElement)(
+  return (0, import_react68.createElement)(
     "section",
     { className: "bt-team-activity", role: "dialog", "aria-modal": true, "aria-label": copy2.title, "data-leaving": leaving || void 0, "data-partial": partial || void 0 },
-    (0, import_react69.createElement)(DialogHead, { copy: copy2, onClose, data, partial, roster }),
-    error ? (0, import_react69.createElement)("p", { className: "bt-activity-stale", role: "status" }, copy2.stale, (0, import_react69.createElement)("span", null, error)) : null,
-    lockReason ? (0, import_react69.createElement)("p", { className: "bt-activity-host-read-only", role: "status" }, copy2.readOnlyHost, (0, import_react69.createElement)("span", null, hostText(lockReason))) : null,
-    partial ? (0, import_react69.createElement)("p", { className: "bt-activity-partial-note", role: "status" }, `${copy2.partial}: ${warningMessages.join(" · ")}`) : null,
-    (0, import_react69.createElement)(
+    (0, import_react68.createElement)(DialogHead, { copy: copy2, onClose, dataMode, partial, roster }),
+    error ? (0, import_react68.createElement)("p", { className: "bt-activity-stale", role: "status" }, copy2.stale, (0, import_react68.createElement)("span", null, error)) : null,
+    lockReason ? (0, import_react68.createElement)("p", { className: "bt-activity-host-read-only", role: "status" }, copy2.readOnlyHost, (0, import_react68.createElement)("span", null, hostText(lockReason))) : null,
+    partial ? (0, import_react68.createElement)("p", { className: "bt-activity-partial-note", role: "status" }, `${copy2.partial}: ${warningMessages.join(" · ")}`) : null,
+    (0, import_react68.createElement)(
       "div",
       { className: "bt-activity-summary" },
-      (0, import_react69.createElement)("span", null, (0, import_react69.createElement)("b", null, String(data?.summary?.active ?? 0)), copy2.active),
-      (0, import_react69.createElement)("span", null, (0, import_react69.createElement)("b", null, String(data?.summary?.waiting ?? 0)), copy2.waiting),
-      (0, import_react69.createElement)("span", null, (0, import_react69.createElement)("b", null, String(data?.summary?.attention ?? 0)), copy2.attention),
-      (0, import_react69.createElement)("span", null, (0, import_react69.createElement)("b", null, String(data?.summary?.activity ?? 0)), copy2.activity)
+      (0, import_react68.createElement)("span", null, (0, import_react68.createElement)("b", null, String(data?.summary?.active ?? 0)), copy2.active),
+      (0, import_react68.createElement)("span", null, (0, import_react68.createElement)("b", null, String(data?.summary?.waiting ?? 0)), copy2.waiting),
+      (0, import_react68.createElement)("span", null, (0, import_react68.createElement)("b", null, String(data?.summary?.attention ?? 0)), copy2.attention),
+      (0, import_react68.createElement)("span", null, (0, import_react68.createElement)("b", null, String(data?.summary?.activity ?? 0)), copy2.activity)
     ),
-    (0, import_react69.createElement)(RoleStrip, { roles, copy: copy2 }),
-    (0, import_react69.createElement)(
+    (0, import_react68.createElement)(RoleStrip, { roles, copy: copy2 }),
+    (0, import_react68.createElement)(
       "div",
       { className: "bt-activity-heat-wrap" },
-      (0, import_react69.createElement)("div", { className: "bt-activity-section-head" }, (0, import_react69.createElement)("span", null, copy2.sevenDay), (0, import_react69.createElement)("small", null, copy2.activityOnly)),
-      (0, import_react69.createElement)("div", { className: "bt-activity-heatmap", "aria-label": copy2.sevenDay }, heatmap)
+      (0, import_react68.createElement)("div", { className: "bt-activity-section-head" }, (0, import_react68.createElement)("span", null, copy2.sevenDay), (0, import_react68.createElement)("small", null, copy2.activityOnly)),
+      (0, import_react68.createElement)("div", { className: "bt-activity-heatmap", "aria-label": copy2.sevenDay }, heatmap)
     ),
-    (0, import_react69.createElement)(
+    (0, import_react68.createElement)(
       "div",
       { className: "bt-activity-toolbar" },
-      (0, import_react69.createElement)(Filter, { label: copy2.role, value: filters.role ?? "all", allLabel: copy2.all, options: roles.map((role) => ({ value: role.id, label: role.role ? `${role.name} · ${role.role}` : role.name })), onChange: (value) => onFilter({ ...filters, role: value }) }),
-      (0, import_react69.createElement)(Filter, { label: copy2.source, value: filters.source ?? "all", allLabel: copy2.all, options: sourceKeys.map((source) => ({ value: source, label: sourceLabel(source, copy2) })), onChange: (value) => onFilter({ ...filters, source: value }) }),
-      (0, import_react69.createElement)(Filter, { label: copy2.status, value: filters.status ?? "all", allLabel: copy2.all, options: statuses, onChange: (value) => onFilter({ ...filters, status: value }) }),
-      (0, import_react69.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-activity-attention", "aria-pressed": filters.attention === true, "data-active": filters.attention || void 0, onClick: () => onFilter({ ...filters, attention: !filters.attention }) }, copy2.waitingAttention)
+      (0, import_react68.createElement)(Filter, { label: copy2.role, value: filters.role ?? "all", allLabel: copy2.all, options: roles.map((role) => ({ value: role.id, label: role.role ? `${role.name} · ${role.role}` : role.name })), onChange: (value) => onFilter({ ...filters, role: value }) }),
+      (0, import_react68.createElement)(Filter, { label: copy2.source, value: filters.source ?? "all", allLabel: copy2.all, options: sourceKeys.map((source) => ({ value: source, label: sourceLabel(source, copy2) })), onChange: (value) => onFilter({ ...filters, source: value }) }),
+      (0, import_react68.createElement)(Filter, { label: copy2.status, value: filters.status ?? "all", allLabel: copy2.all, options: statuses, onChange: (value) => onFilter({ ...filters, status: value }) }),
+      (0, import_react68.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-activity-attention", "aria-pressed": filters.attention === true, "data-active": filters.attention || void 0, onClick: () => onFilter({ ...filters, attention: !filters.attention }) }, copy2.waitingAttention)
     ),
     body
   );
@@ -46250,6 +46300,7 @@ function TeamActivityView({ data, roster, status = "ready", error = "", selected
 async function requestTaskDetail(callImpl, taskId) {
   const value = await callImpl("task-detail", { taskId });
   if (value?.taskId !== taskId) throw new Error("Task detail did not match the selected task");
+  if (resolveDataMode(value) === "unknown") throw new Error("Task detail data mode is missing or invalid");
   return value;
 }
 var FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -46286,21 +46337,21 @@ function trapDialogFocus(root) {
     if (trigger && trigger.isConnected !== false && typeof trigger.focus === "function") trigger.focus();
   };
 }
-function TeamActivity({ roster, actions, onClose = () => {
+function TeamActivity({ roster, onClose = () => {
 }, callImpl = call, leaving = false }) {
-  const [data, setData] = (0, import_react69.useState)(null);
-  const [status, setStatus] = (0, import_react69.useState)("loading");
-  const [error, setError] = (0, import_react69.useState)("");
-  const [selectedId, setSelectedId] = (0, import_react69.useState)(null);
-  const [filters, setFilters] = (0, import_react69.useState)({ role: "all", source: "all", status: "all", attention: false });
-  const [detail, setDetail] = (0, import_react69.useState)(null);
-  const [detailStatus, setDetailStatus] = (0, import_react69.useState)("idle");
-  const [detailError, setDetailError] = (0, import_react69.useState)("");
-  const detailRef = (0, import_react69.useRef)(null);
-  const layerRef = (0, import_react69.useRef)(null);
+  const [data, setData] = (0, import_react68.useState)(null);
+  const [status, setStatus] = (0, import_react68.useState)("loading");
+  const [error, setError] = (0, import_react68.useState)("");
+  const [selectedId, setSelectedId] = (0, import_react68.useState)(null);
+  const [filters, setFilters] = (0, import_react68.useState)({ role: "all", source: "all", status: "all", attention: false });
+  const [detail, setDetail] = (0, import_react68.useState)(null);
+  const [detailStatus, setDetailStatus] = (0, import_react68.useState)("idle");
+  const [detailError, setDetailError] = (0, import_react68.useState)("");
+  const detailRef = (0, import_react68.useRef)(null);
+  const layerRef = (0, import_react68.useRef)(null);
   useEscape(onClose);
-  (0, import_react69.useEffect)(() => trapDialogFocus(layerRef.current), []);
-  (0, import_react69.useEffect)(() => {
+  (0, import_react68.useEffect)(() => trapDialogFocus(layerRef.current), []);
+  (0, import_react68.useEffect)(() => {
     let alive = true;
     let loaded = false;
     let inFlight = false;
@@ -46309,6 +46360,7 @@ function TeamActivity({ roster, actions, onClose = () => {
       inFlight = true;
       Promise.resolve().then(() => callImpl("team-activity")).then((value) => {
         if (!alive) return;
+        if (resolveDataMode(value) === "unknown") throw new Error("Team activity data mode is missing or invalid");
         loaded = true;
         setData(value);
         setStatus("ready");
@@ -46334,7 +46386,7 @@ function TeamActivity({ roster, actions, onClose = () => {
   const selectedTask = visibleTasks.find((task) => task.id === selectedId) ?? visibleTasks[0];
   const selectedTaskId = selectedTask?.id ?? null;
   const selectedTaskVersion = selectedTask === void 0 ? "" : `${selectedTask.sourceStatus}:${selectedTask.evidenceState ?? ""}:${selectedTask.updatedAt ?? ""}`;
-  (0, import_react69.useEffect)(() => {
+  (0, import_react68.useEffect)(() => {
     if (selectedTaskId === null) {
       detailRef.current = null;
       setDetail(null);
@@ -46359,11 +46411,11 @@ function TeamActivity({ roster, actions, onClose = () => {
       alive = false;
     };
   }, [selectedTaskId, selectedTaskVersion, callImpl]);
-  return (0, import_react69.createElement)(
+  return (0, import_react68.createElement)(
     "div",
     { ref: layerRef, className: "bt-activity-layer", "data-leaving": leaving || void 0 },
-    (0, import_react69.createElement)("div", { className: "bt-scrim", onMouseDown: onClose }),
-    (0, import_react69.createElement)(TeamActivityView, { data, roster, status, error, selectedId, filters, detail, detailStatus, detailError, actions, onSelect: setSelectedId, onFilter: setFilters, onClose })
+    (0, import_react68.createElement)("div", { className: "bt-scrim", onMouseDown: onClose }),
+    (0, import_react68.createElement)(TeamActivityView, { data, roster, status, error, selectedId, filters, detail, detailStatus, detailError, onSelect: setSelectedId, onFilter: setFilters, onClose })
   );
 }
 var TEAM_ACTIVITY_CSS = `
@@ -46408,7 +46460,7 @@ var TEAM_ACTIVITY_CSS = `
 .bt-activity-task-main{display:flex;min-width:0;flex:1;flex-direction:column;gap:2px}
 .bt-activity-task-title{font-size:12px;line-height:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bt-activity-task-meta,.bt-activity-task-time{font-size:11px;line-height:16px;color:var(--bt-ink-3)}.bt-activity-task-meta{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bt-activity-task-state{width:max-content;max-width:100%;font-size:11px;line-height:16px;color:var(--bt-ink-2);background:var(--bt-tag-bg);border-radius:999px;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bt-activity-task-state{width:max-content;max-width:100%;font-size:11px;line-height:16px;color:var(--bt-ink-2);background:var(--bt-tag-bg);border-radius:999px;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bt-activity-task-evidence{width:max-content;max-width:100%;font-size:11px;line-height:16px;color:var(--bt-ink-2);border:1px solid var(--bt-line);border-radius:999px;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bt-activity-task-evidence[data-evidence-state=verified]{color:var(--bt-green);border-color:color-mix(in srgb,var(--bt-green) 42%,var(--bt-line))}.bt-activity-task-evidence[data-evidence-state=executed]{color:var(--bt-accent);border-color:color-mix(in srgb,var(--bt-accent) 42%,var(--bt-line))}.bt-activity-task-evidence[data-evidence-state=stale],.bt-activity-task-evidence[data-evidence-state=needs-review]{color:var(--bt-danger)}
 .bt-activity-task-state[data-status=waiting],.bt-activity-status[data-status=waiting]{color:var(--bt-star)}.bt-activity-task-state[data-status=reported],.bt-activity-task-state[data-status=blocked],.bt-activity-task-state[data-status=failed],.bt-activity-task-state[data-status=unknown],.bt-activity-status[data-status=reported],.bt-activity-status[data-status=blocked],.bt-activity-status[data-status=failed],.bt-activity-status[data-status=unknown]{color:var(--bt-danger)}
 .bt-activity-task-time{flex:none}
 .bt-activity-owner-mark{display:inline-flex;flex:none;align-items:center;justify-content:center;border-radius:999px;background:var(--bt-tag-bg);color:var(--bt-ink-2);font-size:12px;font-weight:600}
@@ -46419,12 +46471,10 @@ var TEAM_ACTIVITY_CSS = `
 .bt-task-detail-state{margin:0 0 12px;padding:8px 10px;border-radius:8px;background:var(--bt-tag-bg);font-size:11px;line-height:16px;color:var(--bt-ink-2);overflow-wrap:anywhere}.bt-task-detail-state[role=alert]{background:var(--bt-danger-soft);color:var(--bt-danger)}.bt-task-detail-state span{display:block;margin-top:2px;color:var(--bt-ink-2)}
 .bt-task-blockers{display:flex;flex-direction:column;gap:4px;margin:0;padding-left:16px}.bt-task-blockers li[data-kind=owner],.bt-task-blockers li[data-kind=failed-result],.bt-task-blockers li[data-kind=recovery]{color:var(--bt-danger)}
 .bt-task-section{margin-top:16px;padding-top:12px;border-top:.5px solid var(--bt-line)}.bt-task-section h4,.bt-trace-head h4{margin:0;font-size:12px;line-height:16px;font-weight:600}
-.bt-task-evidence-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}.bt-task-evidence{display:flex;width:100%;align-items:flex-start;justify-content:space-between;gap:8px;padding:8px;border:.5px solid var(--bt-line-2);border-radius:8px;background:var(--bt-card);color:var(--bt-ink);font:inherit;text-align:left;cursor:pointer}.bt-task-evidence:hover,.bt-task-evidence[data-selected]{background:var(--bt-hover)}.bt-task-evidence:focus-visible,.bt-trace-tab:focus-visible,.bt-trace-record:focus-visible,.bt-detail-control:focus-visible{outline:2px solid var(--bt-accent);outline-offset:2px}.bt-task-evidence>span{display:flex;min-width:0;flex-direction:column;gap:2px}.bt-task-evidence b{font-size:12px;line-height:16px;overflow-wrap:anywhere}.bt-task-evidence span span,.bt-task-evidence small{font-size:11px;line-height:16px;color:var(--bt-ink-3);overflow-wrap:anywhere}.bt-task-evidence em,.bt-trace-trust{flex:none;font-style:normal;font-size:11px;line-height:16px;color:var(--bt-ink-2);border:1px solid var(--bt-line);border-radius:999px;padding:0 6px}.bt-task-evidence[data-trust=verified] em,.bt-trace-trust[data-trust=verified]{color:var(--bt-green);border-color:color-mix(in srgb,var(--bt-green) 42%,var(--bt-line))}.bt-task-evidence[data-trust=executed] em,.bt-trace-trust[data-trust=executed]{color:var(--bt-accent);border-color:color-mix(in srgb,var(--bt-accent) 42%,var(--bt-line))}.bt-task-evidence[data-trust=reported] em,.bt-trace-trust[data-trust=reported]{color:var(--bt-star)}
+.bt-task-evidence-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}.bt-task-evidence{display:flex;width:100%;align-items:flex-start;justify-content:space-between;gap:8px;padding:8px;border:.5px solid var(--bt-line-2);border-radius:8px;background:var(--bt-card);color:var(--bt-ink);font:inherit;text-align:left;cursor:pointer}.bt-task-evidence:hover,.bt-task-evidence[data-selected]{background:var(--bt-hover)}.bt-task-evidence:focus-visible,.bt-trace-tab:focus-visible,.bt-trace-record:focus-visible,.bt-detail-control:focus-visible{outline:2px solid var(--bt-accent);outline-offset:2px}.bt-task-evidence>span{display:flex;min-width:0;flex-direction:column;gap:2px}.bt-task-evidence b{font-size:12px;line-height:16px;overflow-wrap:anywhere}.bt-task-evidence span span,.bt-task-evidence small{font-size:11px;line-height:16px;color:var(--bt-ink-3);overflow-wrap:anywhere}.bt-evidence-fact{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--bt-ink-2)!important}.bt-task-evidence em,.bt-trace-trust{flex:none;font-style:normal;font-size:11px;line-height:16px;color:var(--bt-ink-2);border:1px solid var(--bt-line);border-radius:999px;padding:0 6px}.bt-task-evidence[data-trust=verified] em,.bt-trace-trust[data-trust=verified]{color:var(--bt-green);border-color:color-mix(in srgb,var(--bt-green) 42%,var(--bt-line))}.bt-task-evidence[data-trust=executed] em,.bt-trace-trust[data-trust=executed]{color:var(--bt-accent);border-color:color-mix(in srgb,var(--bt-accent) 42%,var(--bt-line))}.bt-task-evidence[data-trust=reported] em,.bt-trace-trust[data-trust=reported]{color:var(--bt-star)}
 .bt-task-artifacts{display:flex;flex-direction:column;gap:6px;margin-top:8px}.bt-task-artifact{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;padding:8px;border:.5px solid var(--bt-line-2);border-radius:8px;background:var(--bt-card)}.bt-task-artifact b{font-size:12px;line-height:16px}.bt-task-artifact span{grid-column:1/-1}.bt-task-artifact small{grid-column:1/-1;font-size:11px;line-height:16px;color:var(--bt-ink-3);overflow-wrap:anywhere}
 .bt-trace-explorer{margin-top:16px;padding-top:12px;border-top:.5px solid var(--bt-line)}.bt-trace-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.bt-trace-head small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bt-trace-tabs{display:flex;gap:4px;margin-top:8px;padding:2px;border-radius:8px;background:var(--bt-tag-bg)}.bt-trace-tab{flex:1;border:0;border-radius:6px;padding:5px 7px;background:none;color:var(--bt-ink-2);font:inherit;font-size:11px;line-height:16px;cursor:pointer}.bt-trace-tab[aria-pressed=true]{background:var(--bt-card);color:var(--bt-ink);box-shadow:var(--bt-card-shadow)}
 .bt-trace-list,.bt-trace-relations{display:flex;flex-direction:column;gap:4px;margin-top:8px}.bt-trace-record{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:start;gap:4px 8px;width:100%;padding:7px 8px;border:0;border-radius:6px;background:var(--bt-card);color:var(--bt-ink);font:inherit;text-align:left;cursor:pointer}.bt-trace-record:hover,.bt-trace-record[data-selected]{background:var(--bt-hover)}.bt-trace-record-main{display:flex;min-width:0;flex-direction:column;gap:2px}.bt-trace-record-main b{font-size:12px;line-height:16px}.bt-trace-record-main span{color:var(--bt-ink-2);font-size:11px;line-height:16px;overflow-wrap:anywhere}.bt-trace-record-main small,.bt-trace-record time{font-size:11px;line-height:16px;color:var(--bt-ink-3)}.bt-trace-record time{white-space:nowrap}.bt-trace-relation{display:flex;gap:8px;padding:6px 8px;border-radius:6px;background:var(--bt-card);font-size:11px;line-height:16px}.bt-trace-relation b{flex:none;color:var(--bt-ink-3)}.bt-trace-relation span{min-width:0;overflow-wrap:anywhere}.bt-trace-note{margin:8px 0 0;font-size:11px;line-height:16px;color:var(--bt-ink-3)}
-.bt-detail-controls{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px;padding-top:12px;border-top:.5px solid var(--bt-line)}.bt-detail-control:disabled{opacity:.45;cursor:not-allowed}
-.bt-improvement-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.bt-improvement-head h4{margin:0}.bt-improvement-propose:disabled{opacity:.45;cursor:not-allowed}.bt-improvement-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}.bt-improvement-section .bt-learning-card{margin:0}
 .bt-activity-status{display:inline-block;font-size:11px;line-height:16px;color:var(--bt-ink-2);background:var(--bt-tag-bg);border-radius:999px;padding:0 6px}
 .bt-activity-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px!important;line-height:16px!important}
 .bt-activity-children{display:flex;flex-direction:column;gap:4px;margin:0;padding-left:16px}.bt-activity-warning dd{color:var(--bt-danger)}
@@ -46446,7 +46496,7 @@ var TEAM_ACTIVITY_CSS = `
 `;
 
 // src/client/overlays.js
-var import_react70 = require("react");
+var import_react69 = require("react");
 var import_react_dom11 = require("react-dom");
 var DIALOG_EXIT_MS2 = 160;
 var MENU_EXIT_MS3 = 120;
@@ -46457,8 +46507,8 @@ function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity
   const frameSnap = useFrame ? useFrame((value) => value) : { viewport: window.innerWidth, sidebarWidth: FALLBACK_SIDEBAR_WIDTH, collapsedWidth: 0 };
   const pref = useSidebarPref ? useSidebarPref((value) => value) : "open";
   const current = useSessions((list) => Object.values(list.byId).find((session) => (session?.retainedBy?.mainView ?? 0) > 0)?.id ?? null);
-  const previous = (0, import_react70.useRef)(current);
-  (0, import_react70.useEffect)(() => {
+  const previous = (0, import_react69.useRef)(current);
+  (0, import_react69.useEffect)(() => {
     if (previous.current === current) return;
     previous.current = current;
     if (current) actions.followPanel?.(current);
@@ -46472,8 +46522,8 @@ function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity
     panel: open ? { view: open.view, yielded: ui.panelYield === true } : null
   });
   const shown = open !== null && layout.panel !== "folded" ? open : null;
-  const [kept, setKept] = (0, import_react70.useState)(shown);
-  (0, import_react70.useEffect)(() => {
+  const [kept, setKept] = (0, import_react69.useState)(shown);
+  (0, import_react69.useEffect)(() => {
     if (shown) {
       setKept(shown);
       return void 0;
@@ -46496,22 +46546,22 @@ function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity
   const [teamOverview, teamOverviewLeaving] = useLinger(ui.teamOverview, DIALOG_EXIT_MS2);
   const [teamActivity, teamActivityLeaving] = useLinger(ui.teamActivity ? true : null, DIALOG_EXIT_MS2);
   const opening = openingModel({ pending: ui.pendingOpen ?? null, current, roster });
-  return (0, import_react70.createElement)(
-    import_react70.Fragment,
+  return (0, import_react69.createElement)(
+    import_react69.Fragment,
     null,
-    (0, import_react70.createElement)(TeamOverviewTab, { useUi, useSurface, actions }),
-    opening ? (0, import_react_dom11.createPortal)((0, import_react70.createElement)(OpeningCover, { model: opening, column: layout.column }), document.body) : null,
-    teamOverview ? (0, import_react_dom11.createPortal)((0, import_react70.createElement)(TeamOverviewPanel, { useRoster, useWork, useSessionStatus, useUi, actions, leaving: teamOverviewLeaving }), document.body) : null,
-    pane ? (0, import_react_dom11.createPortal)((0, import_react70.createElement)(BotPanel, { pane, leaving: shown === null, room: layout.room, overlay: layout.panel === "overlay", roster, actions, useSessions, useSessionStatus, useActivity, useWork, useBrowserTabs, useBrowserPages, useBrowserHolds }), document.body) : null,
-    ui.newChat ? (0, import_react_dom11.createPortal)((0, import_react70.createElement)(NewChat, { key: `${ui.newChat}:${ui.newChatSection ?? ""}`, mode: ui.newChat, sectionId: ui.newChatSection ?? null, paneLeft: layout.column, roster, actions }), document.body) : null,
-    ui.palette ? (0, import_react_dom11.createPortal)((0, import_react70.createElement)(CommandPalette, { key: ui.palette.token, start: ui.palette.query, token: ui.palette.token, roster, actions, useSessions }), document.body) : null,
-    ui.groupSearch && roster.roomsById[ui.groupSearch.roomId] ? (0, import_react_dom11.createPortal)((0, import_react70.createElement)(GroupSearch, { key: ui.groupSearch.token, room: roster.roomsById[ui.groupSearch.roomId], roster, token: ui.groupSearch.token, actions }), document.body) : null,
-    ui.exchange ? (0, import_react_dom11.createPortal)((0, import_react70.createElement)(ExchangeDialog, { pair: ui.exchange, paneLeft: layout.column, roster, actions }), document.body) : null,
-    ui.voice ? (0, import_react_dom11.createPortal)((0, import_react70.createElement)(VoiceMode, { key: ui.voice, sessionId: ui.voice, paneLeft: layout.column, roster, actions, useSessions, useSessionStatus }), document.body) : null,
-    menu ? (0, import_react_dom11.createPortal)((0, import_react70.createElement)(ContextMenu, { key: `${menu.kind ?? ""}:${menu.id}:${menu.x}:${menu.y}`, menu, roster, actions, useWork, leaving: menuLeaving }), document.body) : null,
-    settings ? (0, import_react_dom11.createPortal)((0, import_react70.createElement)(SettingsDialog, { page: settings.page, id: settings.id, roster, actions, useUpdate, leaving: settingsLeaving }), document.body) : null,
-    owner ? (0, import_react_dom11.createPortal)((0, import_react70.createElement)(MemoryDialog, { key: owner.id, owner, actions, leaving: memoryLeaving }), document.body) : null,
-    teamActivity ? (0, import_react_dom11.createPortal)((0, import_react70.createElement)(TeamActivity, { roster, actions, onClose: actions.closeTeamActivity, leaving: teamActivityLeaving }), document.body) : null
+    (0, import_react69.createElement)(TeamOverviewTab, { useUi, useSurface, actions }),
+    opening ? (0, import_react_dom11.createPortal)((0, import_react69.createElement)(OpeningCover, { model: opening, column: layout.column }), document.body) : null,
+    teamOverview ? (0, import_react_dom11.createPortal)((0, import_react69.createElement)(TeamOverviewPanel, { useRoster, useWork, useSessionStatus, useUi, actions, leaving: teamOverviewLeaving }), document.body) : null,
+    pane ? (0, import_react_dom11.createPortal)((0, import_react69.createElement)(BotPanel, { pane, leaving: shown === null, room: layout.room, overlay: layout.panel === "overlay", roster, actions, useSessions, useSessionStatus, useActivity, useWork, useBrowserTabs, useBrowserPages, useBrowserHolds }), document.body) : null,
+    ui.newChat ? (0, import_react_dom11.createPortal)((0, import_react69.createElement)(NewChat, { key: `${ui.newChat}:${ui.newChatSection ?? ""}`, mode: ui.newChat, sectionId: ui.newChatSection ?? null, paneLeft: layout.column, roster, actions }), document.body) : null,
+    ui.palette ? (0, import_react_dom11.createPortal)((0, import_react69.createElement)(CommandPalette, { key: ui.palette.token, start: ui.palette.query, token: ui.palette.token, roster, actions, useSessions }), document.body) : null,
+    ui.groupSearch && roster.roomsById[ui.groupSearch.roomId] ? (0, import_react_dom11.createPortal)((0, import_react69.createElement)(GroupSearch, { key: ui.groupSearch.token, room: roster.roomsById[ui.groupSearch.roomId], roster, token: ui.groupSearch.token, actions }), document.body) : null,
+    ui.exchange ? (0, import_react_dom11.createPortal)((0, import_react69.createElement)(ExchangeDialog, { pair: ui.exchange, paneLeft: layout.column, roster, actions }), document.body) : null,
+    ui.voice ? (0, import_react_dom11.createPortal)((0, import_react69.createElement)(VoiceMode, { key: ui.voice, sessionId: ui.voice, paneLeft: layout.column, roster, actions, useSessions, useSessionStatus }), document.body) : null,
+    menu ? (0, import_react_dom11.createPortal)((0, import_react69.createElement)(ContextMenu, { key: `${menu.kind ?? ""}:${menu.id}:${menu.x}:${menu.y}`, menu, roster, actions, useWork, leaving: menuLeaving }), document.body) : null,
+    settings ? (0, import_react_dom11.createPortal)((0, import_react69.createElement)(SettingsDialog, { page: settings.page, id: settings.id, roster, actions, useUpdate, leaving: settingsLeaving }), document.body) : null,
+    owner ? (0, import_react_dom11.createPortal)((0, import_react69.createElement)(MemoryDialog, { key: owner.id, owner, actions, leaving: memoryLeaving }), document.body) : null,
+    teamActivity ? (0, import_react_dom11.createPortal)((0, import_react69.createElement)(TeamActivity, { roster, onClose: actions.closeTeamActivity, leaving: teamActivityLeaving }), document.body) : null
   );
 }
 
@@ -47505,7 +47555,7 @@ function serveBrowserReads({ browsers, post, clientId = globalThis.crypto.random
 }
 
 // src/client/team-board.js
-var import_react71 = require("react");
+var import_react70 = require("react");
 var DEFAULT_CONFIG = Object.freeze({ defaultOpen: false, sort: "section", density: "two", showHistory: true });
 var CONFIG_URL = "./team-board.config.json";
 var SORTS = /* @__PURE__ */ new Set(["section", "role"]);
@@ -47625,7 +47675,7 @@ function Row4({ bot, doing, waiting, since, now, main }) {
   const detail = running ? workPhrase(doing) : waiting ? `${COPY.waited} ${elapsed}` : COPY.idleFor;
   const meta = running ? `${COPY.worked} ${elapsed}` : "";
   const role = roleOf(bot);
-  return (0, import_react71.createElement)(
+  return (0, import_react70.createElement)(
     "article",
     {
       className: "tb-row",
@@ -47634,30 +47684,30 @@ function Row4({ bot, doing, waiting, since, now, main }) {
       "data-main": main || void 0,
       "aria-label": `${nameOf3(bot)}${role === "" ? "" : `（${role}）`}：${detail}${meta === "" ? "" : `，${meta}`}`
     },
-    (0, import_react71.createElement)("div", { className: "tb-avatar" }, (0, import_react71.createElement)(BotAvatar, { bot, size: main ? 44 : 34, state, live: running, main })),
-    (0, import_react71.createElement)(
+    (0, import_react70.createElement)("div", { className: "tb-avatar" }, (0, import_react70.createElement)(BotAvatar, { bot, size: main ? 44 : 34, state, live: running, main })),
+    (0, import_react70.createElement)(
       "div",
       { className: "tb-body" },
-      (0, import_react71.createElement)(
+      (0, import_react70.createElement)(
         "div",
         { className: "tb-line" },
-        (0, import_react71.createElement)("span", { className: "tb-name" }, nameOf3(bot)),
-        role === "" ? null : (0, import_react71.createElement)("span", { className: "tb-role" }, role),
-        running ? (0, import_react71.createElement)("span", { className: "tb-pulse", "aria-hidden": true }) : null,
-        meta === "" ? null : (0, import_react71.createElement)("span", { className: "tb-elapsed" }, meta)
+        (0, import_react70.createElement)("span", { className: "tb-name" }, nameOf3(bot)),
+        role === "" ? null : (0, import_react70.createElement)("span", { className: "tb-role" }, role),
+        running ? (0, import_react70.createElement)("span", { className: "tb-pulse", "aria-hidden": true }) : null,
+        meta === "" ? null : (0, import_react70.createElement)("span", { className: "tb-elapsed" }, meta)
       ),
-      (0, import_react71.createElement)("div", { className: "tb-task", title: detail }, (0, import_react71.createElement)("span", { className: "tb-phrase" }, detail))
+      (0, import_react70.createElement)("div", { className: "tb-task", title: detail }, (0, import_react70.createElement)("span", { className: "tb-phrase" }, detail))
     )
   );
 }
 function TeamBoard({ roster, work, onClose, onOverview, configUrl = CONFIG_URL, now = Date.now }) {
-  const [config, setConfig] = (0, import_react71.useState)(DEFAULT_CONFIG);
-  const [stamp, setStamp] = (0, import_react71.useState)(() => now());
-  const [tick, setTick] = (0, import_react71.useState)(0);
-  const [history, setHistory] = (0, import_react71.useState)({ status: "loading", rows: [] });
-  const [historyOpen, setHistoryOpen] = (0, import_react71.useState)(false);
-  const sinceRef = (0, import_react71.useRef)(/* @__PURE__ */ new Map());
-  (0, import_react71.useEffect)(() => {
+  const [config, setConfig] = (0, import_react70.useState)(DEFAULT_CONFIG);
+  const [stamp, setStamp] = (0, import_react70.useState)(() => now());
+  const [tick, setTick] = (0, import_react70.useState)(0);
+  const [history, setHistory] = (0, import_react70.useState)({ status: "loading", rows: [] });
+  const [historyOpen, setHistoryOpen] = (0, import_react70.useState)(false);
+  const sinceRef = (0, import_react70.useRef)(/* @__PURE__ */ new Map());
+  (0, import_react70.useEffect)(() => {
     let alive = true;
     const load = () => {
       readBoardConfig(configUrl).then((next) => {
@@ -47672,8 +47722,8 @@ function TeamBoard({ roster, work, onClose, onOverview, configUrl = CONFIG_URL, 
       window.removeEventListener("focus", onFocus);
     };
   }, [configUrl]);
-  const bots = (0, import_react71.useMemo)(() => visibleBots(roster), [roster]);
-  const doingById = (0, import_react71.useMemo)(() => {
+  const bots = (0, import_react70.useMemo)(() => visibleBots(roster), [roster]);
+  const doingById = (0, import_react70.useMemo)(() => {
     const map = /* @__PURE__ */ new Map();
     for (const bot of bots) {
       const doing = entryOf(bot, work);
@@ -47681,7 +47731,7 @@ function TeamBoard({ roster, work, onClose, onOverview, configUrl = CONFIG_URL, 
     }
     return map;
   }, [bots, work]);
-  const waitingById = (0, import_react71.useMemo)(() => {
+  const waitingById = (0, import_react70.useMemo)(() => {
     const map = /* @__PURE__ */ new Set();
     for (const bot of bots) if (!doingById.has(bot.id) && isWaiting(roster, work, bot)) map.add(bot.id);
     return map;
@@ -47690,7 +47740,7 @@ function TeamBoard({ roster, work, onClose, onOverview, configUrl = CONFIG_URL, 
   const waitingCount = waitingById.size;
   const idleCount = Math.max(0, bots.length - runningCount - waitingCount);
   const runningKey = [...doingById.keys()].sort().join(",");
-  (0, import_react71.useEffect)(() => {
+  (0, import_react70.useEffect)(() => {
     const at2 = now();
     const since = sinceRef.current;
     for (const id of since.keys()) {
@@ -47699,14 +47749,14 @@ function TeamBoard({ roster, work, onClose, onOverview, configUrl = CONFIG_URL, 
     for (const id of doingById.keys()) if (!since.has(id)) since.set(id, at2);
     for (const id of waitingById.keys()) if (!since.has(id)) since.set(id, at2);
   }, [runningKey, waitingCount]);
-  (0, import_react71.useEffect)(() => setStamp(now()), [roster, work]);
-  (0, import_react71.useEffect)(() => {
+  (0, import_react70.useEffect)(() => setStamp(now()), [roster, work]);
+  (0, import_react70.useEffect)(() => {
     if (reducedMotion()) return void 0;
     if (runningCount === 0) return void 0;
     const timer = setTimeout(() => setTick((value) => value + 1), 1e3);
     return () => clearTimeout(timer);
   }, [tick, runningCount]);
-  (0, import_react71.useEffect)(() => {
+  (0, import_react70.useEffect)(() => {
     const api = globalThis.window?.dsbot?.panelHistory;
     if (typeof api !== "function") {
       setHistory({ status: "absent", rows: [] });
@@ -47727,42 +47777,42 @@ function TeamBoard({ roster, work, onClose, onOverview, configUrl = CONFIG_URL, 
   const at = now();
   const groups = groupBots(bots, roster, config.sort);
   const showHistory = config.showHistory !== false && history.status !== "absent";
-  return (0, import_react71.createElement)(
+  return (0, import_react70.createElement)(
     "section",
     { className: "tb-board", "data-density": config.density, "aria-label": "团队看板" },
-    (0, import_react71.createElement)(
+    (0, import_react70.createElement)(
       "header",
       { className: "tb-head" },
-      (0, import_react71.createElement)(
+      (0, import_react70.createElement)(
         "div",
         { className: "tb-counts" },
-        (0, import_react71.createElement)("span", { className: "tb-count", "data-kind": "running" }, (0, import_react71.createElement)("b", null, String(runningCount)), COPY.running),
-        (0, import_react71.createElement)("span", { className: "tb-count", "data-kind": "waiting" }, (0, import_react71.createElement)("b", null, String(waitingCount)), COPY.waiting),
-        (0, import_react71.createElement)("span", { className: "tb-count", "data-kind": "idle" }, (0, import_react71.createElement)("b", null, String(idleCount)), COPY.idle)
+        (0, import_react70.createElement)("span", { className: "tb-count", "data-kind": "running" }, (0, import_react70.createElement)("b", null, String(runningCount)), COPY.running),
+        (0, import_react70.createElement)("span", { className: "tb-count", "data-kind": "waiting" }, (0, import_react70.createElement)("b", null, String(waitingCount)), COPY.waiting),
+        (0, import_react70.createElement)("span", { className: "tb-count", "data-kind": "idle" }, (0, import_react70.createElement)("b", null, String(idleCount)), COPY.idle)
       ),
-      (0, import_react71.createElement)(
+      (0, import_react70.createElement)(
         "div",
         { className: "tb-head-end" },
-        (0, import_react71.createElement)("time", {
+        (0, import_react70.createElement)("time", {
           className: "tb-stamp",
           dateTime: new Date(stamp).toISOString(),
           title: `${COPY.updated} ${clockOf(stamp)}`
         }, clockOf(stamp).slice(0, 5)),
-        typeof onOverview === "function" ? (0, import_react71.createElement)("button", { type: "button", className: "tb-overview", title: "团队总览", onClick: onOverview }, "总览") : null,
-        typeof onClose === "function" ? (0, import_react71.createElement)("button", { type: "button", className: "tb-close", "aria-label": COPY.close, title: COPY.close, onClick: onClose }, "×") : null
+        typeof onOverview === "function" ? (0, import_react70.createElement)("button", { type: "button", className: "tb-overview", title: "团队总览", onClick: onOverview }, "总览") : null,
+        typeof onClose === "function" ? (0, import_react70.createElement)("button", { type: "button", className: "tb-close", "aria-label": COPY.close, title: COPY.close, onClick: onClose }, "×") : null
       )
     ),
-    bots.length === 0 ? (0, import_react71.createElement)("div", { className: "tb-empty", role: "status" }, COPY.empty) : (0, import_react71.createElement)(
+    bots.length === 0 ? (0, import_react70.createElement)("div", { className: "tb-empty", role: "status" }, COPY.empty) : (0, import_react70.createElement)(
       "div",
       { className: "tb-groups" },
-      groups.map((group) => (0, import_react71.createElement)(
+      groups.map((group) => (0, import_react70.createElement)(
         "div",
         { className: "tb-group", key: group.id },
-        group.name === "" ? null : (0, import_react71.createElement)("div", { className: "tb-group-name" }, (0, import_react71.createElement)("span", null, group.name), (0, import_react71.createElement)("span", { className: "tb-group-count" }, String(group.bots.length))),
-        (0, import_react71.createElement)(
+        group.name === "" ? null : (0, import_react70.createElement)("div", { className: "tb-group-name" }, (0, import_react70.createElement)("span", null, group.name), (0, import_react70.createElement)("span", { className: "tb-group-count" }, String(group.bots.length))),
+        (0, import_react70.createElement)(
           "div",
           { className: "tb-rows" },
-          group.bots.map((bot) => (0, import_react71.createElement)(Row4, {
+          group.bots.map((bot) => (0, import_react70.createElement)(Row4, {
             key: bot.id,
             bot,
             doing: doingById.get(bot.id),
@@ -47774,22 +47824,22 @@ function TeamBoard({ roster, work, onClose, onOverview, configUrl = CONFIG_URL, 
         )
       ))
     ),
-    showHistory ? (0, import_react71.createElement)(
+    showHistory ? (0, import_react70.createElement)(
       "footer",
       { className: "tb-history" },
-      (0, import_react71.createElement)("button", {
+      (0, import_react70.createElement)("button", {
         type: "button",
         className: "tb-history-toggle",
         "aria-expanded": historyOpen,
         onClick: () => setHistoryOpen((value) => !value)
-      }, (0, import_react71.createElement)("span", null, COPY.history), (0, import_react71.createElement)("span", { className: "tb-history-caret", "aria-hidden": true }, historyOpen ? "▾" : "▸")),
-      historyOpen ? history.status === "rows" ? (0, import_react71.createElement)("ul", { className: "tb-history-rows" }, history.rows.slice(0, 50).map((row, index) => (0, import_react71.createElement)(
+      }, (0, import_react70.createElement)("span", null, COPY.history), (0, import_react70.createElement)("span", { className: "tb-history-caret", "aria-hidden": true }, historyOpen ? "▾" : "▸")),
+      historyOpen ? history.status === "rows" ? (0, import_react70.createElement)("ul", { className: "tb-history-rows" }, history.rows.slice(0, 50).map((row, index) => (0, import_react70.createElement)(
         "li",
         { key: `${row?.ts ?? index}:${row?.bot ?? ""}` },
-        (0, import_react71.createElement)("span", { className: "tb-history-bot" }, String(row?.bot ?? "")),
-        (0, import_react71.createElement)("span", { className: "tb-history-state" }, historyState(row?.state)),
-        row?.doing ? (0, import_react71.createElement)("span", { className: "tb-history-doing" }, String(row.doing)) : null
-      ))) : (0, import_react71.createElement)("p", { className: "tb-history-note" }, COPY.historyPending) : null
+        (0, import_react70.createElement)("span", { className: "tb-history-bot" }, String(row?.bot ?? "")),
+        (0, import_react70.createElement)("span", { className: "tb-history-state" }, historyState(row?.state)),
+        row?.doing ? (0, import_react70.createElement)("span", { className: "tb-history-doing" }, String(row.doing)) : null
+      ))) : (0, import_react70.createElement)("p", { className: "tb-history-note" }, COPY.historyPending) : null
     ) : null
   );
 }
@@ -47845,7 +47895,7 @@ var TEAM_BOARD_CSS = `
 `;
 
 // src/client/team-board-host.js
-var import_react72 = require("react");
+var import_react71 = require("react");
 var TEAM_BOARD_CONFIG_URL = "/api/bot/team-board.config.json";
 var OPEN_KEY = "bt.teamBoard.open";
 var SHEET_MAX = 583;
@@ -47884,7 +47934,7 @@ function TeamBoardHost({ actions, useRoster, useWork, useFrame, useSidebarPref }
   const work = useWork((value) => value);
   const frame = useFrame ? useFrame((value) => value) : void 0;
   const pref = useSidebarPref ? useSidebarPref((value) => value) : "open";
-  const [open, setOpen] = (0, import_react72.useState)(() => storedOpen() ?? false);
+  const [open, setOpen] = (0, import_react71.useState)(() => storedOpen() ?? false);
   const toggle = (next) => {
     rememberOpen(next);
     setOpen(next);
@@ -47895,7 +47945,7 @@ function TeamBoardHost({ actions, useRoster, useWork, useFrame, useSidebarPref }
   const summary = boardSummary(roster, work);
   if (!open) {
     const badge = summary.running + summary.waiting;
-    return (0, import_react72.createElement)(
+    return (0, import_react71.createElement)(
       "button",
       {
         className: "tbh-toggle",
@@ -47904,11 +47954,11 @@ function TeamBoardHost({ actions, useRoster, useWork, useFrame, useSidebarPref }
         "aria-label": badge > 0 ? `打开团队看板，${summary.running} 在跑、${summary.waiting} 待办` : "打开团队看板",
         onClick: () => toggle(true)
       },
-      badge > 0 ? (0, import_react72.createElement)("span", { className: "tbh-badge", "data-waiting": summary.waiting > 0 || void 0, "aria-hidden": true }, String(badge)) : null,
-      (0, import_react72.createElement)("span", null, "团队看板")
+      badge > 0 ? (0, import_react71.createElement)("span", { className: "tbh-badge", "data-waiting": summary.waiting > 0 || void 0, "aria-hidden": true }, String(badge)) : null,
+      (0, import_react71.createElement)("span", null, "团队看板")
     );
   }
-  return (0, import_react72.createElement)(
+  return (0, import_react71.createElement)(
     "aside",
     {
       className: "tbh",
@@ -47916,13 +47966,262 @@ function TeamBoardHost({ actions, useRoster, useWork, useFrame, useSidebarPref }
       // The sheet starts past whatever the left column occupies (rail included).
       style: sheet ? { "--tbh-left": `${Math.max(8, layout.column)}px` } : void 0
     },
-    (0, import_react72.createElement)(TeamBoard, {
+    (0, import_react71.createElement)(TeamBoard, {
       roster,
       work,
       onClose: () => toggle(false),
       onOverview: typeof actions?.openTeamOverview === "function" ? actions.openTeamOverview : void 0,
       configUrl: TEAM_BOARD_CONFIG_URL
     })
+  );
+}
+
+// src/client/learning-card-model.js
+function proposalPlacement(proposal, turns) {
+  const settled = proposal?.outcome !== void 0;
+  if (!Number.isFinite(proposal?.at) || typeof turns?.values !== "function") return { kind: settled ? "none" : "dock" };
+  const lastBy = (time) => {
+    let found;
+    for (const location2 of turns.values()) {
+      const end = location2?.end?.time;
+      if (location2?.status !== "closed" || !Number.isFinite(end) || end > time) continue;
+      if (found === void 0 || end > found.end.time || end === found.end.time && location2.turn > found.turn) found = location2;
+    }
+    return found;
+  };
+  const turn = (lastBy(proposal.at) ?? lastBy(settled ? proposal.settledAt ?? proposal.at : Infinity))?.turn;
+  if (turn === void 0) return { kind: settled ? "none" : "dock" };
+  return { kind: "turn", turn };
+}
+function fileLines(text) {
+  const body = String(text ?? "").replace(/\n+$/, "");
+  return body === "" ? [] : body.split("\n");
+}
+function editLines(text) {
+  return typeof text === "string" ? text.split(/\r?\n/) : [];
+}
+var DIFF_CELLS = 25e4;
+function lineDiff(before, after) {
+  const a = fileLines(before);
+  const b = fileLines(after);
+  let start = 0;
+  while (start < a.length && start < b.length && a[start] === b[start]) start++;
+  let tail = 0;
+  while (tail < a.length - start && tail < b.length - start && a[a.length - 1 - tail] === b[b.length - 1 - tail]) tail++;
+  const midA = a.slice(start, a.length - tail);
+  const midB = b.slice(start, b.length - tail);
+  const rows2 = b.slice(0, start).map((line, index) => ({ kind: "same", line, number: index + 1 }));
+  const added = (j) => ({ kind: "added", line: midB[j], number: start + j + 1 });
+  if (midA.length * midB.length > DIFF_CELLS) {
+    rows2.push(...midA.map((line) => ({ kind: "removed", line })), ...midB.map((_, j) => added(j)));
+  } else {
+    const keep = Array.from({ length: midA.length + 1 }, () => new Array(midB.length + 1).fill(0));
+    for (let i2 = midA.length - 1; i2 >= 0; i2--) {
+      for (let j2 = midB.length - 1; j2 >= 0; j2--) {
+        keep[i2][j2] = midA[i2] === midB[j2] ? keep[i2 + 1][j2 + 1] + 1 : Math.max(keep[i2 + 1][j2], keep[i2][j2 + 1]);
+      }
+    }
+    let i = 0;
+    let j = 0;
+    while (i < midA.length || j < midB.length) {
+      if (i < midA.length && j < midB.length && midA[i] === midB[j]) {
+        rows2.push({ kind: "same", line: midB[j], number: start + j + 1 });
+        i++;
+        j++;
+      } else if (i < midA.length && (j === midB.length || keep[i + 1][j] >= keep[i][j + 1])) {
+        rows2.push({ kind: "removed", line: midA[i] });
+        i++;
+      } else {
+        rows2.push(added(j));
+        j++;
+      }
+    }
+  }
+  const offset = b.length - tail;
+  rows2.push(...b.slice(offset).map((line, index) => ({ kind: "same", line, number: offset + index + 1 })));
+  return rows2;
+}
+var answerKeepsCard = (failure) => failure?.code !== "bot/stale";
+var withoutEntry = (state, key) => {
+  if (!(key in state)) return state;
+  const next = { ...state };
+  delete next[key];
+  return next;
+};
+function answerFailure(record, proposal, failure) {
+  if (!answerKeepsCard(failure)) return withoutEntry(record, proposal.id);
+  return { ...record, [proposal.id]: { proposal, error: failure?.message ?? String(failure) } };
+}
+function proposalCards({ proposals = [], settled = [], failures = {} }) {
+  const visible2 = [...settled.filter((entry) => !proposals.some((proposal) => proposal.id === entry.id)), ...proposals];
+  for (const entry of Object.values(failures)) {
+    if (!proposals.some((proposal) => proposal.id === entry.proposal.id) && !visible2.some((proposal) => proposal.id === entry.proposal.id)) visible2.push(entry.proposal);
+  }
+  return visible2.sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
+}
+
+// src/client/learning-card-view.js
+var import_react72 = require("react");
+function ProposalCard({ proposal, initialError = "", onFailure = () => {
+}, onResolved = () => {
+}, actions, disabledReason = "" }) {
+  const outcome = proposal.outcome;
+  const [busy, setBusy] = (0, import_react72.useState)(false);
+  const [error, setError] = (0, import_react72.useState)(initialError);
+  const [open, setOpen] = (0, import_react72.useState)(false);
+  const busyRef = (0, import_react72.useRef)(false);
+  const titleId = (0, import_react72.useId)();
+  const answer = (approve) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    setError("");
+    void Promise.resolve().then(() => actions.learningAnswer(proposal.id, approve)).then(() => onResolved(proposal.id, approve), (failure) => {
+      setError(failure?.message ?? String(failure));
+      onFailure(proposal, failure);
+    }).finally(() => {
+      busyRef.current = false;
+      setBusy(false);
+    });
+  };
+  const update = proposal.action === "update";
+  const agents = proposal.kind === "agents";
+  const rows2 = (0, import_react72.useMemo)(() => lineDiff(update ? proposal.previous?.content : "", proposal.content), [update, proposal.previous?.content, proposal.content]);
+  const change = agents ? [
+    (0, import_react72.createElement)(FileBox, { key: "file", name: "AGENTS.md", path: proposal.folder, state: proposal.exists === false ? "Added" : "Modified", blocks: proposal.edits.map((edit) => [
+      ...(edit.op === "add" ? [] : editLines(edit.old)).map((line) => ({ kind: "removed", line })),
+      ...(edit.op === "remove" ? [] : editLines(edit.text)).map((line) => ({ kind: "added", line }))
+    ]) }),
+    ...proposal.edits.map((edit, index) => edit.why ? (0, import_react72.createElement)("p", { className: "bt-learning-why", key: `why-${index}` }, edit.why) : null)
+  ] : [
+    (0, import_react72.createElement)(FileBox, { key: "file", name: "SKILL.md", path: `skills/${proposal.name}`, state: update ? "Updated" : "Added", blocks: [rows2] }),
+    proposal.why ? (0, import_react72.createElement)("p", { className: "bt-learning-why", key: "why" }, proposal.why) : null
+  ];
+  const kind = t(agents ? "AGENTS.md update" : update ? "Skill update" : "New skill");
+  const reviewReason = proposal.requiresReview ? `${t("Review required")}: ${proposal.reviewReason}` : "";
+  if (outcome) {
+    const what = agents ? proposal.folder : proposal.name;
+    return (0, import_react72.createElement)(
+      "section",
+      { className: "bt-q bt-q-settled bt-learning-card bt-learning-settled", role: "group", "aria-label": `${kind} · ${what}`, "data-outcome": outcome },
+      (0, import_react72.createElement)(
+        "button",
+        { type: "button", className: "bt-learning-fold", "aria-expanded": open, onClick: () => setOpen(!open) },
+        (0, import_react72.createElement)("span", { className: "bt-learning-icon", "aria-hidden": true }, (0, import_react72.createElement)(agents ? PencilIcon : MemoryIcon)),
+        (0, import_react72.createElement)("span", { className: "bt-learning-kind" }, kind),
+        (0, import_react72.createElement)("span", { className: "bt-learning-sum" }, `${t(outcome === "approved" ? "Approved" : "Declined")} · ${what}`)
+      ),
+      open ? [change, proposal.improvement ? (0, import_react72.createElement)(ImprovementDetails, { key: "improvement", improvement: proposal.improvement, proposal }) : null] : null
+    );
+  }
+  const oldDetail = update && typeof proposal.previous?.description === "string" && proposal.previous.description !== proposal.description ? proposal.previous.description : void 0;
+  return (0, import_react72.createElement)(
+    "section",
+    { className: "bt-q bt-learning-card", role: "group", "aria-labelledby": titleId, "aria-busy": busy },
+    agents ? (0, import_react72.createElement)(ProposalHead, { titleId, icon: PencilIcon, title: kind }) : (0, import_react72.createElement)(ProposalHead, { titleId, title: proposal.name, kind, detail: proposal.description, oldDetail }),
+    change,
+    proposal.improvement ? (0, import_react72.createElement)(ImprovementDetails, { improvement: proposal.improvement, proposal }) : null,
+    error ? (0, import_react72.createElement)("div", { className: "bt-learning-error", role: "alert" }, error) : null,
+    (0, import_react72.createElement)(ProposalFoot, { busy, answer, disabledReason, approveDisabledReason: reviewReason })
+  );
+}
+function ImprovementDetails({ improvement, proposal }) {
+  const evidence = [...improvement.evidenceIds ?? [], ...improvement.sourceIds ?? []].join(", ");
+  const audit = proposal.audit;
+  return (0, import_react72.createElement)(
+    "section",
+    { className: "bt-learning-improvement", "aria-label": t("Verified improvement") },
+    (0, import_react72.createElement)("p", { className: "bt-learning-improvement-title" }, t("Verified improvement")),
+    (0, import_react72.createElement)(
+      "dl",
+      null,
+      (0, import_react72.createElement)("div", null, (0, import_react72.createElement)("dt", null, t("Affects")), (0, import_react72.createElement)("dd", null, `${improvement.affectedBot.name} · ${improvement.scope.label}`)),
+      (0, import_react72.createElement)("div", null, (0, import_react72.createElement)("dt", null, t("Observed problem")), (0, import_react72.createElement)("dd", null, improvement.observedProblem)),
+      (0, import_react72.createElement)("div", null, (0, import_react72.createElement)("dt", null, t("Proposed change")), (0, import_react72.createElement)("dd", null, improvement.proposedChange)),
+      (0, import_react72.createElement)("div", null, (0, import_react72.createElement)("dt", null, t("Expected benefit")), (0, import_react72.createElement)("dd", null, improvement.expectedBenefit)),
+      (0, import_react72.createElement)("div", null, (0, import_react72.createElement)("dt", null, t("Rollback path")), (0, import_react72.createElement)("dd", null, improvement.rollbackPath)),
+      (0, import_react72.createElement)("div", null, (0, import_react72.createElement)("dt", null, t("Source")), (0, import_react72.createElement)("dd", null, (0, import_react72.createElement)("span", { className: "bt-activity-id" }, `${improvement.taskId} · ${evidence}`))),
+      audit ? (0, import_react72.createElement)("div", null, (0, import_react72.createElement)("dt", null, t("Audit")), (0, import_react72.createElement)("dd", null, `${t("Version {version}", { version: audit.version })} · ${audit.beforeHash} → ${audit.afterHash}`)) : null
+    ),
+    proposal.requiresReview ? (0, import_react72.createElement)("p", { className: "bt-learning-review", role: "alert" }, `${t("Review required")}: ${proposal.reviewReason}`) : null
+  );
+}
+function ProposalHead({ titleId, icon: icon2 = MemoryIcon, title, kind, detail, oldDetail }) {
+  return (0, import_react72.createElement)(
+    "div",
+    { className: "bt-q-head" },
+    (0, import_react72.createElement)("span", { className: "bt-learning-icon", "aria-hidden": true }, (0, import_react72.createElement)(icon2)),
+    (0, import_react72.createElement)(
+      "div",
+      { className: "bt-q-text" },
+      (0, import_react72.createElement)("p", { className: "bt-q-title", id: titleId }, title),
+      kind ? (0, import_react72.createElement)("div", { className: "bt-q-detail" }, kind) : null,
+      oldDetail ? (0, import_react72.createElement)("p", { className: "bt-learning-description bt-learning-old" }, (0, import_react72.createElement)("del", null, oldDetail)) : null,
+      detail ? (0, import_react72.createElement)("p", { className: "bt-learning-description" }, detail) : null
+    ),
+    (0, import_react72.createElement)("span", { className: "bt-q-badge bt-learning-status" }, (0, import_react72.createElement)("span", { className: "bt-learning-dot", "aria-hidden": true }), t("Awaiting approval"))
+  );
+}
+function ProposalFoot({ busy, answer, disabledReason, approveDisabledReason = "" }) {
+  const declineDisabled = busy || Boolean(disabledReason);
+  const approveDisabled = declineDisabled || Boolean(approveDisabledReason);
+  return (0, import_react72.createElement)(
+    "div",
+    { className: "bt-q-foot bt-learning-foot" },
+    (0, import_react72.createElement)("button", { type: "button", className: "bt-learning-btn bt-learning-decline", disabled: declineDisabled, title: disabledReason || void 0, onClick: () => answer(false) }, t("Decline")),
+    (0, import_react72.createElement)(
+      "button",
+      { type: "button", className: "bt-learning-btn bt-learning-approve", disabled: approveDisabled, title: approveDisabledReason || disabledReason || void 0, onClick: () => answer(true) },
+      (0, import_react72.createElement)(CheckIcon),
+      t("Approve")
+    )
+  );
+}
+var COLLAPSE_ROWS = 8;
+var SIGNS = { added: "+", removed: "−", same: "" };
+function FileBox({ name, path: path2, state, blocks }) {
+  const [open, setOpen] = (0, import_react72.useState)(false);
+  const all = blocks.flat();
+  const added = all.filter((row) => row.kind === "added").length;
+  const removed = all.filter((row) => row.kind === "removed").length;
+  const folds = all.length > COLLAPSE_ROWS;
+  const shut = folds && !open;
+  return (0, import_react72.createElement)(
+    "div",
+    { className: "bt-learning-file" },
+    (0, import_react72.createElement)(
+      "div",
+      { className: "bt-learning-filehead" },
+      (0, import_react72.createElement)("span", { className: "bt-learning-name" }, name),
+      path2 ? (0, import_react72.createElement)("span", { className: "bt-learning-path" }, path2) : null,
+      (0, import_react72.createElement)("span", { className: "bt-learning-spacer" }),
+      added > 0 ? (0, import_react72.createElement)("span", { className: "bt-learning-plus" }, `+${added}`) : null,
+      removed > 0 ? (0, import_react72.createElement)("span", { className: "bt-learning-minus" }, `−${removed}`) : null,
+      (0, import_react72.createElement)("span", { className: `bt-learning-state bt-learning-state-${state.toLowerCase()}` }, t(state))
+    ),
+    (0, import_react72.createElement)(
+      "div",
+      { className: shut ? "bt-learning-code bt-learning-shut" : "bt-learning-code" },
+      blocks.map((rows2, blockIndex) => [
+        blockIndex > 0 ? (0, import_react72.createElement)("div", { className: "bt-learning-gap", key: `gap-${blockIndex}` }) : null,
+        ...rows2.map((row, rowIndex) => (0, import_react72.createElement)(
+          "div",
+          { className: `bt-learning-row bt-learning-${row.kind}`, key: `${blockIndex}-${rowIndex}` },
+          (0, import_react72.createElement)("span", { className: "bt-learning-num", "aria-hidden": true }, row.number ?? ""),
+          (0, import_react72.createElement)("span", { className: "bt-learning-sign", "aria-hidden": true }, SIGNS[row.kind]),
+          (0, import_react72.createElement)("span", { className: "bt-learning-text" }, row.line || " ")
+        ))
+      ])
+    ),
+    folds ? (0, import_react72.createElement)(
+      "div",
+      { className: shut ? "bt-learning-morebar bt-learning-morebar-shut" : "bt-learning-morebar" },
+      (0, import_react72.createElement)(
+        "button",
+        { type: "button", className: "bt-learning-more", "aria-expanded": open, onClick: () => setOpen(!open) },
+        t(open ? "Show less" : "Show all {count} lines", { count: all.length })
+      )
+    ) : null
   );
 }
 

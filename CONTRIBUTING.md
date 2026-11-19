@@ -85,13 +85,13 @@ You need:
 
 ```sh
 git clone https://github.com/Fei2411/DS-Bot.git ds-bot-repo
-cd ds-bot-repo/ds-bot
+cd ds-bot-repo
 
-# The plugin's own build tool (esbuild only).
-npm ci
+# ds-bot's build tools (esbuild), the phone link's packages (../link), and the DSH packages
+# that the unit tests and the linter load (ds-bot/dev/harness), all from the lockfiles.
+sh scripts/setup.sh
 
-# The DSH packages that the unit tests and the linter load, from npm, into dev/harness/.
-npm run harness
+cd ds-bot
 ```
 
 For the test bench, add the DeepSeek Harness checkout next to the plugin folder (this folder is ignored by Git):

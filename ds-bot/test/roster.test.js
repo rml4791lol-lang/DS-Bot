@@ -9,6 +9,16 @@ import { afterRound } from './relay-rows.js'
 import { format } from 'node:util'
 import { createRuntime } from '../index.js'
 import { fakeContext } from './fake-ctx.js'
+const SKILL_CATALOG = [
+  'a11y-audit',
+  'code-review-and-quality',
+  'doubt-driven-development',
+  'ppt-studio',
+  'systematic-debugging',
+  'test-driven-development',
+  'verification-before-completion',
+  'zh-tdd',
+].map(name => ({ name, description: `use ${name}`, provider: 'filesystem', source: 'user', invocation: { modelInvocable: true, userInvocable: true } }))
 
 // DSH's settings and credentials for a DeepSeek route that takes an API key. A key set
 // or removed is announced the way DSH announces it. `records` are the stored records
@@ -32,6 +42,7 @@ function start(team, { models = [], reasoning = {}, archiveError, keys, selectio
   const home = mkdtempSync(join(tmpdir(), 'ds-bot-roster-'))
   if (team !== undefined) writeFileSync(join(home, 'state.json'), JSON.stringify(team))
   const services = {}
+  services.skills = { list: async () => SKILL_CATALOG }
   const ctx = fakeContext({ services })
   const records = new Set()
   if (keys !== undefined) Object.assign(services, keyed(ctx, new Set(keys), records))
@@ -1409,4 +1420,97 @@ test('a model-less create-bot starts the Bot on the saved team default model', a
   await call('set-prefs', { defaultBotModel: null })
   const plain = (await call('create-bot', { name: 'Plain' })).value
   assert.equal(plain.model, 'deepseek/deepseek-v4-flash')
+})
+
+test('a Bot keeps a skill shortlist of at most five, and a sixth is refused', async (t) => {
+  const { call, stop } = start(undefined, { models: ['deepseek-v4-flash'] })
+  t.after(stop)
+  const team = (await call('state', {})).value
+  const chief = team.mainBotId
+  const create = args => rt.teamTools.find(tool => tool.name === 'create_bot').execute(args, { agent: { id: chief } })
+  const five = ['a11y-audit', 'code-review-and-quality', 'test-driven-development', 'ppt-studio', 'zh-tdd'].map(name => ({ name, purpose: `use ${name}` }))
+
+  assert.match(await create({ name: 'Writer', role: 'Writer', instructions: 'Write.', skills: five }), /^Created Writer/)
+  const writer = (await call('state', {})).value.bots.find(bot => bot.name === 'Writer')
+  assert.deepEqual(writer.skillShortlist, five)
+
+  // A name from the real profile catalog must pass the same host validation
+  // the live app uses (this is the regression that rejected every DSH skill).
+  assert.match(await create({ name: 'Reviewer', role: 'Reviewer', instructions: 'Review.', skills: [{ name: 'code-review-and-quality', purpose: 'review a change' }] }), /^Created Reviewer/)
+
+  // A sixth is refused with a reason, and no Bot is half-made.
+  const six = [...five, { name: 'doubt-driven-development', purpose: 'challenge a decision' }]
+  assert.match(await create({ name: 'Six', role: 'Six', instructions: 'Six.', skills: six }), /at most 5 skills/)
+  assert.equal((await call('state', {})).value.bots.some(bot => bot.name === 'Six'), false)
+
+  // The shared tool schema permits null as the explicit inherit-all value.
+  assert.match(await create({ name: 'Inherit', role: 'Inherit', instructions: 'Inherit.', skills: null }), /^Created Inherit/)
+  const inherit = (await call('state', {})).value.bots.find(bot => bot.name === 'Inherit')
+  assert.equal(inherit.skillShortlist, undefined)
+})
+
+test('update_bot replaces and clears a skill shortlist, and leaves it alone when unmentioned', async (t) => {
+  const { stop } = start({ version: 1, mainBotIds: ['chief'], bots: { chief: { id: 'chief', name: 'Chief', capabilities: [], skillShortlist: [{ name: 'zh-tdd', purpose: 'write the failing test first' }] } } }, { models: ['deepseek-v4-flash'] })
+  t.after(stop)
+  const update = args => rt.teamTools.find(tool => tool.name === 'update_bot').execute(args, { agent: { id: 'chief' } })
+
+  // A change to another field keeps the shortlist as it was.
+  assert.equal(await update({ bot: 'Chief', role: 'Chief' }), 'Updated Chief.')
+  assert.deepEqual(rt.state.bots.chief.skillShortlist, [{ name: 'zh-tdd', purpose: 'write the failing test first' }])
+
+  assert.equal(await update({ bot: 'Chief', skills: [{ name: 'ppt-studio', purpose: 'build a deck' }, { name: 'zh-tdd', purpose: 'write the failing test first' }] }), 'Updated Chief.')
+  assert.deepEqual(rt.state.bots.chief.skillShortlist.map(skill => skill.name), ['ppt-studio', 'zh-tdd'])
+
+  assert.match(await update({ bot: 'Chief', skills: ['x', 'y', 'z', 'w', 'v', 'u'].map(name => ({ name, purpose: 'use it' })) }), /at most 5 skills/)
+  assert.deepEqual(rt.state.bots.chief.skillShortlist.map(skill => skill.name), ['ppt-studio', 'zh-tdd'])
+
+  assert.equal(await update({ bot: 'Chief', skills: [] }), 'Updated Chief.')
+  assert.deepEqual(rt.state.bots.chief.skillShortlist, [])
+  assert.equal(await update({ bot: 'Chief', skills: null }), 'Updated Chief.')
+  assert.equal(rt.state.bots.chief.skillShortlist, undefined)
+})
+
+test('a shortlisted DS-Bot skill capability stays effective without a manual attachment', async (t) => {
+  const { stop } = start({ version: 1, mainBotIds: ['chief'], bots: { chief: { id: 'chief', name: 'Chief', capabilities: [] } } }, { models: ['deepseek-v4-flash'] })
+  t.after(stop)
+  await rt.capabilitySave({ name: 'zh-tdd', kind: 'skill', description: 'Write the failing test first', content: 'Do it.' }, { botId: 'chief' })
+  const update = args => rt.teamTools.find(tool => tool.name === 'update_bot').execute(args, { agent: { id: 'chief' } })
+  assert.equal(await update({ bot: 'Chief', skills: [{ name: 'zh-tdd', purpose: 'write the failing test first' }] }), 'Updated Chief.')
+  assert.deepEqual(rt.state.bots.chief.capabilities, [])
+  assert.deepEqual(rt.state.bots.chief.skillShortlist.map(skill => skill.name), ['zh-tdd'])
+})
+
+test('a skill only the Bot live Agent can see passes shortlist validation', async (t) => {
+  const { stop, ctx } = start({ version: 1, mainBotIds: ['chief'], bots: { chief: { id: 'chief', name: 'Chief', capabilities: [] } } }, { models: ['deepseek-v4-flash'] })
+  t.after(stop)
+  // Plugin-provided skills live in the Agent's own scope, not the host registry:
+  // the host list loses `ppt-studio` and only this Agent can still see it.
+  const host = ctx.get('skills')
+  host.list = async () => SKILL_CATALOG.filter(skill => skill.name !== 'ppt-studio')
+  ctx.sessionController.resolveAgent = async sessionId => ({
+    agent: {
+      session: { id: String(sessionId) },
+      ctx: {
+        effect: () => {},
+        skills: { list: async () => SKILL_CATALOG.filter(skill => skill.name === 'ppt-studio') },
+      },
+    },
+  })
+  const update = args => rt.teamTools.find(tool => tool.name === 'update_bot').execute({ bot: 'Chief', ...args }, { agent: { id: 'chief' } })
+
+  // The host catalog alone would refuse this name; the Bot's Agent catalog has it.
+  assert.equal(await update({ skills: [{ name: 'ppt-studio', purpose: 'build a deck' }] }), 'Updated Chief.')
+  assert.deepEqual(rt.state.bots.chief.skillShortlist, [{ name: 'ppt-studio', purpose: 'build a deck' }])
+  // A name no scope offers is still refused, so the union did not loosen typos.
+  assert.match(await update({ skills: [{ name: 'not-a-skill', purpose: 'nowhere' }] }), /No skill named not-a-skill/)
+  assert.deepEqual(rt.state.bots.chief.skillShortlist, [{ name: 'ppt-studio', purpose: 'build a deck' }])
+})
+
+test('a team saved before skill shortlists keeps no shortlist field', async (t) => {
+  const { call, stop } = start({ version: 1, mainBotIds: ['chief'], bots: { chief: { id: 'chief', name: 'Chief', capabilities: ['some-pack'] } } })
+  t.after(stop)
+  const bot = (await call('state', {})).value.bots.find(entry => entry.id === 'chief')
+  assert.equal(bot.skillShortlist, undefined)
+  // An older team keeps its capabilities: the new field only adds.
+  assert.deepEqual(bot.capabilities, ['some-pack'])
 })

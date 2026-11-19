@@ -48,6 +48,24 @@ const AVATAR_PARAM = {
   type: 'string',
   description: 'Profile picture: a local image path (a relative path starts in your working folder) or a data URL. PNG, JPEG, WebP, or GIF; square, 256x256 recommended, up to 120 KB. Images are not resized.',
 }
+// The shortlist names the skills a Bot should reach for, with one line each saying when.
+const SKILLS_PARAM = {
+  description: 'At most 5 skills this Bot should reach for, each as { name, purpose }. The prompt shows the names and those lines only; an empty list hides all skills, and null returns to inheriting the profile catalog.',
+  oneOf: [
+    {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          name: { type: 'string', required: true, description: 'Skill name exactly as the skill catalog lists it, e.g. "test-driven-development"' },
+          purpose: { type: 'string', required: true, description: 'One line, at most 160 characters, saying when to use this skill' },
+        },
+      },
+    },
+    { type: 'null' },
+  ],
+}
 const WORKING_DIRECTORY_TOOL = 'working_directory'
 
 export function install(rt) {
@@ -313,7 +331,7 @@ export function install(rt) {
       const send = async () => {
         const toUser = args.reply_to === 'user'
         const work = toUser ? undefined : works[0]
-        const goalTask = toUser ? undefined : rt.goalTaskBinding?.(room?.id, sender.id)
+        const goalTask = toUser ? undefined : rt.goalTaskBinding?.(room?.id, sender.id) ?? rt.goalTaskBinding?.(room?.id, target.id)
         const chat = rt.chatOf(target.id)
         const agent = await rt.resolveAgent(chat)
         const status = rt.statusOf(target.id)
@@ -332,15 +350,19 @@ export function install(rt) {
         const steer = (args.when !== 'queue' && !toUser) || (joins && earlier.steered)
         const exchangeId = joins ? earlier.message.source.exchangeId : randomUUID()
         if (joins) rt.forgetDelivery?.(exchangeId)
-        else if (!toUser) rt.openWork(exchangeId, { from: sender.id, to: target.id, parent: work, goalTask })
+        else if (!toUser) await rt.openWork(exchangeId, { from: sender.id, to: target.id, parent: work, goalTask })
         const binding = toUser ? undefined : rt.workBinding?.(exchangeId)
         try {
-          await rt.deliver({ fromId: sender.id, toId: target.id, text: long.text, files: [...long.files, ...(joins ? before.files : [])], length: long.length, role: 'request', steer, queue: args.when === 'queue', exchangeId, ...(joins ? { merged: true } : {}), ...(toUser ? { audience: 'user' } : {}), ...binding })
+          await rt.deliver({ fromId: sender.id, toId: target.id, text: long.text, files: [...long.files, ...(joins ? before.files : [])], length: long.length, role: 'request', steer, queue: args.when === 'queue', exchangeId, ...(joins ? { merged: true } : {}), ...(toUser ? { audience: 'user' } : {}), ...binding, ...goalTask })
         } catch (error) {
           // The delivery stays noted for the next start while its Bot exists
           // (resume.js), and the resent request still answers up the tree, so the
           // work it opened stays too. Only a target that is gone drops the work.
-          if (!joins && rt.botOf(target.id) === undefined) rt.dropWork(exchangeId)
+          if (!joins && rt.botOf(target.id) === undefined) {
+            await rt.dropWork(exchangeId, { required: true }).catch(cleanup => {
+              throw new AggregateError([error, cleanup], `Delivery failed and its work record could not be removed: ${cleanup.message}`)
+            })
+          }
           throw error
         }
         const sent = toUser
@@ -407,6 +429,7 @@ export function install(rt) {
       work_dir: WORK_DIR_PARAM,
       section: SECTION_PARAM,
       avatar: AVATAR_PARAM,
+      skills: SKILLS_PARAM,
     },
     output,
     async execute(args, exec) {
@@ -424,7 +447,7 @@ export function install(rt) {
         const served = new Set((await rt.catalog()).filter(entry => entry.needsKey !== true && rt.isLocalAgentRef?.(entry.ref) !== true).map(entry => entry.ref))
         const fallback = [state.prefs.defaultBotModel, creator?.model].find(ref => ref && served.has(ref))
         const model = args.model || fallback
-        const bot = await rt.createBot({ ...args, avatar: avatar === undefined ? undefined : { image: avatar }, model, workDir, effort: args.effort, section: args.section, createdBy: creator?.id })
+        const bot = await rt.createBot({ ...args, avatar: avatar === undefined ? undefined : { image: avatar }, model, workDir, effort: args.effort, section: args.section, createdBy: creator?.id, skillShortlist: args.skills })
         return `Created ${bot.name}${workDir ? `, working in ${workDir}` : ''}. It is greeting the user now.`
       } catch (error) {
         return `Could not create the Bot: ${error.message}`
@@ -446,6 +469,7 @@ export function install(rt) {
       effort: { type: 'string', description: 'Thinking level for the Bot\'s model, as list_bot_models shows; an empty string returns to the model\'s default' },
       work_dir: { ...WORK_DIR_PARAM, description: `${WORK_DIR_PARAM.description}; an empty string returns it to the team workspace` },
       section: { ...SECTION_PARAM, description: `${SECTION_PARAM.description}; an empty string removes the Bot from its section (Main Bot only)` },
+      skills: SKILLS_PARAM,
     },
     output,
     async execute(args, exec) {
@@ -470,7 +494,7 @@ export function install(rt) {
         // does: setting one keeps a custom character, and clearing removes only the image.
         // They are read here, after the waits above, so a change made meanwhile stays.
         const avatar = image === undefined ? undefined : { ...rt.botOf(bot.id)?.avatar, image }
-        const next = await rt.updateBot(bot.id, { name: newName, role, instructions, color, ...(avatar !== undefined ? { avatar } : {}), ...(model ? { model } : {}), ...(effort === undefined ? {} : { effort }), ...(section === undefined ? {} : { section }), ...(moving ? { workDir: workDir ?? '' } : {}) }, self, exec.agent?.id)
+        const next = await rt.updateBot(bot.id, { name: newName, role, instructions, color, ...(avatar !== undefined ? { avatar } : {}), ...(model ? { model } : {}), ...(effort === undefined ? {} : { effort }), ...(section === undefined ? {} : { section }), ...(moving ? { workDir: workDir ?? '' } : {}), ...(args.skills === undefined ? {} : { skillShortlist: args.skills }) }, self, exec.agent?.id)
         if (!moving) return `Updated ${next.name}.`
         const folder = workDir ?? 'the team workspace'
         return bot.id === caller.id ? `Updated ${next.name}. From your next step on, you work in ${folder}.` : `Updated ${next.name}. It now works in ${folder}.`
@@ -795,15 +819,19 @@ export function install(rt) {
       // work handed on for that request (handoffs.js).
       const work = reportBack ? worksOf(exec).find(id => rt.ownsWork(self, id)) : undefined
       const sub = work === undefined ? undefined : randomUUID()
-      if (sub !== undefined) rt.openWork(sub, { from: self, room: room.id, parent: work })
       const missingFiles = folder === undefined ? [] : missingFileRefs(text, folder)
       const claims = missingFiles.length > 0 ? { missingFiles } : undefined
       try {
+        if (sub !== undefined) await rt.openWork(sub, { from: self, room: room.id, parent: work })
         // A post that wants the replies names the conversation it was written
         // from, so the report comes back there instead of the own chat.
         await rt.postToRoom(room, sender, long.text, { mentions, ...(claims ? { claims } : {}), ...(reportBack ? { reportBack: true, ...callerRoom(exec) } : {}), ...(member ? { member: true } : {}), ...(sub ? { sub } : {}), ...(long.length ? { length: long.length } : {}) }, long.files)
       } catch (failure) {
-        if (sub !== undefined) rt.dropWork(sub)
+        if (sub !== undefined) {
+          await rt.dropWork(sub, { required: true }).catch(cleanup => {
+            throw new AggregateError([failure, cleanup], `Could not post in "${room.name}": ${failure.message}; its work record could not be removed: ${cleanup.message}`)
+          })
+        }
         return `Could not post in "${room.name}": ${failure.message}`
       }
       if (member && named.length === 0) return `Posted in "${room.name}", where the user and its members read it. Nobody answers it: your post only calls the members you name with @Name.`
@@ -1300,7 +1328,8 @@ export function install(rt) {
           : item.kind === 'mcp' && item.transport === 'stdio' ? `; ${item.approved ? 'allowed' : 'needs user approval'}` : ''
         const itemStatus = statuses[item.name]
         const state = itemStatus ? ` (${itemStatus.state}${itemStatus.error ? `: ${itemStatus.error}` : ''})` : ''
-        const status = bot.capabilities?.includes(item.name) ? `; attached to you${state}` : ''
+        const shortlisted = (bot.skillShortlist ?? []).some(skill => skill.name === item.name)
+        const status = bot.capabilities?.includes(item.name) || shortlisted ? `; attached to you${state}` : ''
         return `- ${item.name} (${item.kind})${item.description ? ` — ${item.description}` : ''}${extra}${status}`
       })
       return ['Shared capabilities:', ...lines].join('\n')

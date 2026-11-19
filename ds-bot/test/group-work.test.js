@@ -385,6 +385,121 @@ test('replies a post waits for are work handed on: the answer to the Bot that as
   assert.equal(text(host.agentOf('c').calls[0]), '[Reply from Chief]\nWriter 看过了，没问题。\n\n[Handed back to Chief for this work]\n\nGroup "Ops":\nReplies to your post (oldest first):\nWriter: 文档没问题。')
 })
 
+test('post_to_group waits for a report-back work record before posting', async (t) => {
+  const host = await start(t)
+  await host.tool('message_bot', { to: 'Chief', message: '让群里看一下文档' }, 'c')
+  host.begin('a')
+  const originalSave = rt.save.bind(rt)
+  let entered = false
+  let release
+  const held = new Promise(resolve => { release = resolve })
+  rt.save = async (...args) => {
+    const sub = Object.values(rt.state.works ?? {}).some(work => work.room === 'r1' && work.parent)
+    if (sub && !entered) {
+      entered = true
+      await held
+    }
+    return originalSave(...args)
+  }
+  const postToRoom = rt.postToRoom.bind(rt)
+  let posted = false
+  rt.postToRoom = async (...args) => {
+    posted = true
+    return postToRoom(...args)
+  }
+
+  const posting = host.tool('post_to_group', { group: 'Ops', message: '@Writer 看一下文档', report_back: true }, 'a')
+  await settle(() => entered)
+  for (let i = 0; i < 20; i += 1) await new Promise(resolve => setImmediate(resolve))
+  assert.equal(posted, false, 'the group post ran before its report-back work was durable')
+  release()
+  await posting
+  assert.equal(posted, true)
+})
+
+test('post_to_group does not post when its report-back work cannot be saved', async (t) => {
+  const host = await start(t)
+  await host.tool('message_bot', { to: 'Chief', message: '让群里看一下文档' }, 'c')
+  host.begin('a')
+  const save = rt.save.bind(rt)
+  rt.save = async (...args) => {
+    const sub = Object.values(rt.state.works ?? {}).some(work => work.room === 'r1' && work.parent)
+    if (sub) throw new Error('disk full')
+    return save(...args)
+  }
+  const postToRoom = rt.postToRoom.bind(rt)
+  let posted = false
+  rt.postToRoom = async (...args) => {
+    posted = true
+    return postToRoom(...args)
+  }
+
+  const answer = await host.tool('post_to_group', { group: 'Ops', message: '@Writer 看一下文档', report_back: true }, 'a')
+  assert.match(answer, /^Could not post in "Ops": disk full/)
+  assert.equal(posted, false)
+  assert.equal(Object.values(rt.state.works ?? {}).some(work => work.room === 'r1' && work.parent), false)
+})
+
+test('post_to_group waits for a durable cleanup when posting fails', async (t) => {
+  const host = await start(t)
+  await host.tool('message_bot', { to: 'Chief', message: '让群里看一下文档' }, 'c')
+  host.begin('a')
+  let failed = false
+  rt.postToRoom = async () => {
+    failed = true
+    throw new Error('post failed')
+  }
+  const save = rt.save.bind(rt)
+  let cleanupEntered = false
+  let release
+  const held = new Promise(resolve => { release = resolve })
+  rt.save = async (...args) => {
+    const sub = Object.values(rt.state.works ?? {}).some(work => work.room === 'r1' && work.parent)
+    if (failed && !sub && !cleanupEntered) {
+      cleanupEntered = true
+      await held
+    }
+    return save(...args)
+  }
+
+  let settled = false
+  const posting = host.tool('post_to_group', { group: 'Ops', message: '@Writer 看一下文档', report_back: true }, 'a').then(value => {
+    settled = true
+    return value
+  }, error => {
+    settled = true
+    return error
+  })
+  await settle(() => cleanupEntered)
+  for (let i = 0; i < 20; i += 1) await new Promise(resolve => setImmediate(resolve))
+  assert.equal(settled, false, 'post_to_group returned before the failed work was removed durably')
+  release()
+  assert.match(await posting, /^Could not post in "Ops": post failed/)
+  assert.equal(Object.values(rt.state.works ?? {}).some(work => work.room === 'r1' && work.parent), false)
+})
+
+test('post_to_group reports a failed cleanup instead of hiding it', async (t) => {
+  const host = await start(t)
+  await host.tool('message_bot', { to: 'Chief', message: '让群里看一下文档' }, 'c')
+  host.begin('a')
+  let failed = false
+  rt.postToRoom = async () => {
+    failed = true
+    throw new Error('post failed')
+  }
+  const save = rt.save.bind(rt)
+  rt.save = async (...args) => {
+    const sub = Object.values(rt.state.works ?? {}).some(work => work.room === 'r1' && work.parent)
+    if (failed && !sub) throw new Error('cleanup disk full')
+    return save(...args)
+  }
+
+  await assert.rejects(
+    () => host.tool('post_to_group', { group: 'Ops', message: '@Writer 看一下文档', report_back: true }, 'a'),
+    /work record could not be removed: cleanup disk full/,
+  )
+})
+
 // A group post's report comes back even after the user gave up the wait: it is the
 // late answer it is, and it opens no work again.
 test('replies that arrive after the wait for a group was given up come back marked late', async (t) => {

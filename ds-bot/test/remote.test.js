@@ -461,6 +461,10 @@ test('plugin entry tracks late TypertGatewayService mount and disposal in hello'
   root.provide('sessionController', { create: async () => ({ sessionId: 's1' }), resolveAgent: async id => ({ agent: { session: { id, seq: 1 }, followup() {} } }), selectModel: async () => {}, prompt: async () => {}, page: async () => ({ records: [], hasMore: false }) })
   root.provide('sessionTitle', { rename: async () => {} })
   root.provide('sessions', { flush: async () => {} })
+  // The plugin declares the skill service it uses in real DSH. This focused
+  // remote-entry test supplies the service so the entry can mount; catalog
+  // behavior has its own tests.
+  root.provide('skills', { list: async () => [], snapshot: async () => ({ skills: [], complete: true }) })
   await root.plugin(pluginEntry, { home })
   for (let i = 0; i < 20 && !routes['/api/bot']; i += 1) await tick()
 

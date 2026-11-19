@@ -1,6 +1,8 @@
 // Prompt: one section whose text depends only on the rendering Session's own Bot
 // record, so the prefix stays byte-stable across turns and roster changes.
 
+import { skillShortlistSection } from './skill-shortlist.js'
+
 // Every rule belongs to one of eight sections, read in this order: identity,
 // work loop, evidence, stopping, delivery, collaboration, memory, failure. A
 // Main Bot's rules come first in a section; other Bots see the team rules alone.
@@ -116,12 +118,15 @@ export function install(rt) {
     const self = rt.selfOf(id)
     const bot = rt.botOf(self)
     if (bot !== undefined) {
+      // A Bot that keeps no shortlist reads exactly as before: no empty heading.
+      const shortlist = skillShortlistSection(bot.skillShortlist)
       return [
         '# Your identity',
         `You are ${bot.name}, a Bot on the user's team in DS Bot.${bot.role ? ` Your role: ${bot.role}.` : ''}`,
         bot.instructions ? `\n${bot.instructions}` : '',
         '',
         rulesFor(rt.isMain(self)),
+        ...(shortlist === '' ? [] : ['', shortlist]),
       ].join('\n')
     }
     const room = rt.roomOf(id)

@@ -213,6 +213,7 @@ test('a goal Bot handoff keeps its goal task binding in activity and task detail
   const state = saved(host)
   const [workId, work] = Object.entries(state.works).find(([, item]) => item.from === 'b' && item.to === 'c')
   assert.deepEqual(work.goalTask, { taskId: goalTaskId, attemptId })
+  assert.deepEqual([host.agentOf('c').calls.at(-1).source.taskId, host.agentOf('c').calls.at(-1).source.attemptId], [goalTaskId, attemptId])
 
   const activity = buildTeamActivity({ state, now: Date.now(), timeZone: 'Asia/Shanghai' })
   const handoff = activity.tasks.find(item => item.id === `handoff:${workId}`)
@@ -220,6 +221,122 @@ test('a goal Bot handoff keeps its goal task binding in activity and task detail
   assert.equal(handoff.goalTaskId, goalTaskId)
   const detail = buildTaskDetail({ state, activity, taskId: goalTaskId, now: Date.now() })
   assert.deepEqual(detail.handoffs.map(item => [item.id, item.owner, item.status]), [[`handoff:${workId}`, 'Tester', 'active']])
+})
+
+test('message_bot waits for the handoff work record before it returns', async (t) => {
+  const host = await start(t)
+  await startGoal(host, { stages: [STAGES[0]] })
+  await host.tool('group_goal', { action: 'task', bot: 'Writer', status: 'working' }, 'ga')
+  const original = host.rt.save.bind(host.rt)
+  let entered = false
+  let release
+  const held = new Promise(resolve => { release = resolve })
+  host.rt.save = async (...args) => {
+    const handoff = Object.values(host.rt.state.works ?? {}).some(work => work.from === 'b' && work.to === 'c')
+    if (handoff && !entered) {
+      entered = true
+      await held
+    }
+    return original(...args)
+  }
+  const deliver = host.rt.deliver.bind(host.rt)
+  let delivered = false
+  host.rt.deliver = async (...args) => {
+    delivered = true
+    return deliver(...args)
+  }
+
+  const sending = host.tool('message_bot', { to: 'Tester', message: 'Review it.' }, 'b')
+  await settle(() => entered)
+  for (let i = 0; i < 20; i += 1) await new Promise(resolve => setImmediate(resolve))
+  assert.equal(delivered, false, 'the request was delivered before the work record was durable')
+  release()
+  await sending
+  assert.equal(delivered, true)
+  assert.equal(Object.values(saved(host).works).some(work => work.from === 'b' && work.to === 'c'), true)
+})
+
+test('message_bot does not deliver when the handoff work cannot be saved', async (t) => {
+  const host = await start(t)
+  await startGoal(host, { stages: [STAGES[0]] })
+  await host.tool('group_goal', { action: 'task', bot: 'Writer', status: 'working' }, 'ga')
+  const save = host.rt.save.bind(host.rt)
+  host.rt.save = async (...args) => {
+    const handoff = Object.values(host.rt.state.works ?? {}).some(work => work.from === 'b' && work.to === 'c')
+    if (handoff) throw new Error('disk full')
+    return save(...args)
+  }
+  const deliver = host.rt.deliver.bind(host.rt)
+  let delivered = false
+  host.rt.deliver = async (...args) => {
+    delivered = true
+    return deliver(...args)
+  }
+
+  await assert.rejects(() => host.tool('message_bot', { to: 'Tester', message: 'Review it.' }, 'b'), /disk full/)
+  assert.equal(delivered, false)
+  assert.equal(Object.values(host.rt.state.works ?? {}).some(work => work.from === 'b' && work.to === 'c'), false)
+})
+
+test('message_bot waits for a durable cleanup when delivery fails and the target is gone', async (t) => {
+  const host = await start(t)
+  await startGoal(host, { stages: [STAGES[0]] })
+  await host.tool('group_goal', { action: 'task', bot: 'Writer', status: 'working' }, 'ga')
+  const botOf = host.rt.botOf.bind(host.rt)
+  let targetGone = false
+  host.rt.botOf = id => targetGone && id === 'c' ? undefined : botOf(id)
+  host.rt.deliver = async () => {
+    targetGone = true
+    throw new Error('target gone')
+  }
+  const save = host.rt.save.bind(host.rt)
+  let cleanupEntered = false
+  let release
+  const held = new Promise(resolve => { release = resolve })
+  host.rt.save = async (...args) => {
+    const orphan = targetGone && !Object.values(host.rt.state.works ?? {}).some(work => work.from === 'b' && work.to === 'c')
+    if (orphan && !cleanupEntered) {
+      cleanupEntered = true
+      await held
+    }
+    return save(...args)
+  }
+
+  let settled = false
+  const sending = host.tool('message_bot', { to: 'Tester', message: 'Review it.' }, 'b').then(
+    () => { settled = true },
+    error => { settled = true; return error },
+  )
+  await settle(() => cleanupEntered)
+  for (let i = 0; i < 20; i += 1) await new Promise(resolve => setImmediate(resolve))
+  assert.equal(settled, false, 'message_bot returned before the failed work was removed durably')
+  release()
+  assert.match((await sending).message, /target gone/)
+  assert.equal(Object.values(saved(host).works).some(work => work.from === 'b' && work.to === 'c'), false)
+})
+
+test('message_bot reports a failed rollback instead of hiding it', async (t) => {
+  const host = await start(t)
+  await startGoal(host, { stages: [STAGES[0]] })
+  await host.tool('group_goal', { action: 'task', bot: 'Writer', status: 'working' }, 'ga')
+  const botOf = host.rt.botOf.bind(host.rt)
+  let targetGone = false
+  host.rt.botOf = id => targetGone && id === 'c' ? undefined : botOf(id)
+  host.rt.deliver = async () => {
+    targetGone = true
+    throw new Error('target gone')
+  }
+  const save = host.rt.save.bind(host.rt)
+  host.rt.save = async (...args) => {
+    const orphan = targetGone && !Object.values(host.rt.state.works ?? {}).some(work => work.from === 'b' && work.to === 'c')
+    if (orphan) throw new Error('cleanup disk full')
+    return save(...args)
+  }
+
+  await assert.rejects(
+    () => host.tool('message_bot', { to: 'Tester', message: 'Review it.' }, 'b'),
+    /work record could not be removed: cleanup disk full/,
+  )
 })
 
 test('typed acceptance checks refuse prose and report the missing check', async (t) => {

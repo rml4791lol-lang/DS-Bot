@@ -389,18 +389,25 @@ const replySource = (role, extra = {}) => ({ kind: SOURCE_KIND, role, senderSess
 const textBlock = (content) => [{ type: 'text', text: content }]
 const assistantText = text => ({ message: { content: textBlock(text) } })
 
-test('a stopped notice routes the acknowledgement back like a request', () => {
+test('an idle acknowledgement to a stopped notice does not wake the sender', () => {
   const { rt, emit, delivered } = turnsHost()
   emit('b', 'turn/start', { turn: 1 })
   emit('b', 'user/message', { content: textBlock('[Stopped by Chief]\nwhy'), source: replySource('stopped', { exchangeId: 's1' }) })
   assert.deepEqual(rt.state.exchangeTurns.b, [1])
   emit('b', 'assistant/message', assistantText('understood'))
   emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
-  assert.equal(delivered.length, 1)
-  assert.equal(delivered[0].toId, 'a')
-  assert.equal(delivered[0].role, 'reply')
-  assert.equal(delivered[0].replyTo, 's1')
-  assert.equal(delivered[0].text, 'understood')
+  assert.deepEqual(delivered, [])
+  assert.deepEqual(rt.state.exchangeTurns.b, [1])
+})
+
+test('a request answered only with an acknowledgement does not wake its sender', () => {
+  const { rt, emit, delivered } = turnsHost()
+  emit('b', 'turn/start', { turn: 1 })
+  emit('b', 'user/message', { content: textBlock('[Message from Chief]\ntask'), source: replySource('request', { exchangeId: 'e0' }) })
+  emit('b', 'assistant/message', assistantText('收到'))
+  emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.deepEqual(delivered, [])
+  assert.deepEqual(rt.state.exchangeTurns.b, [1])
 })
 
 // What the turn hands back for a joined request: the request itself, to answer next.
@@ -477,6 +484,59 @@ test('a joined request never claims the next turn', () => {
   emit('b', 'turn/end', { turn: 2, reason: { kind: 'completed' } })
   assert.deepEqual(delivered.map(job => [job.role, job.exchangeId, job.deferred]), [['request', 'e1', true]])
   assert.deepEqual(rt.state.exchangeTurns, {})
+})
+
+test('a scheduled turn that only reports no action is hidden', () => {
+  const { rt, emit } = turnsHost()
+  emit('b', 'turn/start', { turn: 1 })
+  emit('b', 'user/message', { content: textBlock('routine'), source: { kind: 'schedule' } })
+  emit('b', 'assistant/message', assistantText('（无动作）'))
+  emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.deepEqual(rt.state.exchangeTurns.b, [1])
+})
+
+test('a scheduled "this turn has no change" acknowledgement is hidden after inbox work', () => {
+  const { rt, emit } = turnsHost()
+  emit('b', 'turn/start', { turn: 1 })
+  emit('b', 'user/message', { content: textBlock('routine'), source: { kind: 'schedule' } })
+  emit('b', 'tool/call', { turn: 1, callId: 'read', name: 'read_inbox' })
+  emit('b', 'assistant/message', assistantText('（本轮无新变化，不输出内容。）'))
+  emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.deepEqual(rt.state.exchangeTurns.b, [1])
+})
+
+test('a scheduled message written before turn/start is still hidden as a no-op', () => {
+  const { rt, emit } = turnsHost()
+  emit('b', 'user/message', { content: textBlock('routine'), source: { kind: 'schedule' } })
+  emit('b', 'turn/start', { turn: 1 })
+  emit('b', 'assistant/message', assistantText('（无动作）'))
+  emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.deepEqual(rt.state.exchangeTurns.b, [1])
+})
+
+test('a scheduled completion word is not treated as a no-op', () => {
+  const { rt, emit } = turnsHost()
+  emit('b', 'turn/start', { turn: 1 })
+  emit('b', 'user/message', { content: textBlock('routine'), source: { kind: 'schedule' } })
+  emit('b', 'assistant/message', assistantText('done'))
+  emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.deepEqual(rt.state.exchangeTurns, {})
+})
+
+test('a scheduled status-only turn is hidden, while the same reply to the user stays visible', () => {
+  const scheduled = turnsHost()
+  scheduled.emit('b', 'turn/start', { turn: 1 })
+  scheduled.emit('b', 'user/message', { content: textBlock('routine'), source: { kind: 'schedule' } })
+  scheduled.emit('b', 'assistant/message', assistantText('无新变化，本轮不报告'))
+  scheduled.emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.deepEqual(scheduled.rt.state.exchangeTurns.b, [1])
+
+  const user = turnsHost()
+  user.emit('b', 'turn/start', { turn: 1 })
+  user.emit('b', 'user/message', { content: textBlock('what changed?'), source: { kind: 'user' } })
+  user.emit('b', 'assistant/message', assistantText('无新变化，本轮不报告'))
+  user.emit('b', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.deepEqual(user.rt.state.exchangeTurns, {})
 })
 
 test('a schedule-started turn stays visible when a request joins', () => {
@@ -1233,7 +1293,7 @@ for (const id of ['b', 'gb']) {
     ctx.llm.resolveModelInfo = async () => ({ context: { contextWindow: 192_000 } })
     const preStep = async (agent) => {
       agent.session.requestHeader = () => ({ config: { provider: 'custom', model: 'model' } })
-      return ctx.listeners.get('agent/pre-step').at(-1)({ agent, messages: [], step: 1, signal: AbortSignal.timeout(60_000) }, async () => 'next')
+      return ctx.listeners.get('agent/pre-step').find(listener => listener.name === 'placeStep')({ agent, messages: [], step: 1, signal: AbortSignal.timeout(60_000) }, async () => 'next')
     }
     const overflow = agent => fire('agent/request-error', { agent, failure: { code: 'CONTEXT_WINDOW_EXCEEDED', message: 'Tools exceed the context window' }, signal: AbortSignal.timeout(60_000) })
     const waitForHandoff = async (sessionId) => {
@@ -1313,7 +1373,7 @@ for (const id of ['b', 'gb']) {
       assert.ok(ctx.get('tokenMeter').measure(agent.session).totalTokens + estimateTokens(textOf(input.content)) > 50_000, 'it overflows together with the handoff')
 
       if (pending) {
-        const decision = await ctx.listeners.get('agent/pre-step').at(-1)({ agent, messages: [input], step: 1, signal: AbortSignal.timeout(60_000) }, async () => 'next')
+        const decision = await ctx.listeners.get('agent/pre-step').find(listener => listener.name === 'placeStep')({ agent, messages: [input], step: 1, signal: AbortSignal.timeout(60_000) }, async () => 'next')
         assert.deepEqual(decision, { kind: 'enter', messages: [] })
       } else {
         record('user/message', input)

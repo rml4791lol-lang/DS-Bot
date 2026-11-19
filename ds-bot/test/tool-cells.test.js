@@ -854,6 +854,22 @@ test('a goal round draws nothing, while another unknown trigger keeps its event 
   assert.match(text(trigger({ kind: 'webhook' })), /^Update$/)
 })
 
+test('a scheduled trigger marks its turn as internal before paint', () => {
+  effects = []
+  const noted = []
+  TriggerCell({
+    node: { key: 'schedule', data: { source: { kind: 'schedule' }, turn: 2, content: text$('Routine') }, location: { turn: { turn: 2 } } },
+    sessionId: 'room',
+    useRoster: select => select(team()),
+    useSessions: select => select({ byId: {} }),
+    useTurnClock: select => select({}),
+    useUi: select => select({ visits: {} }),
+    actions: { noteTurnTrigger: (...args) => noted.push(args) },
+  })
+  mount()
+  assert.deepEqual(noted, [['room', 2, 'schedule']])
+})
+
 // #212: the chat hands a trigger its event (seq, content, source) but no turn, so every post
 // in a group chat shared one reaction entry: a reaction on one showed on all of them.
 test('a reaction on a group post stays on that post, also after it draws again', () => {

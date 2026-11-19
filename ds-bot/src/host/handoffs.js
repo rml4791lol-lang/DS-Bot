@@ -33,7 +33,9 @@ export function install(rt) {
   const callsBySession = new PendingCallCache()
   // What came back, whole; state.json keeps the start of each.
   const whole = new Map()
-  const save = () => void rt.save().catch(() => {})
+  const save = ({ required = false } = {}) => required
+    ? rt.save({ required: true })
+    : rt.save().catch(() => {})
   const nameOf = id => rt.botOf(id)?.name
 
   // The whole result of a work, in a file of its own: state.json is written whole on
@@ -116,7 +118,7 @@ export function install(rt) {
     const attempt = { id: `${id}:a1`, n: 1, status: 'working', startedAt: now, updatedAt: now }
     const goalTaskId = typeof goalTask?.taskId === 'string' ? goalTask.taskId : ''
     const goalTaskAttemptId = typeof goalTask?.attemptId === 'string' ? goalTask.attemptId : ''
-    works()[id] = {
+    const record = {
       ...(from ? { from } : {}), ...(to ? { to } : {}), ...(room ? { room } : {}), ...(above ? { parent } : {}),
       ...(fromRoom ? { fromRoom } : {}), ...(name ? { name } : {}), ...(child ? { child } : {}),
       ...(goalTaskId ? { goalTask: { taskId: goalTaskId, ...(goalTaskAttemptId ? { attemptId: goalTaskAttemptId } : {}) } } : {}),
@@ -127,9 +129,20 @@ export function install(rt) {
       verification: { state: 'pending', status: 'pending', manual: true, evidenceIds: [], checks: [], missing: [], reason: 'No typed acceptance checks were declared for this hand-off.' },
       evidence: [],
     }
+    works()[id] = record
     if (above !== undefined) above.open.push(id)
-    save()
-    logTask({ kind: 'open', id, from, to, parent, room, child, name })
+    const forget = () => {
+      if (works()[id] === record) delete works()[id]
+      const parentWork = works()[parent]
+      const at = parentWork?.open?.indexOf(id) ?? -1
+      if (at >= 0) parentWork.open.splice(at, 1)
+    }
+    return save({ required: true }).then(() => {
+      logTask({ kind: 'open', id, from, to, parent, room, child, name })
+    }, error => {
+      forget()
+      throw error
+    })
   }
 
   // The answer to work `id` is on its way, with `result` from `name`. Returns the work
@@ -209,17 +222,17 @@ export function install(rt) {
     save()
   }
 
-  const dropWork = (id) => {
+  const dropWork = (id, { required = false } = {}) => {
     const work = works()[id]
-    if (work === undefined) return
+    if (work === undefined) return Promise.resolve()
     const { parent } = work
     delete works()[id]
     const above = works()[parent]
     if (above !== undefined) above.open = above.open.filter(other => other !== id)
     for (const result of work.results ?? []) whole.delete(result.id)
-    void rt.save().then(() => {
+    return save({ required }).then(() => {
       for (const result of work.results ?? []) dropResult(result.file)
-    }).catch(() => {})
+    })
   }
 
   function taken(workId, id) {

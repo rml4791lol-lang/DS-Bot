@@ -63,6 +63,7 @@ function cellProps({ closingSeq = 10, turn = finished } = {}) {
     useUi: () => null,
     useTurnSteps: () => [],
     useTurnContext: () => [],
+    useTurnClock: select => select({}),
     actions: { noteLive() {} },
   }
   return { props, asked, links }
@@ -77,6 +78,56 @@ test('a reply that closes its turn links the files the turn changed or delivered
   assert.equal(asked[0].turn, finished)
   assert.equal(asked[0].seq, 10)
   assert.equal(asked[0].openFile, props.openFile)
+})
+
+test('a scheduled no-op reply is hidden, while the same user-triggered answer stays', () => {
+  const scheduled = cellProps()
+  const hidden = AssistantCell({
+    ...scheduled.props,
+    node: {
+      ...scheduled.props.node,
+      data: { ...scheduled.props.node.data, blocks: [{ kind: 'text', text: '（无动作）' }] },
+    },
+    useTurnClock: select => select({ b: { 3: { trigger: 'schedule' } } }),
+    turnProcess: { spec: { toolCallCount: 0 } },
+  })
+  assert.equal(hidden.type, CellEmpty)
+
+  const visible = AssistantCell({
+    ...scheduled.props,
+    node: {
+      ...scheduled.props.node,
+      data: { ...scheduled.props.node.data, blocks: [{ kind: 'text', text: '无新变化，本轮不报告。' }] },
+    },
+    useTurnClock: select => select({ b: { 3: { trigger: 'user' } } }),
+    turnProcess: { spec: { toolCallCount: 0 } },
+  })
+  assert.notEqual(visible.type, CellEmpty)
+})
+
+test('a scheduled completion stays visible while an acknowledgement with tool work stays hidden', () => {
+  const scheduled = cellProps()
+  const visible = AssistantCell({
+    ...scheduled.props,
+    node: {
+      ...scheduled.props.node,
+      data: { ...scheduled.props.node.data, blocks: [{ kind: 'text', text: 'done' }] },
+    },
+    useTurnClock: select => select({ b: { 3: { trigger: 'schedule' } } }),
+    turnProcess: { spec: { toolCallCount: 1 } },
+  })
+  assert.notEqual(visible.type, CellEmpty)
+
+  const hidden = AssistantCell({
+    ...scheduled.props,
+    node: {
+      ...scheduled.props.node,
+      data: { ...scheduled.props.node.data, blocks: [{ kind: 'text', text: '（本轮无新变化，不输出内容。）' }] },
+    },
+    useTurnClock: select => select({ b: { 3: { trigger: 'schedule' } } }),
+    turnProcess: { spec: { toolCallCount: 1 } },
+  })
+  assert.equal(hidden.type, CellEmpty)
 })
 
 test('a reply that does not close its turn, or one still running, links nothing', () => {

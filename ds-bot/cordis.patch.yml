@@ -1,6 +1,15 @@
-# Mounts the Bot team host plugin; the browser half is discovered through the
-# package's dsh.client manifest and ./client export.
 - insert:
+    # The host plane needs its own profile-skill provider: the web bundle
+    # disables the root filesystem provider and agent presets register theirs
+    # in per-session scopes, so `ctx.get('skills')` at the host would otherwise
+    # see an empty registry with no skill names to offer or validate. It comes
+    # before the Bot host so a fresh process reads a populated catalog.
+    - id: bot-skill-catalog
+      name: '@deepseek-ai/dsh-skill-filesystem'
+      config:
+        providerName: ds-bot-profile
+    # Mounts the Bot team host plugin; the browser half is discovered through
+    # the package's dsh.client manifest and ./client export.
     - id: bot
       name: ds-bot
     # Web search with the current conversation route's own key, else a keyless

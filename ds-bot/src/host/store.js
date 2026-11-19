@@ -132,6 +132,12 @@ export function install(rt) {
         bot.capabilities = []
         migrated = true
       }
+      // A Bot saved before skill shortlists existed keeps no field at all: absent means
+      // unchanged, while an empty list is an explicit choice to hide every skill.
+      if (bot.skillShortlist !== undefined && !Array.isArray(bot.skillShortlist)) {
+        delete bot.skillShortlist
+        migrated = true
+      }
       if (bot.color !== currentColor(bot.color)) {
         bot.color = currentColor(bot.color)
         migrated = true

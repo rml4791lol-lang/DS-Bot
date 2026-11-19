@@ -60,7 +60,7 @@ export function teamActions({ call, after, partFor, roster, ui, live, cards, hel
     // Opening the conversation would move focus to its composer and blur the name field.
     renameBot: (id) => { ui.set(state => ({ ...state, details: id, view: 'details', renaming: true, tab: null, panelYield: yieldTo(state, 'details') })) },
     openSettings,
-    openTeamOverview: () => { ui.set(state => ({ ...state, teamOverview: true, details: null, view: 'details', renaming: false, tab: null, side: null, newChat: null, exchange: null, menu: null, palette: null, groupSearch: null, settings: null, memory: null })) },
+    openTeamOverview: () => { ui.set(state => ({ ...state, teamOverview: true, teamActivity: false, details: null, view: 'details', renaming: false, tab: null, side: null, newChat: null, exchange: null, menu: null, palette: null, groupSearch: null, settings: null, memory: null })) },
     closeTeamOverview: () => { ui.set(state => (state.teamOverview ? { ...state, teamOverview: false } : state)) },
     teamOverviewInsights: fresh => call('team-overview-insights', { fresh: fresh === true }),
     sites: () => call('sites'),
@@ -70,7 +70,7 @@ export function teamActions({ call, after, partFor, roster, ui, live, cards, hel
     siteGroupDelete: id => call('site-group-delete', { id }),
     siteCheck: id => call('site-check', { id }),
     openMemoryFromOverview: id => { ui.set(state => ({ ...state, teamOverview: false, memory: id, menu: null, palette: null })) },
-    openTeamActivity: () => { ui.set(state => ({ ...state, teamActivity: true, menu: null, palette: null, newChat: null })) },
+    openTeamActivity: () => { ui.set(state => ({ ...state, teamActivity: true, teamOverview: false, menu: null, palette: null, newChat: null })) },
     closeTeamActivity: () => { ui.set(state => state.teamActivity ? { ...state, teamActivity: false } : state) },
     // DS Bot's own Models page: the providers DSH serves, their keys and models.
     openModels: () => openSettings('models'),
@@ -291,6 +291,15 @@ export function teamActions({ call, after, partFor, roster, ui, live, cards, hel
         const entry = turns[turn] ?? {}
         if (entry.peer === peerId) return state
         return { ...state, [sessionId]: { ...turns, [turn]: { ...entry, peer: peerId } } }
+      })
+    },
+    noteTurnTrigger: (sessionId, turn, trigger) => {
+      if (sessionId === undefined || !Number.isFinite(turn) || trigger === undefined) return
+      turnClock.set((state) => {
+        const turns = state[sessionId] ?? {}
+        const entry = turns[turn] ?? {}
+        if (entry.trigger === trigger) return state
+        return { ...state, [sessionId]: { ...turns, [turn]: { ...entry, trigger } } }
       })
     },
     noteLive: (sessionId, id, entry) => {

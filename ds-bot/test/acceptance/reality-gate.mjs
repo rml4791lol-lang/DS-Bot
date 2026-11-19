@@ -1,24 +1,18 @@
-// A deterministic component-level acceptance run over the real DS Bot runtime and
-// official MCP loopback. The DSH AgentLoop is not executed here: only the agents'
-// Session event and model/tool stream is scripted, while team tools, durable goal/work
-// records, restart queue, task-detail projection and MCP client are real.
-import { createHash, randomUUID } from 'node:crypto'
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawnSync } from 'node:child_process'
-import { createRuntime } from '../../index.js'
-import { fakeContext } from '../fake-ctx.js'
+import { spawn, spawnSync } from 'node:child_process'
 import { diffDigest } from '../../src/host/task-evidence.js'
+import { buildTaskDetail } from '../../src/host/task-detail.js'
+import { buildTeamActivity } from '../../src/host/team-activity.js'
+import { snapshotTargets } from './fixtures/dsh-invariant.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const PLUGIN = dirname(dirname(HERE))
 const REPO = dirname(PLUGIN)
-const SLEEP = ms => new Promise(resolve => setTimeout(resolve, ms))
-const textBlock = text => [{ type: 'text', text }]
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 const readJson = path => JSON.parse(readFileSync(path, 'utf8'))
-const digest = value => `sha256:${createHash('sha256').update(String(value)).digest('hex')}`
 const outputOf = run => [run.stdout, run.stderr].filter(Boolean).join('\n').trim()
 
 function command(cwd, line) {
@@ -107,390 +101,369 @@ function seedState() {
   }
 }
 
-async function startHost(home, durableLogs) {
-  const ctx = fakeContext()
-  const agents = new Map()
-  let sequence = [...durableLogs.values()].flat().reduce((max, event) => Math.max(max, event.seq ?? 0), 0)
-  let route
-  const agentOf = (sessionId) => {
-    if (!agents.has(sessionId)) {
-      const calls = []
-      agents.set(sessionId, {
-        session: { id: sessionId },
-        calls,
-        status: 'idle',
-        inbox: { nextStep: [], nextTurn: [], remove: () => false },
-        followup(message) { calls.push(message) },
-        steer(message) { calls.push(message) },
-        send(message) { calls.push(message) },
-        cancel() {},
-      })
+function dshTargets() {
+  const targets = []
+  const seen = new Set()
+  const add = (label, kind, path) => {
+    if (!existsSync(path)) return
+    const real = realpathSync(path)
+    const key = `${kind}:${real}`
+    if (seen.has(key)) return
+    seen.add(key)
+    targets.push({ label, kind, path: real })
+  }
+  const addInstalled = (label, root) => add(label, 'installed-packages', join(root, 'node_modules/@deepseek-ai'))
+  const addCheckout = (label, path) => {
+    const real = existsSync(path) ? realpathSync(path) : undefined
+    if (real === undefined) return
+    const top = command(real, 'git rev-parse --show-toplevel')
+    if (top.ok && realpathSync(top.stdout.trim()) === real) add(label, 'git-checkout', real)
+    else addInstalled(label, real)
+  }
+
+  addInstalled('pinned-DSH-install', join(PLUGIN, 'dev', 'harness'))
+  addInstalled('plugin-DSH-install', PLUGIN)
+  if (process.env.DSH_HARNESS) addCheckout('DSH_HARNESS-install', process.env.DSH_HARNESS)
+  const listed = command(REPO, 'git worktree list --porcelain')
+  const mainWorktree = listed.stdout.split('\n').find(line => line.startsWith('worktree '))?.slice('worktree '.length)
+  if (mainWorktree) addCheckout('shared-DSH-checkout', join(dirname(mainWorktree), 'deepseek-harness'))
+  if (targets.length === 0) throw new Error('no DSH checkout or install target was found')
+  return targets
+}
+
+function startChild(stage, options) {
+  const marker = join(options.runRoot, `${stage}.json`)
+  const args = {
+    stage,
+    dshHome: options.home,
+    sessionRoot: join(options.home, 'sessions'),
+    worktree: options.worktree.worktree,
+    marker,
+    patchBaseline: options.patchBaseline,
+    patchTargets: options.targets,
+    checks: options.checks,
+  }
+  const child = spawn(process.execPath, [
+    '--import', './test/harness-resolve.mjs',
+    join(HERE, 'fixtures/real-agentloop-host.mjs'),
+    JSON.stringify(args),
+  ], {
+    cwd: PLUGIN,
+    env: { ...process.env, DSH_HOME: options.home, NO_COLOR: '1' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let stdout = ''
+  let stderr = ''
+  child.stdout.setEncoding('utf8')
+  child.stderr.setEncoding('utf8')
+  child.stdout.on('data', chunk => { stdout += chunk })
+  child.stderr.on('data', chunk => { stderr += chunk })
+  return { child, marker, stdout: () => stdout, stderr: () => stderr }
+}
+
+async function waitForMarker(run, stage) {
+  const deadline = Date.now() + 30_000
+  while (Date.now() < deadline) {
+    if (existsSync(run.marker)) {
+      const marker = readJson(run.marker)
+      if (marker.stage === stage) return marker
+      if (marker.stage?.endsWith('timeout')) throw new Error(`child ${run.child.pid} reported ${marker.stage}: ${marker.error}\n${run.stderr()}\n${JSON.stringify(marker, null, 2)}`)
     }
-    return agents.get(sessionId)
+    if (run.child.exitCode !== null) throw new Error(`child ${run.child.pid} exited before its marker\n${run.stderr()}`)
+    await sleep(100)
   }
-  Object.assign(ctx, {
-    llm: { listProviders: () => [], listModels: async () => [], resolveModelInfo: async () => ({}) },
-    workspaceRegistry: { get: () => undefined, resolveByPath: async () => undefined, create: async path => ({ id: 'w1', path }), archiveSession: async () => {} },
-    sessionController: {
-      create: async () => ({ sessionId: 's1' }),
-      resolveAgent: async sessionId => ({ agent: agentOf(sessionId) }),
-      selectModel: async () => {},
-      inspect: async sessionId => ({ events: durableLogs.get(sessionId) ?? [] }),
-    },
-    sessionTitle: { rename: async () => {} },
-    sessions: { flush: async () => {} },
-  })
-  const register = ctx.connection.fetch.register
-  ctx.connection.fetch.register = (options) => { route = options; return register(options) }
-  const rt = createRuntime(ctx, { home })
-
-  const emit = (sessionId, type, data = {}) => {
-    const event = { type, seq: ++sequence, time: Date.now(), data }
-    durableLogs.set(sessionId, [...(durableLogs.get(sessionId) ?? []), event])
-    for (const listener of ctx.listeners.get('session/event') ?? []) {
-      if (listener.length >= 2) listener({ id: sessionId }, event)
-    }
-  }
-  const tool = (name, args, sessionId, exec = {}) => (rt.teamTools.find(item => item.name === name) ?? ctx.registeredTools.get(name)).execute(args, { agent: { id: sessionId }, ...exec })
-  const call = async (endpoint, payload = {}) => {
-    const response = await route.fetch(new Request('http://localhost/api/bot', { method: 'POST', body: JSON.stringify({ endpoint, payload }) }))
-    const result = await response.json()
-    if (!result.ok) throw new Error(`${endpoint}: ${result.error?.message ?? JSON.stringify(result)}`)
-    return result.value
-  }
-  const nextTurn = sessionId => 1 + (durableLogs.get(sessionId) ?? []).filter(event => event.type === 'turn/start').length
-  const turn = () => {
-    let active
-    return {
-      begin(sessionId, message) {
-        active = { sessionId, turn: nextTurn(sessionId) }
-        emit(sessionId, 'turn/start', { turn: active.turn })
-        emit(sessionId, 'user/message', { content: message.content, source: message.source })
-        return active.turn
-      },
-      finish(text = '') {
-        if (text !== '') emit(active.sessionId, 'assistant/message', { message: { content: textBlock(text) } })
-        emit(active.sessionId, 'turn/end', { turn: active.turn, reason: { kind: 'completed' } })
-      },
-      get current() { return active },
-    }
-  }
-  const stop = async () => {
-    await rt.save()
-    await ctx.dispose()
-  }
-  await tool('list_bots', {}, 'chief')
-  return { ctx, rt, agents, agentOf, emit, tool, call, turn, stop }
+  throw new Error(`timed out waiting for child ${run.child.pid}\n${run.stderr()}`)
 }
 
-async function waitFor(check, timeout = 8000) {
-  const until = Date.now() + timeout
-  while (Date.now() < until) {
-    const value = await check()
-    if (value) return value
-    await SLEEP(25)
+async function stopChild(run, signal = 'SIGTERM') {
+  if (run.child.exitCode !== null) return { signal: null, exitCode: run.child.exitCode }
+  run.child.kill(signal)
+  const exited = await Promise.race([
+    new Promise(resolve => run.child.once('exit', (code, status) => resolve({ code, status }))),
+    sleep(10_000).then(() => undefined),
+  ])
+  if (exited === undefined) {
+    run.child.kill('SIGKILL')
+    await new Promise(resolve => run.child.once('exit', resolve))
+    return { signal: 'SIGKILL', exitCode: null }
   }
-  throw new Error('acceptance condition timed out')
+  return { signal, exitCode: exited.code, processSignal: exited.status }
 }
 
-function emitCommand(host, sessionId, turn, item) {
-  const callId = `${sessionId}-${turn}-${item.command.replace(/\W+/g, '-').slice(0, 40)}`
-  host.emit(sessionId, 'tool/call', { callId, name: 'bash', arguments: JSON.stringify({ command: item.command }) })
-  const output = outputOf(item)
-  host.emit(sessionId, 'tool/result', {
-    callId,
-    exitCode: item.exitCode,
-    message: { ok: item.ok, exitCode: item.exitCode, content: textBlock(output) },
-    ...(item.diffs?.length ? { meta: { diffs: item.diffs } } : {}),
-  })
+function commandOutput(result) {
+  const text = result?.output ?? ''
+  return text.startsWith('exit ') ? text.slice(text.indexOf('\n') + 1) : text
 }
 
-async function assign(host, { from, to, roomId, taskId, attemptId, name, text }) {
-  const workId = randomUUID()
-  host.rt.openWork(workId, { from, to, room: roomId, name })
-  await host.rt.deliver({
-    fromId: from, toId: to, role: 'request', exchangeId: workId,
-    taskId, attemptId, text,
-  })
-  return workId
+function parseLastJson(text) {
+  const lines = String(text).trim().split('\n').reverse()
+  for (const line of lines) {
+    try { return JSON.parse(line) } catch {}
+  }
+  return undefined
 }
 
-function emitEdit(host, sessionId, turn, diff) {
-  const callId = `${sessionId}-${turn}-edit`
-  host.emit(sessionId, 'tool/call', { callId, name: 'edit', arguments: JSON.stringify({ path: diff.path }) })
-  host.emit(sessionId, 'tool/result', {
-    callId,
-    exitCode: 0,
-    message: { ok: true, exitCode: 0, content: textBlock(`edited ${diff.path}`) },
-    meta: { diffs: [diff] },
-  })
+function typedEvidence(items) {
+  return items.map(item => ({
+    id: item.id,
+    trust: item.trust,
+    title: '',
+    text: item.command?.outputDigest ?? item.artifact?.path ?? item.diff?.paths?.join(', ') ?? item.summary ?? '',
+    sourceId: item.source ?? item.sourceId ?? 'task-ledger',
+  }))
 }
 
-function emitArtifact(host, sessionId, path, content) {
-  host.emit(sessionId, 'deliverables/presented', {
-    files: [{ path, name: path.split('/').pop(), digest: digest(JSON.stringify(content)) }],
-  })
+function toolCallFact(call) {
+  let args = call.arguments
+  try {
+    const parsed = typeof call.arguments === 'string' ? JSON.parse(call.arguments) : call.arguments
+    args = call.name === 'write_file' ? { path: parsed.path } : parsed
+  } catch {}
+  const diffs = call.meta?.diffs
+  return {
+    name: call.name,
+    arguments: args,
+    ok: call.ok,
+    exitCode: call.exitCode,
+    output: call.output?.slice(0, 2000),
+    ...(Array.isArray(diffs) ? { diff: { paths: [...new Set(diffs.map(item => item.path))], digest: diffDigest(diffs) } } : {}),
+    ...(call.meta?.artifact === undefined ? {} : { artifact: call.meta.artifact }),
+  }
+}
+
+function sessionFact(summary) {
+  return {
+    eventCount: summary.eventCount,
+    eventTypes: summary.eventTypes,
+    turnsStarted: summary.turnsStarted,
+    turnsEnded: summary.turnsEnded,
+    toolCalls: summary.toolCalls.map(toolCallFact),
+  }
 }
 
 export async function runRealityGate() {
   const runRoot = mkdtempSync(join(tmpdir(), 'ds-bot-reality-gate-'))
   const home = join(runRoot, 'dsh-home')
   mkdirSync(home)
-  const logs = new Map()
-  let worktree
-  let first
-  let second
+  const children = []
   try {
-    worktree = prepareWorktree(runRoot)
-    writeFileSync(join(home, 'state.json'), JSON.stringify(seedState()))
-    first = await startHost(home, logs)
+    const worktree = prepareWorktree(runRoot)
+    mkdirSync(join(home, 'bot'), { recursive: true })
+    writeFileSync(join(home, 'bot', 'state.json'), JSON.stringify(seedState()))
+    const targets = dshTargets()
+    const patchBaseline = join(runRoot, 'dsh-patch-baseline.json')
+    const beforeTargets = await snapshotTargets(targets)
+    writeFileSync(patchBaseline, JSON.stringify(beforeTargets, null, 2))
 
-    const existingDiff = command(worktree.worktree, 'git diff --name-only HEAD')
-    if (existingDiff.stdout.trim() !== '') throw new Error('the isolated worktree must start clean')
-    const before = command(join(worktree.worktree, 'ds-bot'), 'node test/acceptance/fixtures/mcp-inventory-e2e.mjs')
-    if (before.exitCode === 0) throw new Error('the MCP drift fixture must fail before Forge repairs it')
-
-    const stageOneChecks = [
-      { id: 'repair-diff', kind: 'diff', label: 'MCP inventory filter repaired', path: 'ds-bot/src/host/local-agents/mcp.js', expect: { digest: worktree.expectedDiffDigest } },
-      { id: 'repair-command', kind: 'command', label: 'MCP repair command', command: 'node test/acceptance/fixtures/repair-mcp-drift.mjs', expect: { exitCode: 0 } },
-      { id: 'forge-handoff', kind: 'artifact', label: 'Structured Forge handoff', path: 'forge-handoff.json' },
-    ]
-    const stageTwoChecks = [
-      { id: 'review-diff', kind: 'diff', label: 'Prism inspected the actual diff', path: 'ds-bot/src/host/local-agents/mcp.js', expect: { digest: worktree.expectedDiffDigest } },
-      { id: 'review-tests', kind: 'command', label: 'MCP inventory tests', command: 'node --test test/acceptance/fixtures/mcp-inventory.test.mjs', expect: { exitCode: 0 } },
-      { id: 'review-inventory', kind: 'command', label: 'Official MCP inventory behavior', command: 'node test/acceptance/fixtures/mcp-inventory-e2e.mjs', expect: { exitCode: 0 } },
-      { id: 'no-dsh-patch', kind: 'command', label: 'No DSH source or data patch', command: 'node test/acceptance/fixtures/no-dsh-patch.mjs', expect: { exitCode: 0 } },
-      { id: 'prism-review', kind: 'artifact', label: 'Structured Prism review', path: 'prism-review.json' },
-    ]
-    const startReply = await first.tool('group_goal', {
-      group: 'Reality Gate', action: 'start', title: 'Repair MCP inventory drift',
-      objective: 'Repair the drifted MCP inventory in an isolated worktree and independently verify it.',
-      acceptance: 'Forge returns a structured repair artifact; Prism verifies the actual diff, official MCP inventory behavior, tests and the no-DSH-patch invariant.',
-      checks: [{ id: 'review-package', kind: 'artifact', label: 'Prism review package', path: 'prism-review.json' }],
-      constraints: ['Do not patch DeepSeek Harness.', 'Do not read or write a user DSH home.'],
-      stages: [
-        { title: 'Repair', acceptance: 'Forge repairs MCP inventory drift and returns paths, commands, results and limitations.', checks: stageOneChecks, tasks: [{ bot: 'Forge', task: 'Repair MCP inventory drift in a temporary worktree.', checks: stageOneChecks }] },
-        { title: 'Review', acceptance: 'Prism verifies the actual diff, MCP inventory, tests and no-DSH-patch invariant.', checks: stageTwoChecks, tasks: [{ bot: 'Prism', task: 'Independently review the Forge repair.', checks: stageTwoChecks }] },
-      ],
-    }, 'chief')
-    const started = readJson(join(home, 'state.json')).rooms.r1.goal
-    if (!started || started.status !== 'active' || started.stages.length !== 2) throw new Error(startReply)
-    const goalId = started.id
-    const definitionOfDone = started.acceptance
-    await first.tool('group_goal', { group: 'Reality Gate', action: 'task', bot: 'Forge', status: 'working', note: 'Owns the repair stage.' }, 'chief')
-    const forgeTask = readJson(join(home, 'state.json')).rooms.r1.goal.stages[0].tasks[0]
-    const forgeTaskId = `goal:${goalId}:${started.stages[0].id}:${forgeTask.id}`
-    const forgeAttemptId = forgeTask.attempt.id
-    await assign(first, {
-      from: 'chief', to: 'forge', roomId: 'r1', taskId: forgeTaskId, attemptId: forgeAttemptId,
-      name: 'Repair MCP inventory drift',
-      text: 'Repair the MCP inventory drift in the isolated worktree. Return structured changed paths, commands, results and limitations.',
-    })
-    const forgeCall = first.agentOf('forge').calls[0]
-    const forgeTurn = first.turn()
-    forgeTurn.begin('forge', forgeCall)
-
-    const repairCommand = command(join(worktree.worktree, 'ds-bot'), 'node test/acceptance/fixtures/repair-mcp-drift.mjs')
-    if (!repairCommand.ok) throw new Error(outputOf(repairCommand))
-    const after = command(join(worktree.worktree, 'ds-bot'), 'node test/acceptance/fixtures/mcp-inventory-e2e.mjs')
-    if (!after.ok) throw new Error(outputOf(after))
-    const diffCheck = command(worktree.worktree, 'git diff --check')
-    if (!diffCheck.ok) throw new Error(outputOf(diffCheck))
-    const changedPaths = command(worktree.worktree, 'git diff --name-only HEAD').stdout.split('\n').filter(Boolean)
-    const newText = readFileSync(join(worktree.worktree, 'ds-bot/src/host/local-agents/mcp.js'), 'utf8')
-    const actualDiff = {
-      path: changedPaths[0],
-      oldText: worktree.baselineText,
-      newText,
+    const repairDiff = {
+      id: 'forge-diff',
+      kind: 'diff',
+      label: 'Forge repaired the actual MCP inventory filter',
+      path: 'ds-bot/src/host/local-agents/mcp.js',
+      expect: { digest: worktree.expectedDiffDigest },
     }
-    const forgeHandoff = {
-      schema: 1,
-      owner: { name: 'Forge', role: 'Engineer' },
-      changedPaths,
-      commands: [before, repairCommand, after, diffCheck].map(item => ({ command: item.command, exitCode: item.exitCode, result: outputOf(item).replaceAll(runRoot, '<temporary-run>').slice(0, 4000) })),
-      results: { inventory: JSON.parse(after.stdout.trim()), diffDigest: diffDigest([actualDiff]) },
-      limitations: 'The model turn is scripted DSH Session data; source edits, official MCP loopback behavior, team tools, persistence and restart recovery are executed by the acceptance harness.',
+    const repairCommand = {
+      id: 'forge-inventory',
+      kind: 'command',
+      label: 'MCP inventory behavior after Forge repair',
+      command: 'node test/acceptance/fixtures/mcp-inventory-e2e.mjs',
+      expect: { exitCode: 0 },
     }
-    writeFileSync(join(runRoot, 'forge-handoff.json'), JSON.stringify(forgeHandoff, null, 2))
-    emitCommand(first, 'forge', forgeTurn.current.turn, repairCommand)
-    emitEdit(first, 'forge', forgeTurn.current.turn, actualDiff)
-    emitCommand(first, 'forge', forgeTurn.current.turn, after)
-    emitArtifact(first, 'forge', 'forge-handoff.json', forgeHandoff)
-    forgeTurn.finish('Forge repaired the drift and returned the structured handoff.')
-    await waitFor(() => first.agentOf('chief').calls.length === 1)
-    const forgeResult = first.agentOf('chief').calls[0]
-    const forgedTask = first.rt.roomOf('r1').goal.stages[0].tasks[0]
-    const passedOne = await first.tool('group_goal', { group: 'Reality Gate', action: 'pass', evidence: 'Forge command, diff and handoff artifact passed typed checks.' }, 'chief')
-    const afterStageOne = readJson(join(home, 'state.json')).rooms.r1.goal
-    if (afterStageOne.stages[0].verification?.state !== 'verified' || afterStageOne.current !== 1) throw new Error(`${passedOne}\n${JSON.stringify({ task: forgedTask, saved: afterStageOne.stages[0].tasks[0] }, null, 2)}`)
-
-    const chiefTurn = first.turn()
-    chiefTurn.begin('chief', forgeResult)
-    await first.tool('group_goal', { group: 'Reality Gate', action: 'task', bot: 'Prism', status: 'working', note: 'Owns independent review.' }, 'chief')
-    const prismTaskState = readJson(join(home, 'state.json')).rooms.r1.goal.stages[1].tasks[0]
-    const prismTaskId = `goal:${goalId}:${started.stages[1].id}:${prismTaskState.id}`
-    const prismAttemptId = prismTaskState.attempt.id
-    const prismWorkId = await assign(first, {
-      from: 'chief', to: 'prism', roomId: 'r1', taskId: prismTaskId, attemptId: prismAttemptId,
-      name: 'Review the MCP repair',
-      text: 'Review the Forge repair. Check the actual diff, MCP inventory behavior, tests and the no-DSH-patch invariant.',
-    })
-    chiefTurn.finish('Review assigned to Prism after Forge returned.')
-    const queued = await waitFor(() => {
-      try { return (readJson(join(home, 'inflight.json')).queued?.prism ?? []).length > 0 } catch { return false }
-    })
-    if (!queued) throw new Error('the Prism handoff was not durable before restart')
-    const prismPickupsBeforeRestart = 0
-    if (logs.get('prism')?.some(event => event.type === 'user/message' && event.data?.source?.taskId === prismTaskId)) {
-      throw new Error('Prism started before the forced restart')
-    }
-    await first.stop()
-    first = undefined
-
-    second = await startHost(home, logs)
-    const prismCall = await waitFor(() => second.agentOf('prism').calls[0], 10_000)
-    await SLEEP(250)
-    assertNoDuplicates(second.agentOf('prism').calls)
-    const prismTurn = second.turn()
-    prismTurn.begin('prism', prismCall)
-    const recoveryDetail = await waitFor(async () => {
-      const detail = await second.call('task-detail', { taskId: prismTaskId })
-      const handoff = await second.call('task-detail', { taskId: `handoff:${prismWorkId}` })
-      return detail.recovery?.records?.length > 0 ? { ...detail, handoff: handoff.handoff } : false
-    })
-    const prismPickupsAfterRestart = durableLogsFor(logs, 'prism').filter(event => event.type === 'user/message' && event.data?.source?.taskId === prismTaskId).length
-    if (prismPickupsAfterRestart !== 1) throw new Error(`Prism picked up ${prismPickupsAfterRestart} times`)
-
-    const reviewDiff = command(worktree.worktree, 'git diff --check')
-    const reviewTests = command(join(worktree.worktree, 'ds-bot'), 'node --test test/acceptance/fixtures/mcp-inventory.test.mjs')
-    const reviewInventory = command(join(worktree.worktree, 'ds-bot'), 'node test/acceptance/fixtures/mcp-inventory-e2e.mjs')
-    const noDshPatch = command(join(worktree.worktree, 'ds-bot'), 'node test/acceptance/fixtures/no-dsh-patch.mjs')
-    for (const item of [reviewDiff, reviewTests, reviewInventory, noDshPatch]) {
-      if (!item.ok) throw new Error(outputOf(item))
-    }
-    const review = {
-      schema: 1,
-      owner: { name: 'Prism', role: 'Reviewer' },
-      taskId: prismTaskId,
-      attemptId: prismAttemptId,
-      checks: {
-        diff: { verified: diffDigest([actualDiff]) === worktree.expectedDiffDigest, command: reviewDiff.command, exitCode: reviewDiff.exitCode },
-        tests: { verified: reviewTests.exitCode === 0, command: reviewTests.command, exitCode: reviewTests.exitCode, result: outputOf(reviewTests).replaceAll(runRoot, '<temporary-run>').slice(0, 4000) },
-        inventory: { verified: reviewInventory.exitCode === 0, result: JSON.parse(reviewInventory.stdout.trim()), command: reviewInventory.command },
-        noDshPatch: { verified: noDshPatch.exitCode === 0, result: JSON.parse(noDshPatch.stdout.trim()), command: noDshPatch.command },
+    const checks = {
+      repairDiff,
+      repairCommand,
+      edit: {
+        path: 'ds-bot/src/host/local-agents/mcp.js',
+        oldText: "  const facts = tools\n    .map(tool => ({",
+        newText: "  const facts = tools\n    .filter(tool => tool.name.startsWith('mcp__'))\n    .map(tool => ({",
       },
-      limitations: 'This is a mock-model acceptance run, not evidence of a paid production model turn.',
+      diffCheck: 'git diff --check',
+      targetedTest: 'node --test test/acceptance/fixtures/mcp-inventory.test.mjs',
+      inventory: 'node test/acceptance/fixtures/mcp-inventory-e2e.mjs',
+      noPatch: 'node test/acceptance/fixtures/no-dsh-patch.mjs',
+      reviewChecks: [
+        { id: 'prism-diff', kind: 'diff', label: 'Prism inspected the actual repair diff', path: repairDiff.path, expect: { digest: worktree.expectedDiffDigest } },
+        { id: 'prism-diff-check', kind: 'command', label: 'Prism ran git diff --check', command: 'git diff --check', expect: { exitCode: 0 } },
+        { id: 'prism-targeted-test', kind: 'command', label: 'Prism ran the targeted MCP inventory test', command: 'node --test test/acceptance/fixtures/mcp-inventory.test.mjs', expect: { exitCode: 0 } },
+        { id: 'prism-inventory', kind: 'command', label: 'Prism ran MCP inventory behavior', command: 'node test/acceptance/fixtures/mcp-inventory-e2e.mjs', expect: { exitCode: 0 } },
+        { id: 'prism-no-patch', kind: 'command', label: 'Prism proved DSH was not patched', command: 'node test/acceptance/fixtures/no-dsh-patch.mjs', expect: { exitCode: 0 } },
+      ],
     }
-    writeFileSync(join(runRoot, 'prism-review.json'), JSON.stringify(review, null, 2))
-    emitCommand(second, 'prism', prismTurn.current.turn, { ...reviewDiff, diffs: [actualDiff] })
-    emitCommand(second, 'prism', prismTurn.current.turn, reviewTests)
-    emitCommand(second, 'prism', prismTurn.current.turn, reviewInventory)
-    emitCommand(second, 'prism', prismTurn.current.turn, noDshPatch)
-    emitArtifact(second, 'prism', 'prism-review.json', review)
-    prismTurn.finish('Prism verified the repair and returned the typed review package.')
-    const passedTwo = await second.tool('group_goal', { group: 'Reality Gate', action: 'pass', evidence: 'Prism verified diff, inventory, tests and the no-DSH-patch invariant.' }, 'chief')
-    const afterStageTwo = readJson(join(home, 'state.json')).rooms.r1.goal
-    if (afterStageTwo.stages[1].verification?.state !== 'verified') throw new Error(passedTwo)
-    const completeReply = await second.tool('group_goal', {
-      group: 'Reality Gate', action: 'complete',
-      evidence: 'Prism review package passed every typed stage and overall check.',
-      summary: 'MCP inventory drift repaired and independently verified in an isolated worktree.',
-    }, 'chief')
-    const completed = readJson(join(home, 'state.json')).rooms.r1.goal
-    if (completed.status !== 'complete') throw new Error(completeReply)
 
-    const activity = await second.call('team-activity')
-    const prismGoalTask = activity.tasks.find(task => task.source === 'goal' && task.ownerName === 'Prism')
-    const detail = await second.call('task-detail', { taskId: prismGoalTask.id })
-    if (detail.verification?.status !== 'verified') throw new Error(`unexpected verification: ${JSON.stringify(detail.verification)}`)
-    const typedEvidence = detail.evidence.filter(item => ['executed', 'verified'].includes(item.trust))
-    const result = {
-      schema: 2,
+    const options = { runRoot, home, worktree, patchBaseline, targets, checks }
+    const first = startChild('first', options)
+    children.push(first)
+    const firstReady = await waitForMarker(first, 'first-ready')
+    if (firstReady.prismTurnStartsBeforeRestart !== 0) throw new Error(`Prism started before restart: ${JSON.stringify(firstReady)}`)
+    if (firstReady.queuedPrismHandoffs !== 1) throw new Error(`Prism handoff was not queued before restart: ${JSON.stringify(firstReady)}`)
+    const firstStop = await stopChild(first)
+
+    const second = startChild('second', options)
+    children.push(second)
+    const secondComplete = await waitForMarker(second, 'second-complete')
+    const secondReady = { stage: 'second-started', pid: secondComplete.pid, distinctChildProcess: true }
+    const secondStop = await stopChild(second)
+
+    const finalTargets = await snapshotTargets(targets)
+    if (JSON.stringify(finalTargets) !== JSON.stringify(beforeTargets)) throw new Error('DSH changed during the Reality Gate run')
+    checked(worktree.worktree, 'git diff --check')
+    const changedPaths = checked(worktree.worktree, 'git diff --name-only HEAD').stdout.split('\n').filter(Boolean)
+    const handoffPath = join(worktree.worktree, 'forge-handoff.json')
+    if (!existsSync(handoffPath)) throw new Error(`Forge handoff artifact missing: ${JSON.stringify(secondComplete.forge.summary.toolCalls, null, 2)}`)
+    const handoff = readJson(handoffPath)
+    const review = readJson(join(worktree.worktree, 'prism-review.json'))
+    const state = readJson(join(home, 'bot/state.json'))
+    const activity = buildTeamActivity({ state, now: Date.now(), timeZone: 'Asia/Shanghai' })
+    const detail = buildTaskDetail({ state, activity, taskId: secondComplete.prism.taskId })
+
+    const prismCalls = secondComplete.prism.summary.toolCalls
+    const actualDiffDigest = secondComplete.goal.stages[1].tasks[0].evidence.find(item => item.diff)?.diff?.digest
+    const diffCheckCall = prismCalls[1]
+    const targetedCall = prismCalls[2]
+    const inventoryCall = prismCalls[3]
+    const noPatchCall = prismCalls[4]
+    const inventoryResult = parseLastJson(commandOutput(inventoryCall))
+    const noPatchResult = parseLastJson(commandOutput(noPatchCall))
+
+    if (actualDiffDigest !== worktree.expectedDiffDigest) throw new Error(`Prism did not receive the actual repair diff: ${actualDiffDigest}`)
+    if (diffCheckCall?.exitCode !== 0) throw new Error('Prism git diff --check did not pass')
+    if (targetedCall?.exitCode !== 0) throw new Error('Prism targeted test did not pass')
+    if (inventoryCall?.exitCode !== 0 || inventoryResult?.tools?.length !== 1) throw new Error('Prism MCP inventory check did not pass')
+    if (noPatchCall?.exitCode !== 0 || noPatchResult?.dshPatched !== false) throw new Error('Prism no-DSH-patch check did not pass')
+    if (secondComplete.prism.pickupCount !== 1) throw new Error(`Prism pickup count was ${secondComplete.prism.pickupCount}`)
+    if (secondComplete.prism.taskId !== firstReady.prism.taskId || secondComplete.prism.attemptId !== firstReady.prism.attemptId) throw new Error('Prism task identity changed across restart')
+    if (secondComplete.forge.evidence.length === 0) throw new Error('Forge durable evidence did not survive')
+    if (secondComplete.goal.status !== 'complete') throw new Error('the Reality Gate goal did not complete from verified evidence')
+    if (firstReady.pid === secondReady.pid) throw new Error('the host restart reused the same process')
+
+    const processes = [
+      { role: 'first-host', pid: first.child.pid, markerPid: firstReady.pid, distinctChildProcess: true, stoppedBy: firstStop.signal, processSignal: firstStop.processSignal, exitCode: firstStop.exitCode },
+      { role: 'second-host', pid: second.child.pid, markerPid: secondReady.pid, distinctChildProcess: true, stoppedBy: secondStop.signal, processSignal: secondStop.processSignal, exitCode: secondStop.exitCode },
+    ]
+    const stageTitles = secondComplete.goal.stages.map(stage => ({
+      title: stage.title,
+      owner: stage.tasks[0].botId === 'forge' ? 'Forge' : 'Prism',
+      checks: stage.checks.map(check => check.id),
+    }))
+    const allEvidence = secondComplete.goal.stages.flatMap(stage => stage.tasks.flatMap(task => task.evidence ?? []))
+
+    return {
+      schema: 3,
       scenario: 'chief-forge-prism-mcp-repair',
       generatedAt: new Date().toISOString(),
-      outcome: 'component-verified',
-      mocking: 'scripted-model-acceptance-only',
+      outcome: 'agentloop-verified',
+      mocking: 'deterministic-local-model-transport-only',
       agentLoop: {
-        executed: false,
-        mode: 'scripted-session-events',
-        seam: 'The DSH Session event and model/tool stream is supplied by this harness instead of @deepseek-ai/dsh-agent-loop-testkit.',
+        executed: true,
+        mode: 'production-dsh-agentloop',
+        testkit: '@deepseek-ai/dsh-agent-loop-testkit@0.2.2-rc.1',
+        sessionEvents: 'real-dsh-session-events',
+        modelTransport: 'deterministic-local-adapter',
+        persistence: '@deepseek-ai/dsh-session-persistence-jsonl',
+        processBoundary: 'real-child-process-restart',
+        events: {
+          chief: secondComplete.chief.summary.eventTypes,
+          forge: secondComplete.forge.summary.eventTypes,
+          prism: secondComplete.prism.summary.eventTypes,
+        },
+        sessions: Object.fromEntries(Object.entries(secondComplete.agentLoop.sessions).map(([id, summary]) => [id, sessionFact(summary)])),
       },
       followUpGate: {
         required: true,
-        status: 'not-run',
-        requirement: 'Before claiming end-to-end AgentLoop or production-model verification, run this scenario through @deepseek-ai/dsh-agent-loop-testkit with the real DS Bot tools and real DSH Session events.',
+        status: 'passed',
+        scenarioPassed: true,
+        proves: [
+          'production DSH AgentLoop turns and durable Session events',
+          'real DSH tool dispatch for DS Bot goal, handoff and review tools',
+          'same isolated DSH_HOME across two OS child processes',
+          'same Prism task and attempt identity with one post-restart pickup',
+        ],
       },
       chief: {
         role: 'Coordinator',
         view: 'Reality Gate',
-        stages: [
-          { title: 'Repair', owner: 'Forge', checks: stageOneChecks.map(check => check.id) },
-          { title: 'Review', owner: 'Prism', checks: stageTwoChecks.map(check => check.id) },
-        ],
-        definitionOfDone,
+        goal: { id: secondComplete.goal.id, createdByTool: 'group_goal', status: secondComplete.goal.status, verification: secondComplete.goal.verification },
+        stages: stageTitles,
+        definitionOfDone: 'Forge returns a durable repair; Prism verifies the actual diff, MCP inventory behavior, targeted tests and the no-DSH-patch invariant through real tool calls.',
       },
       forge: {
         role: 'Engineer',
-        taskId: `goal:${goalId}:${completed.stages[0].id}:${completed.stages[0].tasks[0].id}`,
-        attemptId: forgeAttemptId,
-        worktree: { isolated: true, baselineCommit: worktree.baseline, changedPaths },
-        handoff: forgeHandoff,
+        taskId: secondComplete.forge.taskId,
+        attemptId: secondComplete.forge.attemptId,
+        worktree: {
+          isolated: true,
+          baselineCommit: worktree.baseline,
+          changedPaths,
+        },
+        handoff,
+        evidence: secondComplete.forge.evidence,
+        toolCalls: secondComplete.forge.summary.toolCalls.map(toolCallFact),
+      },
+      prism: {
+        role: 'Reviewer',
+        taskId: secondComplete.prism.taskId,
+        attemptId: secondComplete.prism.attemptId,
+        pickupCount: secondComplete.prism.pickupCount,
+        recovery: secondComplete.prism.recovery,
+        toolCalls: prismCalls.length,
+        tools: prismCalls.map(toolCallFact),
+        checks: {
+          diff: { verified: actualDiffDigest === worktree.expectedDiffDigest, result: { path: repairDiff.path, digest: actualDiffDigest } },
+          diffCheck: { verified: diffCheckCall.exitCode === 0, command: checks.diffCheck, exitCode: diffCheckCall.exitCode },
+          tests: { verified: targetedCall.exitCode === 0, command: checks.targetedTest, exitCode: targetedCall.exitCode, result: commandOutput(targetedCall) },
+          inventory: { verified: inventoryCall.exitCode === 0 && inventoryResult.tools.length === 1, command: checks.inventory, result: inventoryResult },
+          noDshPatch: { verified: noPatchCall.exitCode === 0 && noPatchResult.dshPatched === false, command: checks.noPatch, result: noPatchResult },
+        },
+        review,
       },
       restart: {
         boundary: 'after-forge-durable-result-before-prism-pickup',
         hostStarts: 2,
-        sameTaskId: prismTaskId,
-        sameAttemptId: prismAttemptId,
-        queuedBeforeRestart: true,
-        prismPickupsBeforeRestart,
-        prismPickupsAfterRestart,
-        recoveryKind: recoveryDetail.recovery.records[0].kind,
+        sameDshHome: true,
+        processes,
+        sameTaskId: secondComplete.prism.taskId === firstReady.prism.taskId,
+        sameAttemptId: secondComplete.prism.attemptId === firstReady.prism.attemptId,
+        queuedBeforeRestart: firstReady.queuedPrismHandoffs === 1,
+        queuedPrismHandoffs: firstReady.queuedPrismHandoffs,
+        prismSessionExistedBeforeRestart: firstReady.prismSessionExistedBeforeRestart,
+        prismTurnStartsBeforeRestart: firstReady.prismTurnStartsBeforeRestart,
+        prismPickupsBeforeRestart: 0,
+        prismPickupsAfterRestart: secondComplete.prism.pickupCount,
+        recoveryKind: secondComplete.prism.recovery[0]?.kind ?? null,
+        forgeEvidenceBeforeRestart: firstReady.forge.evidence.map(item => ({ id: item.id, attemptId: item.attemptId, trust: item.trust })),
+        forgeEvidenceAfterRestart: secondComplete.forge.evidence.map(item => ({ id: item.id, attemptId: item.attemptId, trust: item.trust })),
       },
-      prism: {
-        taskId: prismTaskId,
-        attemptId: prismAttemptId,
-        handoffTaskId: `handoff:${prismWorkId}`,
-        checks: review.checks,
-        review,
+      dshInvariant: {
+        checkedAt: 'after-second-host',
+        dshPatched: false,
+        targets: noPatchResult.targets,
       },
-      detail: {
-        owner: { role: recoveryDetail.owner.role },
-        attempt: recoveryDetail.attempt,
-        handoff: recoveryDetail.handoff,
-        checkpoint: recoveryDetail.checkpoint,
-        recovery: recoveryDetail.recovery,
+      detail,
+      verification: {
+        status: secondComplete.goal.verification?.state === 'verified' ? 'verified' : 'failed',
+        reason: 'Every required stage check is bound to durable AgentLoop tool evidence; the goal completed only after Prism verified them.',
       },
-      verification: { status: detail.verification.status, reason: detail.verification.reason },
-      typedEvidence: typedEvidence.map(item => ({ id: item.id, trust: item.trust, title: item.title, text: item.text, sourceId: item.sourceId })),
+      typedEvidence: typedEvidence(allEvidence),
       mockSeams: [
-        'scripted DSH Session events replace a paid model response',
-        'in-memory DSH agent handles replace Desktop/Web GUI processes',
-        'temporary DSH_HOME is created under the OS temp directory and removed',
-        'the isolated git worktree is created and removed only by this harness',
+        'a deterministic local model adapter chooses the model requests; the DSH AgentLoop, Session events and tool dispatch are real',
+        'the synthetic Git repository and its worktree are created under the OS temp directory',
+        'the temporary DSH_HOME contains only this acceptance run and is removed at the end',
+        'external model APIs, paid operations, the user DSH profile and deployment are not used',
       ],
       limitations: [
-        'The DSH AgentLoop is not executed; its Session events and model/tool choice are scripted, and no production model claim is made.',
-        'This is component-level evidence for the existing DS Bot runtime, team tools, persistence, recovery, task projections and official MCP loopback under that scripted seam.',
-        'A real AgentLoop testkit run remains a required follow-up gate before calling this end-to-end or production verification.',
-        'No commit, push, deployment, external message or paid operation is performed.',
+        'The model transport is deterministic rather than a paid production model; tool choice is scripted by the local adapter.',
+        'Production Desktop/Web rendering, deployment, payment and external-message paths are outside this scenario.',
+        'The shared DSH checkout may already contain user changes; the proof records tracked and untracked state and verifies the run introduced no delta.',
+        'No commit, push, deployment, external message, permission change or paid operation is performed by the scenario.',
       ],
     }
-    return result
   } finally {
-    if (first) await first.stop().catch(() => {})
-    if (second) await second.stop().catch(() => {})
-    if (worktree) {
-      command(worktree.seed, `git worktree remove --force ${JSON.stringify(worktree.worktree)}`)
-      command(worktree.seed, 'git worktree prune')
+    for (const run of children) {
+      if (run.child.exitCode === null) {
+        run.child.kill('SIGKILL')
+        await Promise.race([new Promise(resolve => run.child.once('exit', resolve)), sleep(2000)])
+      }
     }
-    rmSync(runRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 })
+    rmSync(runRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 })
   }
-}
-
-function durableLogsFor(logs, sessionId) {
-  return logs.get(sessionId) ?? []
-}
-
-function assertNoDuplicates(calls) {
-  if (calls.length !== 1) throw new Error(`expected one queued Prism delivery, got ${calls.length}`)
 }

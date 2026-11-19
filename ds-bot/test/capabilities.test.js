@@ -32,21 +32,33 @@ const team = () => ({
 const mcp = (name, command = 'node') => ({ name, kind: 'mcp', description: 'Echo service', transport: 'stdio', command, args: [], env: {} })
 const created = env => env.ctx.listeners.get('agent/created').find(listener => listener.name === 'prepareCapabilities')
 
-function testAgent(id, mounts, skillsBySession, { awaitMount = async () => {} } = {}) {
+function testAgent(id, mounts, skillsBySession, { awaitMount = async () => {}, catalog = [], complete = true } = {}) {
   const disposers = []
   const skills = new Map()
   skillsBySession.set(id, skills)
+  const currentCatalog = () => [
+    ...catalog.filter(entry => !skills.has(entry.name)),
+    ...skills.values(),
+  ]
   const agentCtx = {
     effect(execute) {
       const dispose = execute()
       if (typeof dispose === 'function') disposers.push(dispose)
+    },
+    on() { return () => {} },
+    skills: {
+      list: async () => currentCatalog(),
+      snapshot: async () => ({ skills: currentCatalog(), complete }),
     },
     plugin(plugin, config) {
       const record = { plugin, config, sessionId: id, disposed: false }
       mounts.push(record)
       if (plugin.inject?.includes('skills')) {
         const c = {
-          skills: { register(skill) { skills.set(skill.name, skill); return () => skills.delete(skill.name) } },
+          skills: {
+            list: async () => catalog,
+            register(skill) { skills.set(skill.name, skill); return () => skills.delete(skill.name) },
+          },
           effect: execute => { record.cleanup = execute() },
         }
         plugin.apply(c)
@@ -422,6 +434,226 @@ test('unset capability statuses are omitted from the view and tool listing', asy
   const listed = await rt.teamTools.find(d => d.name === 'list_capabilities').execute({}, { agent: { id: 'chief' } })
   assert.match(listed, /echo \(mcp\).*; attached to you(?:\n|$)/)
   assert.doesNotMatch(listed, /attached to you \(connecting\)/)
+})
+
+test('a Bot shortlist masks the other profile skills in its Agent scope', async t => {
+  const env = await setup()
+  t.after(() => env.dispose())
+  const { rt, mounts, skills } = env
+  const catalog = [
+    { name: 'visible', description: 'visible', provider: 'filesystem' },
+    { name: 'hidden', description: 'hidden', provider: 'filesystem' },
+    { name: 'already-hidden', description: 'already hidden', provider: 'filesystem', invocation: { modelInvocable: false } },
+  ]
+  const agent = testAgent('chief', mounts, skills, { catalog })
+  const bot = rt.state.bots.chief
+  bot.skillShortlist = [{ name: 'visible', purpose: 'use it' }]
+  await rt.applySkillMasks(agent, bot)
+  assert.equal(skills.get('chief').get('visible'), undefined)
+  assert.equal(skills.get('chief').get('hidden').invocation.modelInvocable, false)
+  assert.equal(skills.get('chief').get('already-hidden').invocation.modelInvocable, false)
+  const firstPass = mounts.filter(mount => mount.sessionId === 'chief').length
+  await rt.applySkillMasks(agent, bot)
+  assert.equal(mounts.filter(mount => mount.sessionId === 'chief').length, firstPass)
+  bot.skillShortlist = []
+  await rt.applySkillMasks(agent, bot)
+  assert.equal(skills.get('chief').get('visible').invocation.modelInvocable, false)
+  const bareAgent = testAgent('bare', mounts, skills, { catalog })
+  await rt.applySkillMasks(bareAgent, { ...bot, skillShortlist: undefined })
+  assert.equal(mounts.some(mount => mount.sessionId === 'bare'), false)
+})
+
+test('a shortlist keeps MCPs mounted and mounts a shortlisted DS-Bot skill without a manual attachment', async t => {
+  const env = await setup()
+  t.after(() => env.dispose())
+  const { ctx, rt, mounts, skills } = env
+  await rt.capabilitySave({ ...mcp('echo'), transport: 'streamable-http', url: 'https://example.test/mcp' }, { botId: 'chief' })
+  await rt.capabilitySave({ name: 'guide', kind: 'skill', description: 'Guide', content: 'Do the work.' }, { botId: 'chief' })
+  const bot = rt.state.bots.chief
+  bot.capabilities = ['echo']
+  bot.skillShortlist = [{ name: 'guide', purpose: 'use the guide' }]
+  const agent = testAgent('chief', mounts, skills, { catalog: [{ name: 'profile-only', description: 'profile', provider: 'filesystem' }] })
+  await ctx.emitAsync('agent/created', { agent })
+  await rt.scheduleCapabilitiesReconcile()
+  assert.equal(mounts.some(mount => mount.config?.serverName === 'echo' && mount.sessionId === 'chief'), true)
+  assert.equal(skills.get('chief').has('guide'), true)
+  assert.equal(rt.capabilityStatusesView().chief.guide.state, 'ready')
+  assert.equal(rt.state.bots.chief.capabilities.includes('guide'), false)
+})
+
+test('a mixed MCP/skill pack reports partial when the shortlist hides its skill child', async t => {
+  const env = await setup()
+  t.after(() => env.dispose())
+  const { ctx, rt, mounts, skills } = env
+  await rt.capabilitySave({ ...mcp('echo'), transport: 'streamable-http', url: 'https://example.test/mcp' }, { botId: 'chief' })
+  await rt.capabilitySave({ name: 'guide', kind: 'skill', description: 'Guide', content: 'Do it.' }, { botId: 'chief' })
+  await rt.capabilitySave({ name: 'bundle', kind: 'pack', items: ['echo', 'guide'] }, { botId: 'chief' })
+  const bot = rt.state.bots.chief
+  bot.capabilities = ['bundle']
+  bot.skillShortlist = []
+  const agent = testAgent('chief', mounts, skills, { catalog: [] })
+  await ctx.emitAsync('agent/created', { agent })
+  await rt.scheduleCapabilitiesReconcile()
+  assert.equal(rt.capabilityStatusesView().chief.bundle.state, 'partial')
+})
+
+test('an incomplete scoped catalog refuses to change the execution masks', async t => {
+  const env = await setup()
+  t.after(() => env.dispose())
+  const { rt, mounts, skills } = env
+  const agent = testAgent('chief', mounts, skills, {
+    catalog: [{ name: 'profile-only', description: 'profile', provider: 'filesystem' }],
+    complete: false,
+  })
+  const bot = { ...rt.state.bots.chief, skillShortlist: [] }
+  await assert.rejects(() => rt.applySkillMasks(agent, bot), /catalog is incomplete/)
+  assert.equal(skills.get('chief').has('profile-only'), false)
+})
+
+test('a failed same-name capability mount keeps the profile skill masked', async t => {
+  const env = await setup()
+  t.after(() => env.dispose())
+  const { rt, mounts, skills } = env
+  await rt.capabilitySave({ name: 'guide', kind: 'skill', description: 'Guide', content: 'Do it.' }, { botId: 'chief' })
+  const agent = testAgent('chief', mounts, skills, {
+    catalog: [{ name: 'guide', description: 'profile guide', provider: 'filesystem' }],
+  })
+  const bot = { ...rt.state.bots.chief, skillShortlist: [{ name: 'guide', purpose: 'use it' }] }
+  await rt.applySkillMasks(agent, bot)
+  assert.equal(skills.get('chief').get('guide').invocation.modelInvocable, false)
+  await rt.applySkillMasks(agent, bot, new Set(['guide']))
+  assert.equal(skills.get('chief').has('guide'), false)
+})
+
+test('a strict mask failure disables the skill loader instead of failing open', async t => {
+  const env = await setup()
+  t.after(() => env.dispose())
+  const { ctx, rt, mounts, skills } = env
+  rt.state.bots.chief.skillShortlist = []
+  const agent = testAgent('chief', mounts, skills, {
+    catalog: [{ name: 'profile-only', description: 'profile', provider: 'filesystem' }],
+    complete: false,
+  })
+  const restrictions = []
+  agent.ctx.tools = { restrict: filter => { restrictions.push(filter); return () => restrictions.push('lifted') } }
+  await ctx.emitAsync('agent/created', { agent })
+  await rt.scheduleCapabilitiesReconcile()
+  assert.equal(restrictions.some(filter => filter.deny?.includes('skill')), true)
+  const gate = ctx.listeners.get('agent/pre-step').find(listener => listener.name === 'rejectUnavailableSkillGestures')
+  assert.ok(gate)
+  const direct = {
+    source: { kind: 'user' },
+    content: [{ type: 'text', text: '/profile-only' }],
+  }
+  assert.deepEqual(await gate({ agent, messages: [direct] }, async () => ({ kind: 'enter', messages: [direct] })), { kind: 'reject' })
+  assert.equal((await gate({ agent, messages: [] }, async () => ({ kind: 'enter', messages: [] }))).kind, 'enter')
+})
+
+test('a shortlist naming a skill removed from the catalog masks the rest and does not fail', async t => {
+  const env = await setup()
+  t.after(() => env.dispose())
+  const { rt, mounts, skills } = env
+  const catalog = [
+    { name: 'still-there', description: 'still here', provider: 'filesystem' },
+    { name: 'also-there', description: 'also here', provider: 'filesystem' },
+  ]
+  const agent = testAgent('chief', mounts, skills, { catalog })
+  const bot = { ...rt.state.bots.chief, skillShortlist: [{ name: 'gone', purpose: 'it was uninstalled' }] }
+  // The name no longer resolves: reconciliation neither throws nor leaves the
+  // remaining skills visible.
+  await rt.applySkillMasks(agent, bot)
+  assert.equal(skills.get('chief').has('gone'), false)
+  assert.equal(skills.get('chief').get('still-there').invocation.modelInvocable, false)
+  assert.equal(skills.get('chief').get('also-there').invocation.modelInvocable, false)
+  assert.equal(rt.skillCatalogView('chief').some(skill => skill.name === 'gone'), false)
+})
+
+test('a saved shortlist masks again when the host starts and the Bot Agent is created', async t => {
+  const state = team()
+  state.bots.chief.skillShortlist = [{ name: 'visible', purpose: 'use it' }]
+  const env = await setup({ state })
+  t.after(() => env.dispose())
+  const { ctx, rt, mounts, skills } = env
+  const agent = testAgent('chief', mounts, skills, {
+    catalog: [
+      { name: 'visible', description: 'visible', provider: 'filesystem' },
+      { name: 'other', description: 'other', provider: 'filesystem' },
+    ],
+  })
+  // A fresh host reads the saved state, not a live edit.
+  await ctx.emitAsync('agent/created', { agent })
+  await rt.scheduleCapabilitiesReconcile()
+  assert.equal(skills.get('chief').get('other').invocation.modelInvocable, false)
+  assert.deepEqual(rt.state.bots.chief.skillShortlist.map(skill => skill.name), ['visible'])
+})
+
+test('a skill installed after the Agent started is masked on the next reconcile', async t => {
+  const env = await setup()
+  t.after(() => env.dispose())
+  const { ctx, rt, mounts, skills } = env
+  const catalog = [{ name: 'kept', description: 'kept', provider: 'filesystem' }]
+  const agent = testAgent('chief', mounts, skills, { catalog })
+  rt.state.bots.chief.skillShortlist = [{ name: 'kept', purpose: 'use it' }]
+  await ctx.emitAsync('agent/created', { agent })
+  await rt.scheduleCapabilitiesReconcile()
+  assert.equal(skills.get('chief').has('late'), false)
+  // The profile gains a skill while the Agent is already running.
+  catalog.push({ name: 'late', description: 'installed later', provider: 'filesystem' })
+  await rt.scheduleCapabilitiesReconcile()
+  assert.equal(skills.get('chief').get('late').invocation.modelInvocable, false)
+})
+
+test('attaching or detaching a skill capability keeps the shortlist in sync', async t => {
+  const env = await setup()
+  t.after(() => env.dispose())
+  const { rt } = env
+  await rt.capabilitySave({ name: 'guide', kind: 'skill', description: 'Guide', content: 'Do it.' }, { botId: 'chief' })
+  const bot = rt.state.bots.chief
+  bot.skillShortlist = []
+  await rt.capabilityEndpoint('bot-capability', { botId: 'chief', name: 'guide', attached: true })
+  assert.deepEqual(bot.capabilities, ['guide'])
+  assert.deepEqual(bot.skillShortlist.map(skill => skill.name), ['guide'])
+  await rt.capabilityEndpoint('bot-capability', { botId: 'chief', name: 'guide', attached: false })
+  assert.deepEqual(bot.capabilities, [])
+  assert.deepEqual(bot.skillShortlist, [])
+})
+
+test('attaching a sixth skill is rejected without a partial attachment', async t => {
+  const env = await setup()
+  t.after(() => env.dispose())
+  const { rt } = env
+  for (let index = 0; index < 6; index += 1) {
+    await rt.capabilitySave({ name: `guide-${index}`, kind: 'skill', description: `Guide ${index}`, content: `Do ${index}.` }, { botId: 'chief' })
+  }
+  const bot = rt.state.bots.chief
+  bot.capabilities = ['guide-0']
+  bot.skillShortlist = [0, 1, 2, 3, 4].map(index => ({ name: `guide-${index}`, purpose: `Use guide ${index}` }))
+  await rt.save()
+  const capabilities = [...bot.capabilities]
+  const shortlist = structuredClone(bot.skillShortlist)
+  await assert.rejects(
+    rt.capabilityEndpoint('bot-capability', { botId: 'chief', name: 'guide-5', attached: true }),
+    /at most 5 skills/,
+  )
+  assert.deepEqual(bot.capabilities, capabilities)
+  assert.deepEqual(bot.skillShortlist, shortlist)
+})
+
+test('the skill catalog keeps same-named entries separate for each Bot', async t => {
+  const env = await setup()
+  t.after(() => env.dispose())
+  const { ctx, rt } = env
+  rt.workDirOf = ({ botId }) => `/work/${botId}`
+  const get = ctx.get
+  ctx.get = name => name === 'skills' ? {
+    snapshot: async ({ cwd }) => ({
+      complete: true,
+      skills: [{ name: 'deploy', description: `Deploy from ${cwd}`, provider: 'filesystem' }],
+    }),
+  } : get(name)
+  await rt.refreshSkillCatalog({ publish: false })
+  assert.equal(rt.skillCatalogView('chief').find(skill => skill.name === 'deploy').description, 'Deploy from /work/chief')
+  assert.equal(rt.skillCatalogView('worker').find(skill => skill.name === 'deploy').description, 'Deploy from /work/worker')
 })
 
 test('mounts agent-only MCP and skills, remounts changed config, resolves scoped secrets and reports missing secrets', async t => {

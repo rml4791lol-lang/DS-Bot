@@ -196,6 +196,119 @@ function MemoryCard({ bot, actions }) {
       h('span', { className: 'bt-mem-row-go' }, t('Manage'), h(ChevronRightIcon))))
 }
 
+const SKILL_SHORTLIST_MAX = 5
+const SKILL_PURPOSE_MAX = 160
+const skillPurpose = skill => {
+  const text = String(skill.description || skill.name).replace(/\s+/g, ' ').trim()
+  return text.length <= SKILL_PURPOSE_MAX ? text : `${text.slice(0, SKILL_PURPOSE_MAX - 3)}...`
+}
+
+// The prompt shows only these names and one line each; the skill bodies stay in the
+// catalog until the Bot loads one. A sixth switch is disabled and the host refuses it
+// too, so a selection is never dropped silently.
+function BotSkillShortlistCard({ bot, roster, actions, run, Card, SwitchRow }) {
+  const [query, setQuery] = useState('')
+  const [draft, setDraft] = useState(null)
+  const [draftActive, setDraftActive] = useState(false)
+  const catalog = (Array.isArray(roster.skillCatalog) ? roster.skillCatalog : [])
+    .filter(skill => !Array.isArray(skill.bots) || skill.bots.includes(bot.id))
+    .map(skill => skill.byBot?.[bot.id] === undefined ? skill : { ...skill, ...skill.byBot[bot.id] })
+  const saved = Array.isArray(bot.skillShortlist) ? bot.skillShortlist : undefined
+  const chosen = draftActive ? draft : saved
+  const current = useRef(chosen)
+  const confirmed = useRef(saved)
+  const queue = useRef(Promise.resolve())
+  current.current = chosen
+  if (!draftActive) confirmed.current = saved
+  const known = new Set(catalog.map(skill => skill.name))
+  const rows = [
+    ...catalog,
+    ...(chosen ?? []).filter(skill => !known.has(skill.name)).map(skill => ({
+      name: skill.name,
+      description: '',
+      provider: '',
+      missing: true,
+    })),
+  ]
+  if (rows.length === 0) {
+    return h(Card, { title: t('Skills') },
+      h('div', { className: 'bt-set-row' }, h('span', { className: 'bt-set-hint' }, t('No skills are installed for this DSH profile yet.'))))
+  }
+  const full = (chosen?.length ?? 0) >= SKILL_SHORTLIST_MAX
+  const save = (next, payload = next) => {
+    current.current = next
+    setDraft(next)
+    setDraftActive(true)
+    queue.current = queue.current
+      .then(() => run(actions.updateBot(bot.id, { skills: payload })))
+      .then(done => {
+        if (done === false && current.current === next) {
+          current.current = confirmed.current
+          setDraft(confirmed.current)
+          setDraftActive(false)
+        } else if (current.current === next) {
+          confirmed.current = next
+          setDraftActive(false)
+          setDraft(null)
+        }
+        return done
+      }, () => {
+        if (current.current === next) {
+          current.current = confirmed.current
+          setDraft(confirmed.current)
+          setDraftActive(false)
+        }
+        return false
+      })
+  }
+  const useAll = () => save(undefined, null)
+  const disableAll = () => save([])
+  const status = chosen === undefined
+    ? t('All profile skills are available.')
+    : chosen.length === 0
+      ? t('All profile skills are disabled.')
+      : t('Only the selected skills are available.')
+  const needle = query.trim().toLowerCase()
+  const visible = rows
+    .filter(item => needle === '' || `${item.name} ${item.description} ${item.provider}`.toLowerCase().includes(needle))
+    .sort((a, b) => ((chosen ?? []).some(skill => skill.name === a.name) ? 0 : 1) - ((chosen ?? []).some(skill => skill.name === b.name) ? 0 : 1))
+  return h(Card, { title: t('Skills') },
+    h('div', { className: 'bt-set-row' },
+      h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, t('Skills')), h('span', { className: 'bt-set-hint' }, status)),
+      h('span', { className: 'bt-set-control' },
+        chosen === undefined ? null : h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: useAll }, t('Use all skills')),
+        chosen === undefined || chosen.length > 0 ? h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: disableAll }, t('Disable all profile skills')) : null)),
+    h('div', { className: 'bt-set-row' }, h('span', { className: 'bt-set-hint' }, t('Up to 5 skills. The prompt lists each name with one line saying when to use it.'))),
+    rows.length > 8 ? h('input', {
+      type: 'search',
+      className: 'bt-set-search',
+      placeholder: t('Search skills'),
+      value: query,
+      onChange: event => setQuery(event.target.value),
+      'aria-label': t('Search skills'),
+    }) : null,
+    visible.map(item => {
+      const selected = (chosen ?? []).find(skill => skill.name === item.name)
+      const source = item.missing ? t('Not in the current catalog') : item.provider
+      return h(SwitchRow, {
+        key: item.name,
+        label: item.name,
+        hint: `${source}${item.description ? ` — ${item.description}` : ''}`,
+        on: selected !== undefined,
+        disabled: selected === undefined && full,
+        onChange: enabled => {
+          const list = Array.isArray(current.current) ? current.current : []
+          if (enabled) {
+            if (list.length >= SKILL_SHORTLIST_MAX || list.some(skill => skill.name === item.name)) return
+            save([...list, { name: item.name, purpose: skillPurpose(item) }])
+          } else {
+            save(list.filter(skill => skill.name !== item.name))
+          }
+        },
+      })
+    }))
+}
+
 // A Bot's settings as grouped cards: who it is (avatar, name, label), what it runs on
 // (model), what it does (instructions), its memory and tasks, its Main Bot role, its
 // sidebar place, and copies.
@@ -254,6 +367,7 @@ export function BotSettingsForm({ bot, roster, actions, run }) {
       h(Row, { label: t('What this Bot does'), hint: t('Its job on the team. Part of the Bot\'s system prompt.'), stack: true },
         h(InlineText, { label: t('Instructions'), value: bot.instructions, multiline: true, placeholder: t('What this Bot is responsible for…'), onSave: instructions => save({ instructions }) }))),
     h(BotCapabilitiesCard, { bot, roster, actions, run, Card, SwitchRow }),
+    h(BotSkillShortlistCard, { bot, roster, actions, run, Card, SwitchRow }),
     h(BotComputerCard, { bot, roster, actions, run, Card, Row }),
     roster.memory === false ? null : h(MemoryCard, { bot, actions }),
     h(BotSchedules, { bot, roster, actions }),

@@ -10,7 +10,8 @@ const parseMap = (text, label) => {
   return value
 }
 const statusText = status => !status ? undefined : status.state === 'ready' ? t('Ready')
-  : status.state === 'needs-approval' ? t('Needs approval')
+  : status.state === 'partial' ? t('Partially ready')
+    : status.state === 'needs-approval' ? t('Needs approval')
     : status.state === 'error' ? t('Could not connect: {error}', { error: status.error ?? '' })
       : t('Connecting…')
 
@@ -157,6 +158,15 @@ export function CapabilitiesPage({ roster, actions, run }) {
 export function BotCapabilitiesCard({ bot, roster, actions, run, Card, SwitchRow }) {
   const items = [...(roster.capabilities ?? [])].sort((a, b) => Number(b.kind === 'pack') - Number(a.kind === 'pack') || a.name.localeCompare(b.name))
   const attached = new Set(bot.capabilities ?? [])
+  // Shortlist skills are the effective skill set. A manual skill attachment
+  // outside the shortlist is not mounted, so show it off until the user picks
+  // it again; the host adds it to both lists on that switch.
+  const shortlisted = new Set((bot.skillShortlist ?? []).map(skill => skill.name))
+  for (const item of items) {
+    if (item.kind !== 'skill') continue
+    if (Array.isArray(bot.skillShortlist) && !shortlisted.has(item.name)) attached.delete(item.name)
+    else if (shortlisted.has(item.name)) attached.add(item.name)
+  }
   const statuses = roster.capabilityStatuses?.[bot.id] ?? {}
   if (items.length === 0) return null
   return h(Card, { title: t('Capabilities') },

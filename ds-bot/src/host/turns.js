@@ -10,7 +10,9 @@ import { cleanText } from './diagnostics.js'
 import { absoluteLinks } from './links.js'
 import { splitRef, stripControlMarkers, textOf } from './text.js'
 import { viaOf } from '../shared/im-platforms.js'
+import { isAcknowledgementOnlyText } from '../shared/idle-text.js'
 import { reminderText } from './schedules.js'
+import { classifyInternalNoOpTurns } from './no-op-turns.js'
 import { usageChunk } from './usage.js'
 
 // A turn that has produced no Session event for this long is shown as possibly
@@ -463,6 +465,47 @@ export function install(rt) {
     void rt.save().catch(() => {})
   }
 
+  // A live turn is filtered at turn/end above. Turns written before that filter
+  // (or by an older plugin instance) need the same treatment once, so opening a
+  // Bot chat does not keep showing blank automation rows forever.
+  const backfillNoOpTurns = async (stopped = () => false) => {
+    if (typeof rt.eventsBackwards !== 'function') return
+    await rt.load()
+    let changed = false
+    const sessions = new Set(Object.values(state.bots ?? {}).map(bot => rt.chatOf(bot.id)).filter(Boolean))
+    for (const sessionId of sessions) {
+      if (stopped()) return
+      const events = []
+      try {
+        for await (const event of rt.eventsBackwards(sessionId, AbortSignal.timeout(8_000), 2)) {
+          events.push(event)
+          if (events.length >= 600) break
+        }
+      } catch {
+        continue
+      }
+      const found = classifyInternalNoOpTurns(events.reverse())
+      if (found.length === 0) continue
+      const turns = state.exchangeTurns[sessionId] ??= []
+      for (const turn of found) {
+        if (turns.includes(turn)) continue
+        turns.push(turn)
+        changed = true
+      }
+      if (turns.length > 400) turns.splice(0, turns.length - 400)
+    }
+    if (changed) await rt.save()
+  }
+  ctx.effect?.(() => {
+    let stopped = false
+    const timer = setTimeout(() => { void backfillNoOpTurns(() => stopped) }, 500)
+    timer?.unref?.()
+    return () => {
+      stopped = true
+      clearTimeout(timer)
+    }
+  }, 'ds-bot: no-op turn backfill')
+
   // A request whose audience is the user is answered in the recipient's own chat: that
   // turn stays visible there and its reply is not routed back to the sender.
   const answersUser = info => info.role === 'request' && info.audience === 'user'
@@ -526,6 +569,9 @@ export function install(rt) {
   // package that only opens a part is acknowledged with a fixed line, also hidden.
   const claimTrigger = (sessionId, entry, info) => {
     entry.info = info
+    // DSH may write the message before it opens the turn. Keep the source on
+    // the turn in either order so scheduled no-op filtering still sees it.
+    if (typeof info?.kind === 'string') entry.triggerKind = info.kind
     // A turn that was stopped for a part switch brings its joined requests along.
     if (Array.isArray(info.joined) && info.joined.length > 0) {
       entry.joined = info.joined.filter(item => item?.info !== undefined && item.info !== null)
@@ -870,6 +916,10 @@ export function install(rt) {
       case 'turn/start':
         setActivity(id, 'thinking')
         entry.turn = event.data.turn
+        // A message may be written before turn/start. Keep the source it
+        // carried so a scheduled no-op is not mistaken for a user turn.
+        entry.triggerKind = entry.pendingTriggerKind
+        entry.pendingTriggerKind = undefined
         entry.since = event.time ?? Date.now()
         entry.lastEventAt = entry.since
         entry.texts = []
@@ -920,6 +970,10 @@ export function install(rt) {
         break
       case 'user/message': {
         const source = event.data?.source
+        if (typeof source?.kind === 'string') {
+          if (entry.turn === undefined && entry.pendingTriggerKind === undefined) entry.pendingTriggerKind = source.kind
+          else if (entry.turn !== undefined && entry.triggerKind === undefined) entry.triggerKind = source.kind
+        }
         rt.bindGoalAttempt?.(id, source, entry.turn)
         rt.bindWorkAttempt?.(id, source, entry.turn)
         if (source?.kind === 'subagent-settled' || source?.kind === 'agent-message') {
@@ -1145,8 +1199,11 @@ export function install(rt) {
         // A turn the plugin watched start. A turn/end replayed after a restart, whose
         // turn is settled from the Session's log, is not one (resume.js does that).
         const watched = entry.turn !== undefined
+        const triggerKind = entry.triggerKind
         entry.turn = undefined
         entry.info = undefined
+        entry.triggerKind = undefined
+        entry.pendingTriggerKind = undefined
         entry.texts = []
         entry.shown = 0
         entry.step = undefined
@@ -1247,6 +1304,13 @@ export function install(rt) {
           return reply
         }
         const groupReply = () => rt.withRoomSteps?.(held, replyText()) ?? replyText()
+        const noOpReply = replyText()
+        const acknowledgementOnly = noOpReply !== '' && isAcknowledgementOnlyText(noOpReply)
+        const emptyWithNoWork = noOpReply === '' && toolCount === 0
+        const internalNoOp = failure === undefined && reason?.kind === 'completed' && !retry
+          && !rt.groupOwners.has(id) && triggerKind !== undefined && triggerKind !== 'user'
+          && (acknowledgementOnly || emptyWithNoWork)
+        if (internalNoOp && typeof event.data?.turn === 'number') markExchangeTurn(id, event.data.turn)
         // Whoever the turn answers gets the same three-way rule: a failure notice,
         // the turn's text (or a stopped-before-answer line), or nothing.
         const name = rt.botOf(rt.selfOf(id))?.name ?? 'The other Bot'
@@ -1256,15 +1320,17 @@ export function install(rt) {
           // said between Bots goes missing (#17): the sender reads it at its next turn,
           // and no turn is spent on it.
           if (!expectsReply(source) || answersUser(source)) {
-            if (reply !== '' && source?.kind === SOURCE_KIND && source.senderSessionId !== undefined) tellSender(id, source, reply, undefined, true)
+            if (reply !== '' && !(toolCount === 0 && isAcknowledgementOnlyText(reply)) && source?.kind === SOURCE_KIND && source.senderSessionId !== undefined) tellSender(id, source, reply, undefined, true)
             return
           }
           if (failure !== undefined) {
             // The sender was told a reply comes later; without this it would wait forever.
             tellSender(id, source, `${name} could not answer your message: its model call failed (${failureLine(failure)}). Tell the user if it matters; do not retry right away.`)
           } else if (reply !== '' || reason?.kind === 'aborted') {
-            // A turn stopped before it could answer still owes the sender a line,
-            // or it would wait forever for a reply that never comes.
+            // A stopped turn still owes the sender a line, or it would wait forever for a
+            // reply that never comes. An idle acknowledgement after a completed request
+            // is not an answer: the request was already accepted when it was delivered.
+            if (reply !== '' && toolCount === 0 && isAcknowledgementOnlyText(reply)) return
             tellSender(id, source, reply !== '' ? reply : `${name} was stopped before it could answer your message.`)
           }
         }
@@ -1279,6 +1345,9 @@ export function install(rt) {
           if (rt.waitsWork(work)) return rt.holdWork(work, reply)
           // With what came back, the answer may pass what one message carries.
           const text = rt.answerText(work, reply, name)
+          // A work request that ends with only an acknowledgement closes its ledger
+          // entry, but does not wake the asker for a line with no result.
+          if (toolCount === 0 && isAcknowledgementOnlyText(text)) return
           if (text.length <= MESSAGE_INLINE_MAX) return tellSender(id, asker, text)
           void rt.attachLong(text, `Answer from ${name}.txt`)
             .then(long => tellSender(id, asker, text, long))
@@ -1347,7 +1416,8 @@ export function install(rt) {
     const work = rt.workOf?.(entry?.info)
     const self = id === undefined ? undefined : rt.selfOf(id)
     if (work === undefined || self === undefined || !rt.chatOwners.has(id) || typeof info?.id !== 'string' || typeof info?.runId !== 'string' || !rt.ownsWork?.(self, work)) return
-    rt.openWork?.(info.runId, { from: self, parent: work, name: 'subagent', child: info.id })
+    void rt.openWork?.(info.runId, { from: self, parent: work, name: 'subagent', child: info.id })
+      ?.catch?.(error => rt.warn('ds-bot: subagent work was not saved: %s', error))
   })
   // A settled run closes its sub-work: its closing text joins the results of
   // the work it hung under.
