@@ -32,7 +32,7 @@ const SECTION_TITLES = [
 ]
 
 // 26 team rules and 10 Main Bot rules; a rendered prompt repeats no rule.
-const RULE_COUNTS = { main: 36, worker: 26 }
+const RULE_COUNTS = { main: 40, worker: 29 }
 
 test('Bots get the eight rule sections in order, with every rule exactly once', (t) => {
   const { ctx, prompt } = start()
@@ -42,7 +42,7 @@ test('Bots get the eight rule sections in order, with every rule exactly once', 
     '- Do not narrate tool mechanics or system notices to the user: exit codes, "no output", "saved", a handoff note, a context or memory injection, a checkpoint, or the label you were given. That is plumbing. Report the result the user can act on, or nothing.',
     '- For "[Message from …]" or "[Reply from …]" messages, do not write plans or progress updates: use tools silently, then reply with the answer. Simple answers do not need progress messages.',
     '- When a task clearly matches a skill in your skill catalog, call `skill` with that skill\'s name before you act, instead of re-deriving the guidance it already carries.',
-    '- In a group chat, the group sees what you write while you work, not only your final reply. For work that takes more than a quick look, start with one short sentence on what you will do, in the same response as your first tool call. After that, write only when you find something the group should know or finish a part of the work, in a sentence or two, not at every step. End with the result. Simple answers need no updates.',
+    '- In a group chat, the group sees what you write while you work, not only your final reply. For work that takes more than a quick look, start with one short sentence on what you will do, in the same response as your first tool call. After that, write only when you find something the group should know or finish a part of the work, in a sentence or two, not at every step. End with the result. Simple answers need no updates. If the user is in the group, those visible lines are a result they can use or a decision they must make, not a work log.',
   ]
   for (const id of ['main', 'worker']) {
     const text = prompt(id)
@@ -92,6 +92,30 @@ test('Bots are told not to redo a question this conversation already answered, o
     assert.match(rule[0], /points back to the earlier conclusion/)
     assert.match(rule[0], /genuinely still open/)
   }
+  assert.equal(prompt('group-worker'), prompt('worker'))
+})
+
+
+// Human-facing layer: user-visible talk stays human; bot collaboration stays off-chat.
+test('Bots are told to speak to the user in a human voice, once, in the shared prefix', (t) => {
+  const { ctx, prompt } = start()
+  t.after(() => ctx.dispose())
+  const intent = '- Infer the user\'s intent from what they have already said and from the situation. If they already told you to keep going, finish the work, or step away, do not wait for them to repeat it or ask them to type a wake-up message.'
+  const voice = '- When the user can see your message, talk like a person: lead with the point, keep it short, and do not write an engineering log. Do not lead with commit hashes, test IDs, stage numbers, or file paths unless the user asked for those details.'
+  const speak = '- Speak to the user only when there is a result they can use, a decision they must make, or you cannot finish. Ask one concrete question at a time. Work between Bots stays in tools, private messages, and reports, not in the chat the user reads.'
+  for (const id of ['main', 'worker']) {
+    const text = prompt(id)
+    const lines = text.split('\n')
+    for (const rule of [intent, voice, speak]) {
+      assert.ok(lines.includes(rule), rule)
+      assert.equal(text.split(rule).length - 1, 1)
+    }
+    assert.match(text, /If the user is in the group, those visible lines are a result they can use or a decision they must make, not a work log/)
+  }
+  const mainOnly = '- When you report the team\'s work, say it in this same human voice. Do not paste a Bot\'s engineering notes into the user\'s chat.'
+  assert.ok(prompt('main').split('\n').includes(mainOnly))
+  assert.equal(prompt('main').split(mainOnly).length - 1, 1)
+  assert.ok(!prompt('worker').includes(mainOnly))
   assert.equal(prompt('group-worker'), prompt('worker'))
 })
 
