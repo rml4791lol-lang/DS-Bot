@@ -112,6 +112,18 @@ test('the real DSH catalog and skill tool obey an Agent-scoped shortlist mask', 
   assert.equal(hidden.invocation.userInvocable, false)
   assert.equal(hidden.invocation.modelInvocable, false)
 
+  // A symbolic-link skill goes through the same mask: excluding it from the
+  // shortlist must hide it exactly like a plain skill directory.
+  const withoutLink = chosen.slice(1).concat('skill-4')
+  await runtime.applySkillMasks(agent, {
+    ...bot,
+    skillShortlist: withoutLink.map(name => ({ name, purpose: `use ${name} when the task calls for it` })),
+  })
+  const linked = await ctx.skills.get('linked', { cwd: root, scope: agent })
+  assert.equal(linked.invocation.userInvocable, false)
+  assert.equal(linked.invocation.modelInvocable, false)
+  await assert.rejects(() => tool.execute({ name: 'linked' }, exec), /not available for model invocation/)
+
   await runtime.applySkillMasks(agent, { ...bot, skillShortlist: undefined })
   const restored = (await ctx.skills.snapshot({ cwd: root, scope: agent })).skills
     .filter(skill => skill.invocation.modelInvocable)
