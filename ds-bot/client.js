@@ -45035,8 +45035,9 @@ function TeamOverviewTab({ useUi, useSurface, actions }) {
 var TEAM_OVERVIEW_CSS = `
 .bt-teamov-tab{position:fixed;z-index:29;right:0;top:44%;display:flex;flex-direction:column;align-items:center;gap:6px;width:30px;min-height:104px;padding:9px 0;border:.5px solid var(--bt-line-2);border-right:0;border-radius:10px 0 0 10px;background:var(--bt-glass-bg);color:var(--bt-ink-3);box-shadow:var(--bt-glass-shadow);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);font-family:var(--bt-font);cursor:pointer;transition:width .16s ease,color .12s ease,background-color .12s ease}
 .bt-teamov-tab:hover{width:34px;color:var(--bt-ink);background:var(--bt-card)}
-body:has(.tbh) .bt-teamov-tab{right:calc(min(380px,100vw - 204px) + 8px)}
-body:has(.tbh-toggle) .bt-teamov-tab{right:42px}
+/* The board is the team's one entry on that edge: its header carries the overview, and
+   its collapsed tab carries the counts. Two rails side by side was the noise. */
+body:has(.tbh) .bt-teamov-tab,body:has(.tbh-toggle) .bt-teamov-tab{display:none}
 .bt-teamov-tab svg{flex:none;width:14px;height:14px}
 .bt-teamov-tab span{writing-mode:vertical-rl;font-size:9px;line-height:14px;letter-spacing:.08em}
 .bt-teamov-tab:focus-visible{outline:2px solid var(--bt-accent);outline-offset:-2px}
@@ -46431,8 +46432,16 @@ var TEAM_ACTIVITY_CSS = `
 .bt-activity-record{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;padding:8px 0;border-top:.5px solid var(--bt-line);font-size:12px;line-height:16px}.bt-activity-record b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bt-activity-record span{grid-column:1/-1;color:var(--bt-ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bt-activity-record[data-kind=blocked] span,.bt-activity-record[data-kind=failed] span{color:var(--bt-danger)}.bt-activity-record time{color:var(--bt-ink-3);font-size:11px;line-height:16px}
 .bt-activity-skeleton{display:flex;flex-direction:column;gap:8px;padding:20px;animation:bt-veil-in .22s ease-out}.bt-activity-skeleton span{display:block;height:48px;border-radius:8px;background:var(--bt-tag-bg)}
 .bt-activity-empty,.bt-activity-no-task{padding:24px 20px}.bt-activity-detail-empty{padding:16px 12px;color:var(--bt-ink-3);font-size:12px;line-height:16px}.bt-activity-error{margin:0;padding:24px 20px}
-@media(max-width:760px){.bt-activity-layer{padding:0}.bt-team-activity{border-width:0;border-radius:0}.bt-activity-body{grid-template-columns:1fr;overflow:auto}.bt-activity-detail,.bt-activity-list{border-right:0;border-bottom:.5px solid var(--bt-line);overflow:visible}.bt-activity-recent{overflow:visible}.bt-activity-head,.bt-activity-roster-wrap,.bt-activity-heat-wrap,.bt-activity-toolbar,.bt-activity-stale,.bt-activity-partial-note,.bt-activity-host-read-only{padding-inline:14px}.bt-activity-head-meta{justify-content:flex-start}.bt-activity-head{gap:10px;flex-wrap:wrap}}
-@media(max-width:520px){.bt-activity-summary{grid-template-columns:repeat(2,1fr);gap:6px 1px}.bt-activity-heatmap{gap:4px}.bt-activity-heat-cell{padding:6px 1px}.bt-activity-section-head small{display:none}.bt-activity-filter{flex:1 1 42%}.bt-activity-filter .bt-select{width:100%;min-width:0}}
+@media(max-width:760px){.bt-activity-layer{padding:0}.bt-team-activity{border-width:0;border-radius:0}.bt-activity-body{grid-template-columns:1fr;overflow:auto}.bt-activity-detail,.bt-activity-list{border-right:0;border-bottom:.5px solid var(--bt-line);overflow:visible}.bt-activity-recent{overflow:visible}.bt-activity-head,.bt-activity-roster-wrap,.bt-activity-heat-wrap,.bt-activity-toolbar,.bt-activity-stale,.bt-activity-partial-note,.bt-activity-host-read-only{padding-inline:14px}.bt-activity-head-meta{justify-content:flex-start}.bt-activity-head{gap:10px;flex-wrap:wrap}
+/* Stacked, an empty "pick a task" column is a full screen of nothing: the hint only
+   makes sense beside the list it points at, so it stays in the two-column layout. */
+.bt-activity-body>.bt-activity-detail:has(>.bt-activity-detail-empty){display:none}
+/* Wrapping the roster beats a hidden horizontal scroll: a clipped also-running chip
+   reads as "that is all there is". */
+.bt-activity-roster{flex-wrap:wrap;overflow:visible}
+.bt-activity-empty,.bt-activity-no-task{padding:16px 14px}
+.bt-activity-record span{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}}
+@media(max-width:520px){.bt-activity-summary{grid-template-columns:repeat(2,1fr);gap:6px 1px}.bt-activity-heatmap{gap:4px}.bt-activity-heat-cell{padding:6px 1px}.bt-activity-section-head small{display:none}.bt-activity-toolbar{gap:6px}.bt-activity-filter{flex:1 1 calc(33.33% - 6px);min-width:0}.bt-activity-filter .bt-select{width:100%;min-width:0}.bt-activity-attention{flex:1 1 100%;justify-content:center}}
 @media(prefers-reduced-motion:reduce){.bt-team-activity,.bt-activity-layer .bt-scrim,.bt-activity-body,.bt-activity-skeleton{animation:bt-fade .12s ease-out!important}.bt-activity-layer[data-leaving]>[role=dialog],.bt-activity-layer[data-leaving] .bt-scrim{animation:bt-fade .12s ease-out reverse!important;transition:none!important}}
 `;
 
@@ -47497,7 +47506,7 @@ function serveBrowserReads({ browsers, post, clientId = globalThis.crypto.random
 
 // src/client/team-board.js
 var import_react71 = require("react");
-var DEFAULT_CONFIG = Object.freeze({ defaultOpen: true, sort: "section", density: "two", showHistory: true });
+var DEFAULT_CONFIG = Object.freeze({ defaultOpen: false, sort: "section", density: "two", showHistory: true });
 var CONFIG_URL = "./team-board.config.json";
 var SORTS = /* @__PURE__ */ new Set(["section", "role"]);
 var DENSITIES = /* @__PURE__ */ new Set(["two", "one", "compact"]);
@@ -47573,6 +47582,16 @@ function isWaiting(roster, work, bot) {
 }
 var HISTORY_STATE = { done: "完成", running: "进行中", working: "进行中", waiting: "等待" };
 var historyState = (state) => HISTORY_STATE[state] ?? String(state ?? "");
+function boardSummary(roster, work) {
+  const bots = visibleBots(roster);
+  let running = 0;
+  let waiting = 0;
+  for (const bot of bots) {
+    if (entryOf(bot, work) !== void 0) running += 1;
+    else if (isWaiting(roster, work, bot)) waiting += 1;
+  }
+  return { running, waiting, idle: Math.max(0, bots.length - running - waiting), total: bots.length };
+}
 function visibleBots(roster) {
   const bots = roster?.bots ?? [];
   const mainId = roster?.mainBotId;
@@ -47602,10 +47621,19 @@ function groupBots(bots, roster, sort) {
 function Row4({ bot, doing, waiting, since, now, main }) {
   const running = doing !== void 0;
   const state = botState(running, running ? "working" : void 0, waiting);
-  const line = running ? `${COPY.worked} ${durationOf(now - since)}` : waiting ? `${COPY.waited} ${durationOf(now - since)}` : COPY.idleFor;
+  const elapsed = durationOf(now - since);
+  const detail = running ? workPhrase(doing) : waiting ? `${COPY.waited} ${elapsed}` : COPY.idleFor;
+  const meta = running ? `${COPY.worked} ${elapsed}` : "";
+  const role = roleOf(bot);
   return (0, import_react71.createElement)(
     "article",
-    { className: "tb-row", "data-running": running || void 0, "data-waiting": !running && waiting || void 0, "data-main": main || void 0 },
+    {
+      className: "tb-row",
+      "data-running": running || void 0,
+      "data-waiting": !running && waiting || void 0,
+      "data-main": main || void 0,
+      "aria-label": `${nameOf3(bot)}${role === "" ? "" : `（${role}）`}：${detail}${meta === "" ? "" : `，${meta}`}`
+    },
     (0, import_react71.createElement)("div", { className: "tb-avatar" }, (0, import_react71.createElement)(BotAvatar, { bot, size: main ? 44 : 34, state, live: running, main })),
     (0, import_react71.createElement)(
       "div",
@@ -47614,15 +47642,15 @@ function Row4({ bot, doing, waiting, since, now, main }) {
         "div",
         { className: "tb-line" },
         (0, import_react71.createElement)("span", { className: "tb-name" }, nameOf3(bot)),
-        roleOf(bot) === "" ? null : (0, import_react71.createElement)("span", { className: "tb-role" }, roleOf(bot)),
-        running ? (0, import_react71.createElement)("span", { className: "tb-pulse", "aria-hidden": true }) : null
+        role === "" ? null : (0, import_react71.createElement)("span", { className: "tb-role" }, role),
+        running ? (0, import_react71.createElement)("span", { className: "tb-pulse", "aria-hidden": true }) : null,
+        meta === "" ? null : (0, import_react71.createElement)("span", { className: "tb-elapsed" }, meta)
       ),
-      (0, import_react71.createElement)("div", { className: "tb-task" }, (0, import_react71.createElement)("span", { className: "tb-label" }, `${COPY.task}：`), (0, import_react71.createElement)("span", { className: "tb-phrase" }, running ? workPhrase(doing) : COPY.standby)),
-      (0, import_react71.createElement)("div", { className: "tb-who" }, `${COPY.who}：${nameOf3(bot)} · ${line}`)
+      (0, import_react71.createElement)("div", { className: "tb-task", title: detail }, (0, import_react71.createElement)("span", { className: "tb-phrase" }, detail))
     )
   );
 }
-function TeamBoard({ roster, work, onClose, configUrl = CONFIG_URL, now = Date.now }) {
+function TeamBoard({ roster, work, onClose, onOverview, configUrl = CONFIG_URL, now = Date.now }) {
   const [config, setConfig] = (0, import_react71.useState)(DEFAULT_CONFIG);
   const [stamp, setStamp] = (0, import_react71.useState)(() => now());
   const [tick, setTick] = (0, import_react71.useState)(0);
@@ -47709,13 +47737,20 @@ function TeamBoard({ roster, work, onClose, configUrl = CONFIG_URL, now = Date.n
         "div",
         { className: "tb-counts" },
         (0, import_react71.createElement)("span", { className: "tb-count", "data-kind": "running" }, (0, import_react71.createElement)("b", null, String(runningCount)), COPY.running),
-        (0, import_react71.createElement)("span", { className: "tb-sep", "aria-hidden": true }, "/"),
         (0, import_react71.createElement)("span", { className: "tb-count", "data-kind": "waiting" }, (0, import_react71.createElement)("b", null, String(waitingCount)), COPY.waiting),
-        (0, import_react71.createElement)("span", { className: "tb-sep", "aria-hidden": true }, "/"),
         (0, import_react71.createElement)("span", { className: "tb-count", "data-kind": "idle" }, (0, import_react71.createElement)("b", null, String(idleCount)), COPY.idle)
       ),
-      (0, import_react71.createElement)("div", { className: "tb-stamp" }, `${COPY.updated} `, (0, import_react71.createElement)("time", { dateTime: new Date(stamp).toISOString() }, clockOf(stamp))),
-      typeof onClose === "function" ? (0, import_react71.createElement)("button", { type: "button", className: "tb-close", "aria-label": COPY.close, title: COPY.close, onClick: onClose }, "×") : null
+      (0, import_react71.createElement)(
+        "div",
+        { className: "tb-head-end" },
+        (0, import_react71.createElement)("time", {
+          className: "tb-stamp",
+          dateTime: new Date(stamp).toISOString(),
+          title: `${COPY.updated} ${clockOf(stamp)}`
+        }, clockOf(stamp).slice(0, 5)),
+        typeof onOverview === "function" ? (0, import_react71.createElement)("button", { type: "button", className: "tb-overview", title: "团队总览", onClick: onOverview }, "总览") : null,
+        typeof onClose === "function" ? (0, import_react71.createElement)("button", { type: "button", className: "tb-close", "aria-label": COPY.close, title: COPY.close, onClick: onClose }, "×") : null
+      )
     ),
     bots.length === 0 ? (0, import_react71.createElement)("div", { className: "tb-empty", role: "status" }, COPY.empty) : (0, import_react71.createElement)(
       "div",
@@ -47759,16 +47794,19 @@ function TeamBoard({ roster, work, onClose, configUrl = CONFIG_URL, now = Date.n
   );
 }
 var TEAM_BOARD_CSS = `
-.tb-board{display:flex;flex-direction:column;min-height:0;height:100%;color:var(--bt-ink);background:var(--bt-sidebar);font-size:12px;container-type:inline-size}
-.tb-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 12px 10px;border-bottom:.5px solid var(--bt-line)}
-.tb-counts{display:flex;align-items:baseline;gap:6px;font-size:11.5px;color:var(--bt-ink-2)}
-.tb-count b{margin-right:3px;font-size:15px;font-weight:600;color:var(--bt-ink);font-variant-numeric:tabular-nums}
+.tb-board{display:flex;flex-direction:column;min-height:0;height:100%;color:var(--bt-ink);background:transparent;font-size:12px;container-type:inline-size}
+.tb-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:.5px solid var(--bt-line)}
+.tb-counts{display:flex;align-items:center;gap:5px;min-width:0}
+.tb-count{display:inline-flex;align-items:baseline;gap:3px;padding:2px 7px;border-radius:6px;background:color-mix(in srgb,var(--bt-ink) 7%,transparent);font-size:11px;color:var(--bt-ink-2);white-space:nowrap}
+.tb-count b{font-size:11.5px;font-weight:600;color:var(--bt-ink);font-variant-numeric:tabular-nums}
 .tb-count[data-kind=running] b{color:var(--bt-accent)}
 .tb-count[data-kind=waiting] b{color:var(--bt-danger)}
-.tb-sep{color:var(--bt-ink-3)}
-.tb-stamp{margin-left:auto;font-size:11px;color:var(--bt-ink-3);font-variant-numeric:tabular-nums}
+.tb-head-end{margin-left:auto;display:flex;align-items:center;gap:2px;flex:none}
+.tb-stamp{font-size:11px;color:var(--bt-ink-3);font-variant-numeric:tabular-nums;padding:0 2px}
+.tb-overview{height:24px;padding:0 8px;border:0;border-radius:6px;background:none;color:var(--bt-ink-2);font:inherit;font-size:11.5px;cursor:pointer;transition:background-color .12s ease,color .12s ease}
+.tb-overview:hover{background:var(--bt-hover);color:var(--bt-ink)}
 .tb-close{width:24px;height:24px;border:0;border-radius:6px;background:none;color:var(--bt-ink-2);font-size:16px;line-height:1;cursor:pointer}
-.tb-close:hover{background:color-mix(in srgb,var(--bt-ink) 8%,transparent);color:var(--bt-ink)}
+.tb-close:hover{background:var(--bt-hover);color:var(--bt-ink)}
 .tb-groups{flex:1;min-height:0;overflow:auto;padding:8px 10px 12px}
 .tb-group+.tb-group{margin-top:10px}
 .tb-group-name{display:flex;align-items:baseline;gap:6px;padding:6px 4px;font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--bt-ink-3)}
@@ -47776,22 +47814,21 @@ var TEAM_BOARD_CSS = `
 .tb-rows{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
 .tb-board[data-density=two] .tb-rows{grid-template-columns:minmax(0,1fr)}
 @container (min-width:560px){.tb-board[data-density=two] .tb-rows{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.tb-row{min-width:0;display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border:.5px solid color-mix(in srgb,var(--bt-ink) 10%,transparent);border-radius:10px;background:color-mix(in srgb,var(--bt-main) 60%,transparent);transition:background-color .18s ease,border-color .18s ease}
+.tb-row{min-width:0;display:flex;gap:9px;align-items:center;padding:8px 10px;border:.5px solid color-mix(in srgb,var(--bt-ink) 9%,transparent);border-radius:10px;background:color-mix(in srgb,var(--bt-main) 55%,transparent);transition:background-color .18s ease,border-color .18s ease}
 .tb-row[data-main]{border-color:color-mix(in srgb,var(--bt-accent) 26%,transparent);background:color-mix(in srgb,var(--bt-accent) 5%,transparent);padding:11px 12px}
 .tb-row[data-main] .tb-name{font-size:13.5px}
 .tb-row[data-running]{border-color:color-mix(in srgb,var(--bt-accent) 42%,transparent);background:color-mix(in srgb,var(--bt-accent) 8%,transparent)}
 .tb-row[data-waiting]{border-color:color-mix(in srgb,var(--bt-danger) 42%,transparent)}
 .tb-avatar{flex:none;display:flex;align-items:center;justify-content:center}
-.tb-body{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.tb-body{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
 .tb-line{display:flex;align-items:center;gap:6px;min-width:0}
 .tb-name{font-size:12.5px;font-weight:600;color:var(--bt-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tb-role{flex:none;font-size:10.5px;color:var(--bt-ink-3);padding:0 5px;border-radius:6px;border:.5px solid color-mix(in srgb,var(--bt-ink) 14%,transparent)}
+.tb-elapsed{margin-left:auto;flex:none;font-size:10.5px;color:var(--bt-ink-3);font-variant-numeric:tabular-nums}
 .tb-pulse{flex:none;width:6px;height:6px;border-radius:50%;background:var(--bt-accent);animation:tb-breathe 1.8s ease-in-out infinite}
 @keyframes tb-breathe{0%,100%{opacity:.4;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
-.tb-task{display:flex;gap:4px;min-width:0;font-size:12px;color:var(--bt-ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tb-task>span:last-child{overflow:hidden;text-overflow:ellipsis}
-.tb-label{flex:none;color:var(--bt-ink-3)}
-.tb-who{font-size:10.5px;color:var(--bt-ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-task{display:flex;min-width:0;font-size:11.5px;color:var(--bt-ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-task>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .tb-board[data-density=compact] .tb-row{padding:6px 8px}
 .tb-board[data-density=compact] .tb-role{display:none}
 .tb-empty{padding:24px 14px;color:var(--bt-ink-3);text-align:center;line-height:1.6}
@@ -47810,38 +47847,82 @@ var TEAM_BOARD_CSS = `
 // src/client/team-board-host.js
 var import_react72 = require("react");
 var TEAM_BOARD_CONFIG_URL = "/api/bot/team-board.config.json";
+var OPEN_KEY = "bt.teamBoard.open";
+var SHEET_MAX = 583;
+var storedOpen = () => {
+  try {
+    const value = globalThis.localStorage?.getItem(OPEN_KEY);
+    return value === null || value === void 0 ? null : value === "1";
+  } catch {
+    return null;
+  }
+};
+var rememberOpen = (open) => {
+  try {
+    globalThis.localStorage?.setItem(OPEN_KEY, open ? "1" : "0");
+  } catch {
+  }
+};
 var TEAM_BOARD_HOST_CSS = `
-/* At 521px and up the panel keeps a 204px column of the page beside it (100vw - 204px);
-   the sheet below owns 520px and under, so the two rules meet at a deliberate 1px boundary. */
-.tbh{position:fixed;top:8px;right:8px;bottom:8px;width:min(380px,calc(100vw - 204px));display:flex;flex-direction:column;min-height:0;z-index:45;border:1px solid var(--bt-line);border-radius:12px;background:var(--bt-card);color:var(--bt-ink);box-shadow:0 8px 32px rgba(0,0,0,.12),var(--bt-glass-shadow);overflow:hidden}
-.tbh-toggle{position:fixed;top:50%;right:0;transform:translateY(-50%);z-index:45;writing-mode:vertical-rl;border:1px solid var(--bt-line);border-right:none;border-radius:10px 0 0 10px;background:var(--bt-card);color:var(--bt-ink);padding:12px 6px;font:inherit;font-size:12px;cursor:pointer}
-/* Below 520px a floating card leaves the page beside it too narrow to read: the board
-   takes the full width as a sheet across the top instead. */
-@media (max-width:520px){
-.tbh{top:0;left:0;right:0;bottom:auto;width:auto;max-height:46vh;border-width:0 0 1px;border-radius:0 0 12px 12px}
-.tbh-toggle{top:0;right:8px;bottom:auto;transform:none;writing-mode:horizontal-tb;border-radius:0 0 10px 10px;padding:6px 10px}
+/* Beside the chat the board floats over its right edge as a glass column. It is only as
+   tall as its roster: a full-height card over a nearly empty list covers chat for nothing. */
+.tbh{position:fixed;top:8px;right:8px;bottom:auto;max-height:calc(100vh - 16px);width:min(380px,calc(100vw - 204px));display:flex;flex-direction:column;min-height:0;z-index:45;border:.5px solid var(--bt-glass-rim);border-radius:12px;background:var(--bt-glass-bg);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);color:var(--bt-ink);box-shadow:var(--bt-glass-shadow);overflow:hidden}
+/* Closed, it leaves one floating pill on the right edge carrying the count of Bots
+   still working — a control you can find, not a strip glued to the window edge. */
+.tbh-toggle{position:fixed;top:50%;right:6px;transform:translateY(-50%);z-index:45;display:flex;align-items:center;gap:6px;writing-mode:vertical-rl;border:.5px solid var(--bt-glass-rim);border-radius:10px;background:var(--bt-glass-bg);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);color:var(--bt-ink-2);padding:11px 6px;font:inherit;font-size:11px;line-height:1;letter-spacing:.02em;cursor:pointer;box-shadow:var(--bt-glass-shadow)}
+.tbh-toggle:hover{color:var(--bt-ink);border-color:var(--bt-line-2)}
+.tbh-badge{writing-mode:horizontal-tb;display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:color-mix(in srgb,var(--bt-ink) 16%,transparent);color:var(--bt-ink);font-size:10px;font-weight:600;font-variant-numeric:tabular-nums}
+.tbh-badge[data-waiting=true]{background:color-mix(in srgb,var(--bt-danger) 30%,transparent)}
+/* Narrow windows: the sheet starts beside the avatar rail and below the window's own
+   title bar, so neither the rail nor the traffic lights cover its first column. */
+@media (max-width:583px){
+.tbh{top:var(--dsh-frame-overlay-top,8px);left:var(--tbh-left,8px);right:8px;bottom:auto;width:auto;max-height:46vh;border-radius:12px}
 }
 `;
-function TeamBoardHost({ useRoster, useWork }) {
+function TeamBoardHost({ actions, useRoster, useWork, useFrame, useSidebarPref }) {
   const roster = useRoster((value) => value);
   const work = useWork((value) => value);
-  const [open, setOpen] = (0, import_react72.useState)(true);
-  (0, import_react72.useEffect)(() => {
-    let live = true;
-    readBoardConfig(TEAM_BOARD_CONFIG_URL).then((config) => {
-      if (live) setOpen(config.defaultOpen);
-    });
-    return () => {
-      live = false;
-    };
-  }, []);
+  const frame = useFrame ? useFrame((value) => value) : void 0;
+  const pref = useSidebarPref ? useSidebarPref((value) => value) : "open";
+  const [open, setOpen] = (0, import_react72.useState)(() => storedOpen() ?? false);
+  const toggle = (next) => {
+    rememberOpen(next);
+    setOpen(next);
+  };
+  const viewport = frame?.viewport ?? (typeof globalThis.innerWidth === "number" ? globalThis.innerWidth : 1024);
+  const layout = frameLayout({ viewport, sidebarWidth: frame?.sidebarWidth ?? FALLBACK_SIDEBAR_WIDTH, pref });
+  const sheet = viewport <= SHEET_MAX;
+  const summary = boardSummary(roster, work);
   if (!open) {
-    return (0, import_react72.createElement)("button", { className: "tbh-toggle", type: "button", title: "Team board", onClick: () => setOpen(true) }, "团队看板");
+    const badge = summary.running + summary.waiting;
+    return (0, import_react72.createElement)(
+      "button",
+      {
+        className: "tbh-toggle",
+        type: "button",
+        title: "团队看板",
+        "aria-label": badge > 0 ? `打开团队看板，${summary.running} 在跑、${summary.waiting} 待办` : "打开团队看板",
+        onClick: () => toggle(true)
+      },
+      badge > 0 ? (0, import_react72.createElement)("span", { className: "tbh-badge", "data-waiting": summary.waiting > 0 || void 0, "aria-hidden": true }, String(badge)) : null,
+      (0, import_react72.createElement)("span", null, "团队看板")
+    );
   }
   return (0, import_react72.createElement)(
     "aside",
-    { className: "tbh", "aria-label": "Team board" },
-    (0, import_react72.createElement)(TeamBoard, { roster, work, onClose: () => setOpen(false), configUrl: TEAM_BOARD_CONFIG_URL })
+    {
+      className: "tbh",
+      "aria-label": "Team board",
+      // The sheet starts past whatever the left column occupies (rail included).
+      style: sheet ? { "--tbh-left": `${Math.max(8, layout.column)}px` } : void 0
+    },
+    (0, import_react72.createElement)(TeamBoard, {
+      roster,
+      work,
+      onClose: () => toggle(false),
+      onOverview: typeof actions?.openTeamOverview === "function" ? actions.openTeamOverview : void 0,
+      configUrl: TEAM_BOARD_CONFIG_URL
+    })
   );
 }
 
