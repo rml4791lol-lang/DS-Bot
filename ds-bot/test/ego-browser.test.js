@@ -63,3 +63,28 @@ test('ego: structured actions return a fresh snapshot after acting', () => {
     'ego_open', 'ego_snapshot', 'ego_click', 'ego_type', 'ego_press', 'ego_screenshot', 'ego_run',
   ])
 })
+
+test('ego: the provider registers into the browser slot and only defaults in the app', async (t) => {
+  const { installEgo } = await import('../src/host/browser/ego/index.js')
+  const previousApp = process.env.DS_BOT_APP
+  delete process.env.DS_BOT_APP
+  t.after(() => { if (previousApp !== undefined) process.env.DS_BOT_APP = previousApp })
+  const registered = []
+  const rt = {
+    config: {},
+    home: '/tmp',
+    plugins: { registerBuiltin: desc => registered.push(desc) },
+    botOf: () => undefined,
+  }
+  assert.equal(installEgo(rt, { findEgoCli: () => '/bin/ego-browser', findEgoApp: () => undefined }), true)
+  assert.equal(registered.length, 1)
+  assert.equal(registered[0].id, 'builtin:ego')
+  assert.equal(registered[0].slot, 'browser')
+  assert.deepEqual(registered[0].toolPrefixes, ['ego_open', 'ego_snapshot', 'ego_click', 'ego_type', 'ego_press', 'ego_screenshot', 'ego_run'])
+  assert.equal(rt.egoBrowser.available, true)
+  assert.equal(rt.defaultBrowserTarget(), null)
+
+  const off = { config: {}, home: '/tmp', plugins: { registerBuiltin: () => {} } }
+  assert.equal(installEgo(off, { findEgoCli: () => undefined, findEgoApp: () => undefined }), false)
+  assert.equal(off.defaultBrowserTarget, undefined)
+})
