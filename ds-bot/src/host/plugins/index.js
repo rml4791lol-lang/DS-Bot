@@ -441,6 +441,14 @@ export function install(rt) {
         return `builtin:${legacy}`
       }
     }
+    // A provider can offer a default that is better than the built-in fallback (for
+    // example ego lite when its CLI is installed). Only consulted with no saved choice.
+    if (typeof rt.defaultBrowserTarget === 'function') {
+      try {
+        const preferred = rt.defaultBrowserTarget(slot)
+        if (typeof preferred === 'string' && preferred.trim()) return preferred.trim()
+      } catch {}
+    }
     return slotDefaults.get(slot) ?? null
   }
 

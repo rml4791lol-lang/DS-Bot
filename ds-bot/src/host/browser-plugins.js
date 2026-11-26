@@ -11,6 +11,7 @@ import { sessionComplete } from './browser/session-model.js'
 import * as refs from './browser/refs.js'
 import * as script from './browser/script.js'
 import * as task from './browser/task.js'
+import { installEgo } from './browser/ego/index.js'
 
 export const browserPlugins = { refs, script, task }
 
@@ -160,8 +161,8 @@ export function install(rt) {
   const rawName = rt.config.browserPlugin
   const hasConfigName = rawName !== undefined && rawName !== null && rawName !== false && rawName !== ''
   const injected = rt.config.browserPluginApi
-  if (hasConfigName && !injected && !browserPlugins[rawName]) {
-    throw new Error(`Unknown browser plugin "${rawName}". Choose ${NAMES.join(', ')}.`)
+  if (hasConfigName && !injected && !browserPlugins[rawName] && rawName !== 'ego') {
+    throw new Error(`Unknown browser plugin "${rawName}". Choose ${[...NAMES, 'ego'].join(', ')}.`)
   }
   const playwrightUrl = optionalString(rt.config, 'playwrightUrl')
   const executablePath = optionalString(rt.config, 'browserExecutablePath')
@@ -169,6 +170,7 @@ export function install(rt) {
   const headless = typeof rt.config.browserHeadless === 'boolean'
     ? rt.config.browserHeadless
     : defaultBrowserHeadless(process.platform)
+  installEgo(rt)
   const profileRoot = join(rt.home, 'browser-profiles')
   const downloadRoot = join(rt.home, 'browser-downloads')
 
@@ -323,6 +325,8 @@ export function install(rt) {
     if (rt.plugins?.desiredSlotTarget?.('browser') === initialTarget) {
       rt.plugins.mountBuiltinSlotSync?.('browser', initialTarget)
     }
+  } else if (rt.plugins?.desiredSlotTarget?.('browser') === 'builtin:ego') {
+    rt.plugins.mountBuiltinSlotSync?.('browser', 'builtin:ego')
   } else if (rt.plugins?.desiredSlotTarget?.('browser') === 'builtin:readonly') {
     rt.plugins.mountBuiltinSlotSync?.('browser', 'builtin:readonly')
   }
