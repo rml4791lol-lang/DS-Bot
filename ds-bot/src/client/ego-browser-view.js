@@ -23,7 +23,9 @@ export function EgoBrowserView({ bot, actions }) {
       try {
         const next = await actions.egoFrame(bot.id, seq.current)
         if (!alive) return
-        if (next && typeof next.seq === 'number' && next.seq !== seq.current) {
+        if (next && next.error) {
+          setError(next.error)
+        } else if (next && typeof next.seq === 'number' && next.seq !== seq.current) {
           seq.current = next.seq
           setFrame(next)
           setError(null)
@@ -107,6 +109,15 @@ export function EgoBrowserView({ bot, actions }) {
         },
       }),
       frame?.title ? h('span', { className: 'bt-ego-title' }, frame.title) : null,
+      frame?.owner === 'user'
+        ? h('div', { className: 'bt-ego-owner' },
+            h('span', null, '你正在控制'),
+            h('button', {
+              type: 'button',
+              onClick: () => send({ type: 'resume' }),
+            }, '交还'),
+          )
+        : null,
     ),
     h('div', {
       ref: stage,

@@ -84,7 +84,10 @@ async function authorizeBrowserAction(rt, exec, botId, action) {
   if (action.kind === 'payment') {
     throw new Error(`This looks like a payment ("${action.label}" on ${action.host}). The user makes payments themselves: call browser_handoff with reason "payment" and stop. Nothing was done.`)
   }
-  if (!GRANT_KINDS.has(action.kind) || grantAllows(bot, action)) return
+  // A page script can do anything, and a submit leaves the page. Neither can be
+  // pre-granted: the user sees each one.
+  const forced = action.kind === 'script' || action.kind === 'submit'
+  if (!forced && (!GRANT_KINDS.has(action.kind) || grantAllows(bot, action))) return
 
   const approval = rt.ctx.get?.('approval')
   const agent = exec.agent
@@ -96,6 +99,8 @@ async function authorizeBrowserAction(rt, exec, botId, action) {
     upload: { en: 'upload files', zh: '上传文件' },
     download: { en: 'download a file', zh: '下载文件' },
     delete: { en: 'delete something', zh: '删除内容' },
+    submit: { en: 'submit a form', zh: '提交表单' },
+    script: { en: 'run a page script', zh: '执行页面脚本' },
   }
   const verb = verbs[action.kind]
   const reason = `Let ${bot.name} ${verb.en} on ${action.host}: "${action.label}"?`
@@ -170,7 +175,7 @@ export function install(rt) {
   const headless = typeof rt.config.browserHeadless === 'boolean'
     ? rt.config.browserHeadless
     : defaultBrowserHeadless(process.platform)
-  installEgo(rt)
+  installEgo(rt, { authorize: (exec, botId, action) => authorizeBrowserAction(rt, exec, botId, action) })
   const profileRoot = join(rt.home, 'browser-profiles')
   const downloadRoot = join(rt.home, 'browser-downloads')
 

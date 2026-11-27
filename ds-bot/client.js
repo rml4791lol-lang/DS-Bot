@@ -61911,7 +61911,9 @@ function EgoBrowserView({ bot, actions }) {
       try {
         const next = await actions.egoFrame(bot.id, seq.current);
         if (!alive) return;
-        if (next && typeof next.seq === "number" && next.seq !== seq.current) {
+        if (next && next.error) {
+          setError(next.error);
+        } else if (next && typeof next.seq === "number" && next.seq !== seq.current) {
           seq.current = next.seq;
           setFrame(next);
           setError(null);
@@ -62010,7 +62012,16 @@ function EgoBrowserView({ bot, actions }) {
           }
         }
       }),
-      frame2?.title ? (0, import_react92.createElement)("span", { className: "bt-ego-title" }, frame2.title) : null
+      frame2?.title ? (0, import_react92.createElement)("span", { className: "bt-ego-title" }, frame2.title) : null,
+      frame2?.owner === "user" ? (0, import_react92.createElement)(
+        "div",
+        { className: "bt-ego-owner" },
+        (0, import_react92.createElement)("span", null, "你正在控制"),
+        (0, import_react92.createElement)("button", {
+          type: "button",
+          onClick: () => send({ type: "resume" })
+        }, "交还")
+      ) : null
     ),
     (0, import_react92.createElement)(
       "div",
@@ -63625,6 +63636,9 @@ var BROWSER_CSS = `
 .bt-ego-address{flex:1;min-width:0;height:24px;border:0;border-radius:4px;padding:0 7px;background:var(--bt-card);color:var(--bt-ink);font:12px/1.2 ui-sans-serif,system-ui;outline:none}
 .bt-ego-address:focus{box-shadow:0 0 0 1px var(--bt-line)}
 .bt-ego-title{flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--bt-ink-3)}
+.bt-ego-owner{flex:none;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--bt-ink-3)}
+.bt-ego-owner button{height:22px;padding:0 7px;border:.5px solid var(--bt-line);border-radius:4px;background:var(--bt-card);color:var(--bt-ink);font:11px/1 ui-sans-serif,system-ui;cursor:pointer}
+.bt-ego-owner button:hover{border-color:var(--bt-ink-3)}
 .bt-ego-stage{flex:1;min-height:0;overflow:hidden;background:var(--bt-card);outline:none;cursor:default}
 .bt-ego-stage:focus-visible{box-shadow:inset 0 0 0 2px var(--bt-accent)}
 .bt-ego-frame{width:100%;height:auto;display:block;user-select:none;-webkit-user-drag:none}

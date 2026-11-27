@@ -11,25 +11,31 @@ export const FRAME_QUALITY = 45
 export const FRAME_SCALE = 0.6
 
 /**
- * @param {{ space: string, profileName?: string, intervalMs?: number, port: number, token: string }} input
+ * @param {{ space: string, profileId?: string, profileName?: string, intervalMs?: number, port: number, token: string }} input
  */
-export function buildDriver({ space, profileName, intervalMs = FRAME_INTERVAL_MS, port, token }) {
+export function buildDriver({ space, profileId, profileName, intervalMs = FRAME_INTERVAL_MS, port, token }) {
   return `(async () => {
   const net = require('node:net');
   const socket = net.createConnection({ host: '127.0.0.1', port: ${Number(port)} });
   socket.setNoDelay(true);
   const send = obj => { if (!socket.destroyed) socket.write(JSON.stringify({ ...obj, token: ${JSON.stringify(token)} }) + '\\n'); };
   const spaceName = ${JSON.stringify(space)};
-  const profileName = ${JSON.stringify(profileName ?? '')};
+  const wantedId = ${JSON.stringify(profileId ?? '')};
+  const wantedName = ${JSON.stringify(profileName ?? '')};
+  const list = await profiles();
   let profile;
-  if (profileName) {
-    const list = await profiles();
-    profile = list.find(item => item.name === profileName);
+  if (wantedId) profile = list.find(item => String(item.id) === String(wantedId));
+  if (!profile && wantedName) profile = list.find(item => item.name === wantedName);
+  if (!profile) {
+    const label = wantedName || String(wantedId);
+    send({ type: 'fatal', code: 'EGO_PROFILE_MISSING', message: 'No ego profile named "' + label + '". Create that profile in ego lite (Profiles), then retry. Nothing was opened.' });
+    socket.end();
+    return;
   }
-  const task = await taskSpace(spaceName, profile ? { profileId: profile.id } : undefined);
+  const task = await taskSpace(spaceName, { profileId: profile.id });
   const pages = await task.pages();
   const page = pages[0] ?? await task.newPage();
-  send({ type: 'ready', spaceId: task.spaceId, profileId: profile ? profile.id : null, profileName: profile ? profile.name : null });
+  send({ type: 'ready', spaceId: task.spaceId, profileId: profile.id, profileName: profile.name ?? wantedName });
   const metrics = async () => {
     const m = await page.cdp('Page.getLayoutMetrics');
     return m.cssLayoutViewport;
@@ -130,9 +136,10 @@ export function buildDriver({ space, profileName, intervalMs = FRAME_INTERVAL_MS
  * One ego page streamed to the host.
  */
 export class EgoBridge {
-  constructor({ cli, space, profileName, spawnImpl = spawn, frameIntervalMs = FRAME_INTERVAL_MS } = {}) {
+  constructor({ cli, space, profileId, profileName, spawnImpl = spawn, frameIntervalMs = FRAME_INTERVAL_MS } = {}) {
     this.cli = cli
     this.space = space
+    this.profileId = profileId
     this.profileName = profileName
     this.spawnImpl = spawnImpl
     this.intervalMs = frameIntervalMs
@@ -142,6 +149,7 @@ export class EgoBridge {
     this.server = null
     this.frame = null
     this.error = null
+    this.errorCode = null
     this.profile = null
     this.closed = false
     this.ready = null
@@ -168,13 +176,20 @@ export class EgoBridge {
     this.server.on('error', error => { this.error = `bridge server: ${error?.message ?? error}`; this._resolveReady?.(null) })
     this.server.listen(0, '127.0.0.1', () => {
       const port = this.server.address().port
-      const script = buildDriver({ space: this.space, profileName: this.profileName, intervalMs: this.intervalMs, port, token: this.token })
+      const script = buildDriver({ space: this.space, profileId: this.profileId, profileName: this.profileName, intervalMs: this.intervalMs, port, token: this.token })
       this.child = this.spawnImpl(this.cli, ['nodejs', '-e', script], { stdio: ['ignore', 'ignore', 'pipe'] })
       this.child.stderr?.on('data', chunk => {
         const text = String(chunk).trim()
         if (text && this.error === null) this.error = text.slice(0, 400)
       })
-      this.child.on?.('exit', () => { this.child = null })
+      this.child.on?.('error', error => {
+        if (this.error === null) this.error = `ego driver: ${error?.message ?? error}`
+        this._resolveReady?.(null)
+      })
+      this.child.on?.('exit', () => {
+        this.child = null
+        if (!this.closed && this.error === null && this.frame === null) this.error = 'ego driver stopped before showing a page.'
+      })
     })
     return this
   }
@@ -206,6 +221,7 @@ export class EgoBridge {
       this._resolveReady?.(this.profile)
     } else if (message.type === 'fatal') {
       this.error = message.message ?? 'ego driver stopped'
+      this.errorCode = message.code ?? null
       this._resolveReady?.(null)
     }
   }

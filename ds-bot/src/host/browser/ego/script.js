@@ -7,22 +7,37 @@ export const RESULT_SENTINEL = '@@ANBOT_EGO@@'
 export const ERROR_SENTINEL = '@@ANBOT_EGO_ERROR@@'
 
 /**
- * @param {{ space: string, profileName?: string, body: string }} input
+ * @param {{ space: string, profileId?: string, profileName?: string, body: string }} input
  */
-export function buildScript({ space, profileName, body }) {
+export function buildScript({ space, profileId, profileName, body }) {
   return `(async () => {
   const spaceName = ${JSON.stringify(space)};
-  const profileName = ${JSON.stringify(profileName ?? '')};
+  const wantedId = ${JSON.stringify(profileId ?? '')};
+  const wantedName = ${JSON.stringify(profileName ?? '')};
+  const list = await profiles();
   let profile;
-  if (profileName) {
-    const list = await profiles();
-    profile = list.find(item => item.name === profileName);
+  if (wantedId) profile = list.find(item => String(item.id) === String(wantedId));
+  if (!profile && wantedName) profile = list.find(item => item.name === wantedName);
+  if (!profile) {
+    const label = wantedName || String(wantedId);
+    console.log(${JSON.stringify(ERROR_SENTINEL)} + JSON.stringify({
+      code: 'EGO_PROFILE_MISSING',
+      message: 'No ego profile named "' + label + '". Create that profile in ego lite (Profiles), then retry. Nothing was opened.',
+    }));
+    process.exitCode = 1;
+    return;
   }
-  const task = await taskSpace(spaceName, profile ? { profileId: profile.id } : undefined);
+  const task = await taskSpace(spaceName, { profileId: profile.id });
   const pages = await task.pages();
   const page = pages[0] ?? await task.newPage();
   const out = await (async () => { ${body} })();
-  console.log(${JSON.stringify(RESULT_SENTINEL)} + JSON.stringify({ spaceId: task.spaceId, profileId: profile ? profile.id : null, value: out ?? null }));
+  console.log(${JSON.stringify(RESULT_SENTINEL)} + JSON.stringify({
+    spaceId: task.spaceId,
+    profileId: profile.id,
+    profileName: profile.name ?? wantedName,
+    url: await page.url(),
+    value: out ?? null,
+  }));
 })().catch((error) => {
   console.log(${JSON.stringify(ERROR_SENTINEL)} + JSON.stringify({ message: String(error && error.message || error) }));
   process.exitCode = 1;
@@ -42,7 +57,7 @@ function scan(text) {
     if (line.startsWith(ERROR_SENTINEL)) {
       try {
         const payload = JSON.parse(line.slice(ERROR_SENTINEL.length))
-        return { ok: false, error: payload?.message ?? 'ego script failed.' }
+        return { ok: false, error: payload?.message ?? 'ego script failed.', ...(payload?.code ? { code: payload.code } : {}) }
       } catch {
         return { ok: false, error: line.slice(ERROR_SENTINEL.length) || 'ego script failed.' }
       }
