@@ -885,8 +885,9 @@ export function TeamOverviewTab({ useUi, useSurface, actions }) {
 export const TEAM_OVERVIEW_CSS = `
 .bt-teamov-tab{position:fixed;z-index:29;right:0;top:44%;display:flex;flex-direction:column;align-items:center;gap:6px;width:30px;min-height:104px;padding:9px 0;border:.5px solid var(--bt-line-2);border-right:0;border-radius:10px 0 0 10px;background:var(--bt-glass-bg);color:var(--bt-ink-3);box-shadow:var(--bt-glass-shadow);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);font-family:var(--bt-font);cursor:pointer;transition:width .16s ease,color .12s ease,background-color .12s ease}
 .bt-teamov-tab:hover{width:34px;color:var(--bt-ink);background:var(--bt-card)}
-body:has(.tbh) .bt-teamov-tab{right:calc(min(380px,100vw - 204px) + 8px)}
-body:has(.tbh-toggle) .bt-teamov-tab{right:42px}
+/* The board is the team's one entry on that edge: its header carries the overview, and
+   its collapsed tab carries the counts. Two rails side by side was the noise. */
+body:has(.tbh) .bt-teamov-tab,body:has(.tbh-toggle) .bt-teamov-tab{display:none}
 .bt-teamov-tab svg{flex:none;width:14px;height:14px}
 .bt-teamov-tab span{writing-mode:vertical-rl;font-size:9px;line-height:14px;letter-spacing:.08em}
 .bt-teamov-tab:focus-visible{outline:2px solid var(--bt-accent);outline-offset:-2px}
