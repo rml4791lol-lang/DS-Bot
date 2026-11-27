@@ -14,7 +14,12 @@ const host = (t, { readOnly, home: given } = {}) => {
   const rt = { home, readOnly: () => readOnly, warn: (...args) => warnings.push(args) }
   installLedger(rt)
   install(rt)
-  if (given === undefined) t.after(() => rmSync(home, { recursive: true, force: true, maxRetries: 5 }))
+  // The ledger writes behind the call that appended; removing the folder first let a
+  // late write land in it and rmdir fail with ENOTEMPTY on a busy runner.
+  if (given === undefined) t.after(async () => {
+    await rt.ledger.flush()
+    rmSync(home, { recursive: true, force: true, maxRetries: 5 })
+  })
   return {
     rt,
     home,
