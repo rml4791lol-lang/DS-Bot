@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { findEgoCli } from '../src/host/browser/ego/detect.js'
 import { buildScript, runEgoScript, RESULT_SENTINEL, ERROR_SENTINEL } from '../src/host/browser/ego/script.js'
-import { actionBody, egoProfileName, egoSpaceName, pruneShots, toolDefs } from '../src/host/browser/ego/tools.js'
-import { profileForBot, requestedProfileName, storedProfileId } from '../src/host/browser/ego/profiles.js'
+import { actionBody, createRunner, egoProfileName, egoSpaceName, pruneShots, toolDefs } from '../src/host/browser/ego/tools.js'
+import { linkedToOtherBot, profileForBot, requestedProfileName, storedProfileId } from '../src/host/browser/ego/profiles.js'
 import { EgoLease } from '../src/host/browser/ego/lease.js'
 import { auditUrl, parseWebUrl, paymentLike } from '../src/host/browser/ego/policy.js'
 import { appendAudit } from '../src/host/browser/ego/audit.js'
@@ -51,6 +51,17 @@ test('ego: a linked profile survives a Bot rename, an explicit setting wins', ()
   assert.equal(requestedProfileName({ name: '小安' }), 'Anbot · 小安')
 })
 
+test('ego: a default profile name is not inherited by a recycled Bot name', () => {
+  const map = { b1: { profileId: 'p1', profileName: 'Anbot · 小安' } }
+  assert.equal(linkedToOtherBot(map, 'Anbot · 小安', 'b2'), 'b1')
+  assert.equal(linkedToOtherBot(map, 'Anbot · 小安', 'b1'), undefined)
+  // Explicit sharing is allowed; the setting is the user's decision.
+  assert.deepEqual(profileForBot({ id: 'b2', name: '小安', browserEgoProfile: 'Anbot · 小安' }, undefined), {
+    profileName: 'Anbot · 小安',
+    profileId: undefined,
+  })
+})
+
 test('ego: results and errors come back through the sentinels', async () => {
   const ok = await runEgoScript('/bin/ego-browser', 'script', {
     run: async () => ({ stdout: `noise\n${RESULT_SENTINEL}{"spaceId":7,"profileId":"Profile 3","value":"snapshot text"}\n`, stderr: '' }),
@@ -79,6 +90,28 @@ test('ego: structured actions return a fresh snapshot after acting', () => {
   assert.deepEqual(toolDefs().map(tool => tool.name), [
     'ego_status', 'ego_open', 'ego_snapshot', 'ego_click', 'ego_type', 'ego_press', 'ego_screenshot', 'ego_run', 'ego_handoff', 'ego_resume',
   ])
+})
+
+test('ego: a recycled Bot name cannot take another Bot profile', async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), 'anbot-ego-shared-'))
+  t.after(() => rm(dir, { recursive: true, force: true }))
+  await writeFile(join(dir, 'ego-profiles.json'), JSON.stringify({
+    b1: { profileId: 'p1', profileName: 'Anbot · 小安' },
+  }))
+  const bot = { id: 'b2', name: '小安' }
+  const rt = { home: dir, botOf: id => (id === 'b2' ? bot : undefined), config: {}, egoBrowser: {} }
+  const perform = createRunner({
+    rt,
+    cli: '/bin/ego-browser',
+    host: { resolveBotId: async () => 'b2' },
+    lease: new EgoLease(),
+    authorize: async () => {},
+  })
+  await assert.rejects(() => perform('snapshot', {}, {}), (error) => {
+    assert.equal(error.code, 'EGO_PROFILE_SHARED')
+    assert.match(error.message, /already linked/)
+    return true
+  })
 })
 
 test('ego: URLs and payments are refused before any page action', () => {
@@ -116,12 +149,13 @@ test('ego: audit keeps metadata, drops query parameters, and rotates', async (t)
   t.after(() => rm(dir, { recursive: true, force: true }))
   await appendAudit(dir, 'bot/1', {
     tool: 'ego_open', action: 'open', outcome: 'ok', url: 'https://example.com/a?token=secret',
-    profileId: 'p1', profileName: 'Anbot · 小安', target: '@12', reason: 'test', durationMs: 5,
+    profileId: 'p1', profileName: 'Anbot · 小安', shared: true, target: '@12', reason: 'test', durationMs: 5,
   })
   const path = join(dir, 'ego-audit', 'bot_1.jsonl')
   const line = JSON.parse((await readFile(path, 'utf8')).trim())
   assert.equal(line.url, 'https://example.com/a')
   assert.equal(line.profileId, 'p1')
+  assert.equal(line.shared, true)
   assert.equal(line.target, '@12')
   assert.equal(line.reason, 'test')
   assert.equal(line.durationMs, 5)

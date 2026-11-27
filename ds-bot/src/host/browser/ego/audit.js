@@ -21,7 +21,7 @@ function cleanReason(value, limit = 160) {
 /**
  * @param {string} home
  * @param {string} botId
- * @param {{ tool: string, action?: string, outcome: string, url?: string, profileId?: string|null, profileName?: string|null, target?: string, reason?: string, durationMs?: number }} event
+ * @param {{ tool: string, action?: string, outcome: string, url?: string, profileId?: string|null, profileName?: string|null, shared?: boolean, target?: string, reason?: string, durationMs?: number }} event
  */
 export async function appendAudit(home, botId, event) {
   if (typeof home !== 'string' || home === '') return false
@@ -46,6 +46,7 @@ export async function appendAudit(home, botId, event) {
       url: auditUrl(event.url),
       profileId: event.profileId === null || event.profileId === undefined ? null : clean(event.profileId, 100),
       profileName: event.profileName ? clean(event.profileName, 100) : null,
+      shared: event.shared === true,
       target: event.target ? clean(event.target, 80) : null,
       reason: event.reason ? cleanReason(event.reason) : null,
       durationMs: typeof event.durationMs === 'number' && Number.isFinite(event.durationMs) ? Math.max(0, Math.round(event.durationMs)) : null,

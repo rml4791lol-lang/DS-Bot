@@ -5,7 +5,7 @@ import { mkdir, readdir, stat, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { buildScript, runEgoScript } from './script.js'
 import { appendAudit } from './audit.js'
-import { EgoProfiles, profileForBot, requestedProfileName } from './profiles.js'
+import { EgoProfiles, linkedToOtherBot, profileForBot, requestedProfileName } from './profiles.js'
 import { paymentError, paymentLike, parseWebUrl } from './policy.js'
 
 export const systemPrompt = [
@@ -215,10 +215,12 @@ export function createRunner({ rt, cli, host, authorize, lease, onProfile }) {
     const botId = await host.resolveBotId(exec)
     const bot = botId === undefined ? undefined : rt.botOf(botId)
     if (bot === undefined) throw new Error('This session is not a Bot, so it has no ego browser.')
-    const stored = await profiles.get(botId)
+    const map = await profiles.read()
+    const stored = map[String(botId)]
     const profile = profileForBot(bot, stored)
     const profileName = profile.profileName
     const profileId = profile.profileId
+    const shared = typeof bot.browserEgoProfile === 'string' && bot.browserEgoProfile.trim() !== ''
     const target = action === 'click' || action === 'type' || action === 'press'
       ? String(args.selector ?? '').slice(0, 80)
       : null
@@ -229,7 +231,7 @@ export function createRunner({ rt, cli, host, authorize, lease, onProfile }) {
       return [
         `ego-browser: ${cli}`,
         `ego lite: ${rt.egoBrowser?.app ?? 'not found in /Applications'}`,
-        `profile for ${bot.name}: ${profileName}${profileId ? ` (id ${profileId})` : ' (not linked yet; create it in ego lite)'}`,
+        `profile for ${bot.name}: ${profileName}${profileId ? ` (id ${profileId})` : ' (not linked yet; create it in ego lite)'}${shared ? ' (shared explicitly)' : ''}`,
         `space: ${egoSpaceName(bot)}`,
       ].join('\n')
     }
@@ -237,15 +239,21 @@ export function createRunner({ rt, cli, host, authorize, lease, onProfile }) {
     if (action === 'handoff') {
       const reason = String(args.reason ?? 'other').slice(0, 80)
       lease.takeUser(botId, { reason, indefinite: true })
-      await appendAudit(rt.home, botId, { tool: 'ego_handoff', action, outcome: 'handoff', reason, profileId, profileName, durationMs: Date.now() - started })
+      await appendAudit(rt.home, botId, { tool: 'ego_handoff', action, outcome: 'handoff', reason, profileId, profileName, shared, durationMs: Date.now() - started })
       const detail = typeof args.message === 'string' && args.message.trim() ? `\n${args.message.trim().slice(0, 500)}` : ''
       return `The user now has control of the ego page (${reason}). Stop here and wait. Call ego_resume only after the user says they are done.${detail}`
     }
 
     if (action === 'resume') {
       lease.resume(botId)
-      await appendAudit(rt.home, botId, { tool: 'ego_resume', action, outcome: 'resume', profileId, profileName, durationMs: Date.now() - started })
+      await appendAudit(rt.home, botId, { tool: 'ego_resume', action, outcome: 'resume', profileId, profileName, shared, durationMs: Date.now() - started })
       return 'Control is back with you. Continue, and take a fresh snapshot before the next click.'
+    }
+
+    if (!shared && linkedToOtherBot(map, profileName, botId) !== undefined) {
+      const error = new Error(`Profile "${profileName}" is already linked to another Bot. To share that login, set browserEgoProfile to "${profileName}" explicitly; otherwise give this Bot its own profile. Nothing was done.`)
+      error.code = 'EGO_PROFILE_SHARED'
+      throw error
     }
 
     const claim = lease.beginBot(botId, exec.callId ?? exec.id)
@@ -262,6 +270,7 @@ export function createRunner({ rt, cli, host, authorize, lease, onProfile }) {
       url: extra.url ?? '',
       profileId: extra.profileId ?? auditProfile.profileId,
       profileName: extra.profileName ?? auditProfile.profileName,
+      shared,
       target,
       reason: extra.reason,
       durationMs: Date.now() - started,

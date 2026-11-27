@@ -31,7 +31,7 @@ ego lite 不是又一个无头浏览器。它把「人和 agent 共用一个浏�
 - `bot.browserEgoProfile` 是显式覆盖：用户想让这个 Bot 换一份登录，就在这里写 ego 里的 profile 名。换名字就是换登录，这是有意为之。
 - 找不到 profile 时 **fail-closed**：不创建 space，不回落用户默认 profile，返回可执行的提示——「在 ego lite 的 Profiles 里建一个叫 `Anbot · X` 的 profile，然后重试」。
 - 删除 Bot 不会自动删 ego profile：cookie 在 ego 自己的目录里，Anbot 不越界删除。设置页提供「解除绑定」，ego 里的 profile 由用户处置。
-- 共享（尚未实现，契约定在这里）：默认每个 Bot 一份 profile，用户自己一份。共享是**显式、限时、可撤销**地把某个 Bot 接到某份 profile 上，必须走一次审批，并写审计；共享的是登录态的使用权，不是复制 cookie。
+- 共享是允许的，但必须显式。默认每个 Bot 一份 profile；用户把某个 Bot 的 `browserEgoProfile` 指向另一份 profile，就是共享，这个设置动作本身就是用户同意，审计记 `shared`。默认名字的 profile 已经属于另一个 Bot 时，新 Bot 不会继承，报错并要求显式共享或另建 profile。限时、可撤销的共享授权放在 P1。共享的是登录态的使用权，不复制 cookie。
 
 ### 3. space 生命周期
 
@@ -95,7 +95,7 @@ ego lite 不是又一个无头浏览器。它把「人和 agent 共用一个浏�
 |---|---|---|
 | P0 | profile stable id、fail-closed、脚本/提交审批、付款拦截、租约与接管、审计元数据、截图留存、安装状态 | 本分支 |
 | P1 | 截图改 CDP screencast + WebSocket 推送、DOM 目标分类、supervisor/健康检查、space 按任务收口、下载/上传、多标签面板 | 下一步 |
-| P2 | 证据帧/回放、能力清单与版本协商、profile 共享审批、上游贡献「每 Bot 独立 profile + 审批」 | 后续 |
+| P2 | 证据帧/回放、能力清单与版本协商、限时共享授权、上游贡献「每 Bot 独立 profile + 审批」 | 后续 |
 
 ## 不做什么
 
@@ -104,7 +104,7 @@ ego lite 不是又一个无头浏览器。它把「人和 agent 共用一个浏�
 - 不默认使用用户的 profile；缺失就失败，不静默回落。
 - 不做连续录屏，不把实时帧写进磁盘或模型上下文。
 - 不把 ego 的 CLI/桌面自动化混进 browser slot；那是权限更高的另一类能力。
-- 不在本版实现共享审批、下载捕获、验证码识别和 CDP screencast。
+- 不在本版实现限时共享授权、下载捕获、验证码识别和 CDP screencast。
 
 ## 已知限制
 
@@ -113,7 +113,7 @@ ego lite 不是又一个无头浏览器。它把「人和 agent 共用一个浏�
 - 实时镜像是 400ms 轮询 `captureScreenshot`，不是事件驱动 screencast；多 Bot 并行时 CPU 会偏高。
 - space 仍是每 Bot 一个，不是每任务一个；孤儿清理只做了桥空闲回收。
 - 用户接管不能取消已经在跑的动作。
-- profile 创建只有 ego 界面，没有 CLI API；共享审批未实现。
+- profile 创建只有 ego 界面，没有 CLI API；显式共享靠 `browserEgoProfile`，限时共享授权未实现。
 - driver 还是字符串模板；P1 拆成独立文件并加 supervisor/指标。
 
 ## 可执行验收

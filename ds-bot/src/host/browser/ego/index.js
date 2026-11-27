@@ -4,7 +4,7 @@
 import * as detect from './detect.js'
 import { EgoBridge } from './bridge.js'
 import { EgoLease } from './lease.js'
-import { readProfileMapSync, profileForBot } from './profiles.js'
+import { readProfileMapSync, linkedToOtherBot, profileForBot } from './profiles.js'
 import { createRunner, egoSpaceName, systemPrompt, toolDefs } from './tools.js'
 import { output } from '../../tools.js'
 
@@ -77,7 +77,19 @@ export function installEgo(rt, { findEgoCli = detect.findEgoCli, findEgoApp = de
       })
       const bridges = new Map()
       const touched = new Map()
-      const profileOf = bot => profileForBot(bot, profiles[String(bot.id)])
+      const profileOf = bot => {
+        const stored = profiles[String(bot.id)]
+        const profile = profileForBot(bot, stored)
+        const explicit = typeof bot.browserEgoProfile === 'string' && bot.browserEgoProfile.trim() !== ''
+        if (!explicit && linkedToOtherBot(profiles, profile.profileName, bot.id) !== undefined) {
+          return {
+            ...profile,
+            errorCode: 'EGO_PROFILE_SHARED',
+            error: `Profile "${profile.profileName}" is already linked to another Bot. To share that login, set browserEgoProfile explicitly; otherwise give this Bot its own profile.`,
+          }
+        }
+        return profile
+      }
 
       const bridgeOf = botId => {
         const bot = rt.botOf(botId)
@@ -91,8 +103,13 @@ export function installEgo(rt, { findEgoCli = detect.findEgoCli, findEgoApp = de
             profileId: profile.profileId,
             profileName: profile.profileName,
           })
+          if (profile.error) {
+            bridge.error = profile.error
+            bridge.errorCode = profile.errorCode
+          } else {
+            bridge.start()
+          }
           bridges.set(botId, bridge)
-          bridge.start()
         }
         return bridge
       }
@@ -102,6 +119,9 @@ export function installEgo(rt, { findEgoCli = detect.findEgoCli, findEgoApp = de
         const bridge = bridgeOf(id)
         if (bridge === undefined) return undefined
         touched.set(id, Date.now())
+        if (bridge.error && bridge.latest() === undefined) {
+          return { error: bridge.error, code: bridge.errorCode, owner: lease.owner(id) }
+        }
         const latest = await bridge.waitForFrame(typeof since === 'number' ? since : undefined)
         if (lease.owner(id) === 'user') lease.touchUser(id)
         if (latest !== undefined) {

@@ -130,3 +130,16 @@ export function profileForBot(bot, stored) {
   }
   return { profileName: requestedProfileName(bot), profileId: undefined }
 }
+
+/**
+ * A default profile name belongs to one Bot. A new Bot with a recycled display name
+ * must not inherit the old Bot's login by accident; sharing needs the explicit
+ * `browserEgoProfile` setting, which the user makes and the audit marks as shared.
+ */
+export function linkedToOtherBot(map, profileName, botId) {
+  for (const [id, entry] of Object.entries(map ?? {})) {
+    if (String(id) === String(botId)) continue
+    if (String(entry?.profileName ?? '') === String(profileName ?? '')) return String(id)
+  }
+  return undefined
+}
