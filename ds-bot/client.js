@@ -20835,8 +20835,8 @@ function bodyOf(def, paint3, flat = false) {
     return "";
   }
 }
-var eyeMarkup = ([cx, cy, w, h96, tilt]) => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><rect class="bt-eye" x="${-w / 2}" y="${-h96 / 2}" width="${w}" height="${h96}" rx="${w / 2}"/></g>`;
-var happyEyeMarkup = ([cx, cy, w, h96, tilt]) => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><path class="bt-eye-happy" opacity="0" d="M${-w * 0.62} ${h96 * 0.14}Q0 ${-h96 * 0.42} ${w * 0.62} ${h96 * 0.14}" fill="none" stroke="#000" stroke-width="${w * 0.5}" stroke-linecap="round"/></g>`;
+var eyeMarkup = ([cx, cy, w, h97, tilt]) => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><rect class="bt-eye" x="${-w / 2}" y="${-h97 / 2}" width="${w}" height="${h97}" rx="${w / 2}"/></g>`;
+var happyEyeMarkup = ([cx, cy, w, h97, tilt]) => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><path class="bt-eye-happy" opacity="0" d="M${-w * 0.62} ${h97 * 0.14}Q0 ${-h97 * 0.42} ${w * 0.62} ${h97 * 0.14}" fill="none" stroke="#000" stroke-width="${w * 0.5}" stroke-linecap="round"/></g>`;
 var maskBox = (size) => `maskUnits="userSpaceOnUse" x="${-size}" y="${-size}" width="${size * 3}" height="${size * 3}"`;
 var holes = (def, eyes) => `<rect x="${-def.size}" y="${-def.size}" width="${def.size * 3}" height="${def.size * 3}" fill="#fff"/>${eyes}`;
 var MASK_ID = "%MASK%";
@@ -22481,12 +22481,12 @@ function liveSprings(apply2) {
     const dt = Math.min(0.5, Math.max(1e-3, (now - last) / 1e3));
     last = now;
     const steps = Math.ceil(dt * 240);
-    const h96 = dt / steps;
+    const h97 = dt / steps;
     let moving = false;
     for (const [key, value] of values) {
       for (let index = 0; index < steps; index += 1) {
-        value.v += (-value.k * (value.x - value.to) - value.c * value.v) * h96;
-        value.x += value.v * h96;
+        value.v += (-value.k * (value.x - value.to) - value.c * value.v) * h97;
+        value.x += value.v * h97;
       }
       if (Math.abs(value.x - value.to) < 0.05 && Math.abs(value.v) < 1) {
         value.x = value.to;
@@ -39245,8 +39245,8 @@ function capOrbAlpha(alpha, maximum = ORB_MAX_ALPHA) {
   return Math.min(maximum, Math.max(0, alpha));
 }
 function hashD(a, b) {
-  const h96 = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453;
-  return h96 - Math.floor(h96);
+  const h97 = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453;
+  return h97 - Math.floor(h97);
 }
 function fibDir(i, n) {
   const golden = Math.PI * (3 - Math.sqrt(5));
@@ -61892,8 +61892,150 @@ function rectsOverlap(a, b) {
   return a.width > 0 && a.height > 0 && b.width > 0 && b.height > 0 && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 }
 
-// src/client/browser-pane.js
+// src/client/ego-browser-view.js
 var import_react92 = require("react");
+var POLL_MS3 = 250;
+var namedKeys = /* @__PURE__ */ new Set(["Enter", "Tab", "Backspace", "Escape", "Delete", "ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"]);
+function EgoBrowserView({ bot, actions }) {
+  const [frame2, setFrame] = (0, import_react92.useState)(null);
+  const [error, setError] = (0, import_react92.useState)(null);
+  const [draft, setDraft] = (0, import_react92.useState)("");
+  const [editing, setEditing] = (0, import_react92.useState)(false);
+  const seq = (0, import_react92.useRef)(0);
+  const stage = (0, import_react92.useRef)(null);
+  const sent = (0, import_react92.useRef)(0);
+  (0, import_react92.useEffect)(() => {
+    let alive = true;
+    let timer = 0;
+    const tick = async () => {
+      try {
+        const next = await actions.egoFrame(bot.id, seq.current);
+        if (!alive) return;
+        if (next && typeof next.seq === "number" && next.seq !== seq.current) {
+          seq.current = next.seq;
+          setFrame(next);
+          setError(null);
+        }
+      } catch (failure) {
+        if (alive) setError(failure?.message ?? String(failure));
+      }
+      if (alive) timer = setTimeout(tick, POLL_MS3);
+    };
+    tick();
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [bot.id, actions]);
+  const send = (event) => {
+    sent.current += 1;
+    void Promise.resolve(actions.egoInput(bot.id, event)).catch(() => {
+    });
+  };
+  const point = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
+    return {
+      x: Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)),
+      y: Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height))
+    };
+  };
+  const onPointerDown = (event) => {
+    if (event.button !== 0) return;
+    const at = point(event);
+    if (at === null) return;
+    stage.current?.focus?.();
+    send({ type: "click", ...at });
+  };
+  const onWheel = (event) => {
+    const at = point(event);
+    send({ type: "wheel", x: at?.x ?? 0.5, y: at?.y ?? 0.5, deltaX: event.deltaX, deltaY: event.deltaY });
+  };
+  const onKeyDown = (event) => {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.key.length === 1) {
+      event.preventDefault();
+      send({ type: "insert", text: event.key });
+      return;
+    }
+    if (namedKeys.has(event.key)) {
+      event.preventDefault();
+      send({ type: "key", key: event.key });
+    }
+  };
+  const navigate = () => {
+    let url = draft.trim();
+    if (url === "") return;
+    if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+    try {
+      new URL(url);
+    } catch {
+      return;
+    }
+    const current2 = frame2?.url ?? "";
+    setEditing(false);
+    if (url === current2) return;
+    send({ type: "navigate", url });
+  };
+  const shown = editing ? draft : frame2?.url ?? "";
+  return (0, import_react92.createElement)(
+    "div",
+    { className: "bt-ego" },
+    (0, import_react92.createElement)(
+      "div",
+      { className: "bt-ego-bar" },
+      (0, import_react92.createElement)("span", { className: "bt-ego-badge" }, "ego"),
+      (0, import_react92.createElement)("input", {
+        className: "bt-ego-address",
+        value: shown,
+        spellCheck: false,
+        placeholder: "ego lite",
+        onFocus: () => {
+          setDraft(frame2?.url ?? "");
+          setEditing(true);
+        },
+        onChange: (event) => setDraft(event.target.value),
+        onBlur: () => {
+          setEditing(false);
+        },
+        onKeyDown: (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            navigate();
+            event.currentTarget.blur();
+          }
+          if (event.key === "Escape") {
+            setEditing(false);
+            event.currentTarget.blur();
+          }
+        }
+      }),
+      frame2?.title ? (0, import_react92.createElement)("span", { className: "bt-ego-title" }, frame2.title) : null
+    ),
+    (0, import_react92.createElement)(
+      "div",
+      {
+        ref: stage,
+        className: "bt-ego-stage",
+        tabIndex: 0,
+        role: "application",
+        "aria-label": `${bot.name}'s ego page`,
+        onPointerDown,
+        onWheel,
+        onKeyDown
+      },
+      frame2 ? (0, import_react92.createElement)("img", {
+        className: "bt-ego-frame",
+        src: `data:${frame2.mime};base64,${frame2.data}`,
+        draggable: false,
+        alt: ""
+      }) : (0, import_react92.createElement)("div", { className: "bt-ego-empty" }, error ? error : "Connecting to ego…")
+    )
+  );
+}
+
+// src/client/browser-pane.js
+var import_react93 = require("react");
 var import_react_dom12 = require("react-dom");
 var PANEL_LINGER_MS = 300;
 var WIDTH_KEY = STORAGE.browserWidth;
@@ -61905,10 +62047,10 @@ var READ_FLASH_MS = 2400;
 var EMPTY_PAGE = { url: "", title: "", favicon: null, loading: false, canGoBack: false, canGoForward: false, error: null, excerpt: "" };
 var EMPTY_TABS2 = { ids: [], active: null };
 var icon = (paths) => function BrowserIcon() {
-  return (0, import_react92.createElement)(
+  return (0, import_react93.createElement)(
     "svg",
     { width: 16, height: 16, viewBox: "0 0 20 20", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true },
-    paths.map((d, index) => (0, import_react92.createElement)("path", { key: index, d }))
+    paths.map((d, index) => (0, import_react93.createElement)("path", { key: index, d }))
   );
 };
 var GlobeIcon2 = icon(["M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z", "M3 10h14", "M10 3c2 2.2 2.9 4.5 2.9 7S12 14.8 10 17c-2-2.2-2.9-4.5-2.9-7S8 5.2 10 3z"]);
@@ -61925,11 +62067,11 @@ var WindowIcon = icon(["M4 5h12v9.5H4z", "M4 7.5h12"]);
 var PasteIcon = icon(["M7.5 4.5h5v2h-5z", "M6 5.5H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-1"]);
 function siteMatchesHost(site, host) {
   const s = String(site ?? "").replace(/^\.+/, "").toLowerCase();
-  const h96 = String(host ?? "").replace(/^\.+/, "").toLowerCase();
-  if (!s || !h96) return false;
-  if (s === h96) return true;
-  if (s.includes(".") && h96.endsWith(`.${s}`)) return true;
-  if (h96.includes(".") && s.endsWith(`.${h96}`)) return true;
+  const h97 = String(host ?? "").replace(/^\.+/, "").toLowerCase();
+  if (!s || !h97) return false;
+  if (s === h97) return true;
+  if (s.includes(".") && h97.endsWith(`.${s}`)) return true;
+  if (h97.includes(".") && s.endsWith(`.${h97}`)) return true;
   return false;
 }
 var hostOfUrl = (url) => {
@@ -61961,9 +62103,9 @@ function orderImportSources(sources, lastId) {
   return [sources[index], ...sources.slice(0, index), ...sources.slice(index + 1)];
 }
 function Favicon({ src, className }) {
-  const [failed, setFailed] = (0, import_react92.useState)(null);
-  if (!src || failed === src) return (0, import_react92.createElement)("span", { className: `${className} bt-ptab-globe` }, (0, import_react92.createElement)(GlobeIcon2));
-  return (0, import_react92.createElement)("img", { className, src, alt: "", "aria-hidden": true, onError: () => setFailed(src) });
+  const [failed, setFailed] = (0, import_react93.useState)(null);
+  if (!src || failed === src) return (0, import_react93.createElement)("span", { className: `${className} bt-ptab-globe` }, (0, import_react93.createElement)(GlobeIcon2));
+  return (0, import_react93.createElement)("img", { className, src, alt: "", "aria-hidden": true, onError: () => setFailed(src) });
 }
 var savedWidth = () => {
   try {
@@ -61978,15 +62120,15 @@ var fitWidth = (width, [low, high]) => Math.round(Math.max(low, Math.min(width, 
 var shortAddress = (url) => String(url ?? "").replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/$/, "");
 var tabLabel = (page) => page.title || shortAddress(page.url) || t("New tab");
 function PanelMenu({ items, className, "aria-label": label }) {
-  const [open, setOpen] = (0, import_react92.useState)(false);
+  const [open, setOpen] = (0, import_react93.useState)(false);
   const [shown, leaving] = useLinger(open, 120);
-  const wrap = (0, import_react92.useRef)(null);
-  const button = (0, import_react92.useRef)(null);
+  const wrap = (0, import_react93.useRef)(null);
+  const button = (0, import_react93.useRef)(null);
   useEscape(() => {
     setOpen(false);
     button.current?.focus();
   }, open);
-  (0, import_react92.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     if (!open) return void 0;
     const onDown = (event) => {
       if (wrap.current && !wrap.current.contains(event.target)) setOpen(false);
@@ -62002,10 +62144,10 @@ function PanelMenu({ items, className, "aria-label": label }) {
     };
   }, [open]);
   if (items.length === 0) return null;
-  return (0, import_react92.createElement)(
+  return (0, import_react93.createElement)(
     "span",
     { className: "bt-pmenu", ref: wrap },
-    (0, import_react92.createElement)("button", {
+    (0, import_react93.createElement)("button", {
       ref: button,
       type: "button",
       className,
@@ -62014,11 +62156,11 @@ function PanelMenu({ items, className, "aria-label": label }) {
       "aria-haspopup": "menu",
       "aria-expanded": open,
       onClick: () => setOpen((value) => !value)
-    }, (0, import_react92.createElement)(DotsIcon)),
-    shown ? (0, import_react92.createElement)(
+    }, (0, import_react93.createElement)(DotsIcon)),
+    shown ? (0, import_react93.createElement)(
       "div",
       { className: "bt-pmenu-pop", role: "menu", "data-leaving": leaving || void 0 },
-      items.map((item, index) => item.sep ? (0, import_react92.createElement)("span", { key: `sep-${index}`, className: "bt-pmenu-sep", role: "separator" }) : (0, import_react92.createElement)("button", {
+      items.map((item, index) => item.sep ? (0, import_react93.createElement)("span", { key: `sep-${index}`, className: "bt-pmenu-sep", role: "separator" }) : (0, import_react93.createElement)("button", {
         key: item.key,
         type: "button",
         role: "menuitem",
@@ -62027,7 +62169,7 @@ function PanelMenu({ items, className, "aria-label": label }) {
           setOpen(false);
           item.onPick();
         }
-      }, (0, import_react92.createElement)(item.icon), (0, import_react92.createElement)("span", null, item.label)))
+      }, (0, import_react93.createElement)(item.icon), (0, import_react93.createElement)("span", null, item.label)))
     ) : null
   );
 }
@@ -62053,12 +62195,12 @@ function menuItemFor(key, actions, subject) {
 var sideTitle = (chat) => chat?.entries?.[0]?.question?.trim() || t("Side chat");
 function PanelStrip({ bot, roomSubject, subject, view, ids, active, sides, side, task, canBrowse, reading, onView, actions, useBrowserPages }) {
   const pages = useBrowserPages((map) => map);
-  const wrap = (0, import_react92.useRef)(null);
-  const ind = (0, import_react92.useRef)(null);
-  const spot = (0, import_react92.useRef)(null);
-  const under = (0, import_react92.useRef)(null);
-  const watcher = (0, import_react92.useRef)(null);
-  const observed = (0, import_react92.useRef)(/* @__PURE__ */ new Set());
+  const wrap = (0, import_react93.useRef)(null);
+  const ind = (0, import_react93.useRef)(null);
+  const spot = (0, import_react93.useRef)(null);
+  const under = (0, import_react93.useRef)(null);
+  const watcher = (0, import_react93.useRef)(null);
+  const observed = (0, import_react93.useRef)(/* @__PURE__ */ new Set());
   const stripKey = [
     bot?.name ?? roomSubject?.name ?? "",
     ids.map((tabId) => `${tabId}:${tabLabel(pages[tabId] ?? EMPTY_PAGE)}`).join("\0"),
@@ -62083,7 +62225,7 @@ function PanelStrip({ bot, roomSubject, subject, view, ids, active, sides, side,
       }
     }
   };
-  (0, import_react92.useLayoutEffect)(() => {
+  (0, import_react93.useLayoutEffect)(() => {
     const box = wrap.current;
     const capsule = ind.current;
     if (!box || !capsule) return void 0;
@@ -62113,7 +62255,7 @@ function PanelStrip({ bot, roomSubject, subject, view, ids, active, sides, side,
       trail.cancel();
     };
   }, [view, active, side, stripKey]);
-  (0, import_react92.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     const box = wrap.current;
     if (!box) return void 0;
     const observer = new ResizeObserver(() => {
@@ -62139,13 +62281,13 @@ function PanelStrip({ bot, roomSubject, subject, view, ids, active, sides, side,
     canTerminal: actions.canOpenTerminal?.() === true,
     canFiles: actions.canOpenFiles?.() === true
   }).map((key) => menuItemFor(key, actions, subject));
-  return (0, import_react92.createElement)(
+  return (0, import_react93.createElement)(
     "div",
     { className: "bt-ptabs", role: "tablist", "data-window-drag": true, "aria-label": t("Panel tabs") },
-    (0, import_react92.createElement)(
+    (0, import_react93.createElement)(
       "div",
       { className: "bt-ptabs-in", ref: wrap },
-      (0, import_react92.createElement)(
+      (0, import_react93.createElement)(
         "button",
         {
           type: "button",
@@ -62155,13 +62297,13 @@ function PanelStrip({ bot, roomSubject, subject, view, ids, active, sides, side,
           title: bot?.name ?? roomSubject?.name ?? t("Details"),
           onClick: () => onView("details")
         },
-        bot ? (0, import_react92.createElement)(BotMark, { bot, size: 20, state: reading ? "searching" : "idle" }) : null,
-        view === "details" || !bot ? (0, import_react92.createElement)("span", { className: "bt-ptab-name" }, bot?.name ?? roomSubject?.name ?? t("Details")) : null
+        bot ? (0, import_react93.createElement)(BotMark, { bot, size: 20, state: reading ? "searching" : "idle" }) : null,
+        view === "details" || !bot ? (0, import_react93.createElement)("span", { className: "bt-ptab-name" }, bot?.name ?? roomSubject?.name ?? t("Details")) : null
       ),
       ids.map((tabId) => {
         const page = pages[tabId] ?? EMPTY_PAGE;
         const on = view === "browser" && tabId === active;
-        return (0, import_react92.createElement)(
+        return (0, import_react93.createElement)(
           "div",
           {
             key: tabId,
@@ -62170,7 +62312,7 @@ function PanelStrip({ bot, roomSubject, subject, view, ids, active, sides, side,
             "data-selected": on || void 0,
             className: "bt-ptab-wrap"
           },
-          (0, import_react92.createElement)(
+          (0, import_react93.createElement)(
             "button",
             {
               type: "button",
@@ -62189,10 +62331,10 @@ function PanelStrip({ bot, roomSubject, subject, view, ids, active, sides, side,
                 }
               }
             },
-            (0, import_react92.createElement)(Favicon, { src: page.favicon, className: "bt-ptab-fav" }),
-            (0, import_react92.createElement)("span", { className: "bt-ptab-title" }, tabLabel(page))
+            (0, import_react93.createElement)(Favicon, { src: page.favicon, className: "bt-ptab-fav" }),
+            (0, import_react93.createElement)("span", { className: "bt-ptab-title" }, tabLabel(page))
           ),
-          (0, import_react92.createElement)("button", {
+          (0, import_react93.createElement)("button", {
             type: "button",
             className: "bt-ptab-x",
             "aria-label": t("Close tab"),
@@ -62205,7 +62347,7 @@ function PanelStrip({ bot, roomSubject, subject, view, ids, active, sides, side,
       }),
       sides.map((chat) => {
         const on = view === "side" && chat.id === side;
-        return (0, import_react92.createElement)(
+        return (0, import_react93.createElement)(
           "div",
           {
             key: chat.id,
@@ -62214,7 +62356,7 @@ function PanelStrip({ bot, roomSubject, subject, view, ids, active, sides, side,
             "data-selected": on || void 0,
             className: "bt-ptab-wrap bt-ptab-side"
           },
-          (0, import_react92.createElement)(
+          (0, import_react93.createElement)(
             "button",
             {
               type: "button",
@@ -62230,10 +62372,10 @@ function PanelStrip({ bot, roomSubject, subject, view, ids, active, sides, side,
                 }
               }
             },
-            (0, import_react92.createElement)("span", { className: "bt-ptab-globe", "aria-hidden": true }, (0, import_react92.createElement)(SideIcon)),
-            (0, import_react92.createElement)("span", { className: "bt-ptab-title" }, sideTitle(chat))
+            (0, import_react93.createElement)("span", { className: "bt-ptab-globe", "aria-hidden": true }, (0, import_react93.createElement)(SideIcon)),
+            (0, import_react93.createElement)("span", { className: "bt-ptab-title" }, sideTitle(chat))
           ),
-          (0, import_react92.createElement)("button", {
+          (0, import_react93.createElement)("button", {
             type: "button",
             className: "bt-ptab-x",
             "aria-label": t("Close side chat"),
@@ -62244,7 +62386,7 @@ function PanelStrip({ bot, roomSubject, subject, view, ids, active, sides, side,
           }, "×")
         );
       }),
-      task ? (0, import_react92.createElement)(
+      task ? (0, import_react93.createElement)(
         "div",
         {
           key: `task:${task.id}`,
@@ -62253,7 +62395,7 @@ function PanelStrip({ bot, roomSubject, subject, view, ids, active, sides, side,
           "data-selected": view === "task" || void 0,
           className: "bt-ptab-wrap bt-ptab-side"
         },
-        (0, import_react92.createElement)(
+        (0, import_react93.createElement)(
           "button",
           {
             type: "button",
@@ -62269,10 +62411,10 @@ function PanelStrip({ bot, roomSubject, subject, view, ids, active, sides, side,
               }
             }
           },
-          (0, import_react92.createElement)("span", { className: "bt-task-dot", "data-status": task.status, "aria-hidden": true }),
-          (0, import_react92.createElement)("span", { className: "bt-ptab-title" }, task.title)
+          (0, import_react93.createElement)("span", { className: "bt-task-dot", "data-status": task.status, "aria-hidden": true }),
+          (0, import_react93.createElement)("span", { className: "bt-ptab-title" }, task.title)
         ),
-        (0, import_react92.createElement)("button", {
+        (0, import_react93.createElement)("button", {
           type: "button",
           className: "bt-ptab-x",
           "aria-label": t("Close"),
@@ -62282,11 +62424,11 @@ function PanelStrip({ bot, roomSubject, subject, view, ids, active, sides, side,
           }
         }, "×")
       ) : null,
-      (0, import_react92.createElement)("span", { ref: ind, className: "bt-ptab-ind", "aria-hidden": true })
+      (0, import_react93.createElement)("span", { ref: ind, className: "bt-ptab-ind", "aria-hidden": true })
     ),
     // The `···` and Close stay outside the scrolling tabs, so a narrow panel keeps both.
-    items.length > 0 ? (0, import_react92.createElement)(PanelMenu, { items, className: "bt-ptab-new", "aria-label": t("More") }) : null,
-    (0, import_react92.createElement)("button", { type: "button", className: "bt-icon-btn bt-ptab-close", "aria-label": t("Close panel"), title: t("Close panel"), onClick: () => actions.closePanel() }, (0, import_react92.createElement)(CloseIcon3))
+    items.length > 0 ? (0, import_react93.createElement)(PanelMenu, { items, className: "bt-ptab-new", "aria-label": t("More") }) : null,
+    (0, import_react93.createElement)("button", { type: "button", className: "bt-icon-btn bt-ptab-close", "aria-label": t("Close panel"), title: t("Close panel"), onClick: () => actions.closePanel() }, (0, import_react93.createElement)(CloseIcon3))
   );
 }
 var OVERLAY_SELECTOR = '[role="dialog"],[role="menu"],[role="listbox"]';
@@ -62314,18 +62456,18 @@ function shouldCheckBrowserCover(records) {
 }
 function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages, hold }) {
   const page = useBrowserPages((pages) => pages[tabId ?? ""]) ?? EMPTY_PAGE;
-  const frame2 = (0, import_react92.useRef)(null);
-  const input = (0, import_react92.useRef)(null);
-  const [draft, setDraft] = (0, import_react92.useState)(null);
-  const [covered, setCovered] = (0, import_react92.useState)(false);
+  const frame2 = (0, import_react93.useRef)(null);
+  const input = (0, import_react93.useRef)(null);
+  const [draft, setDraft] = (0, import_react93.useState)(null);
+  const [covered, setCovered] = (0, import_react93.useState)(false);
   const imports = actions.browserImport;
-  const [flow, setFlow] = (0, import_react92.useState)(null);
-  const flowRef = (0, import_react92.useRef)(null);
-  const reqRef = (0, import_react92.useRef)(0);
-  const liveReqIdRef = (0, import_react92.useRef)(null);
-  const [sources, setSources] = (0, import_react92.useState)(null);
-  const [lastSourceId, setLastSourceId] = (0, import_react92.useState)(lastImportSource);
-  const [busy, setBusy] = (0, import_react92.useState)(false);
+  const [flow, setFlow] = (0, import_react93.useState)(null);
+  const flowRef = (0, import_react93.useRef)(null);
+  const reqRef = (0, import_react93.useRef)(0);
+  const liveReqIdRef = (0, import_react93.useRef)(null);
+  const [sources, setSources] = (0, import_react93.useState)(null);
+  const [lastSourceId, setLastSourceId] = (0, import_react93.useState)(lastImportSource);
+  const [busy, setBusy] = (0, import_react93.useState)(false);
   const setFlowTracked = (next) => {
     flowRef.current = typeof next === "function" ? next(flowRef.current) : next;
     setFlow(flowRef.current);
@@ -62340,7 +62482,7 @@ function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages, ho
     });
   };
   const showGuest = landed && !leaving && !covered && Boolean(page.url) && !page.error && flow === null;
-  (0, import_react92.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     let raf2 = 0;
     const update = () => {
       raf2 = 0;
@@ -62363,7 +62505,7 @@ function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages, ho
       window.removeEventListener("resize", schedule);
     };
   }, []);
-  (0, import_react92.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     reqRef.current += 1;
     cancelPendingImport();
     setFlowTracked(null);
@@ -62372,7 +62514,7 @@ function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages, ho
       cancelPendingImport();
     };
   }, [tabId]);
-  const sourcesReqRef = (0, import_react92.useRef)(0);
+  const sourcesReqRef = (0, import_react93.useRef)(0);
   const refreshSources = () => {
     if (!imports) return;
     const req = ++sourcesReqRef.current;
@@ -62496,7 +62638,7 @@ function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages, ho
     cancelPendingImport();
     setFlowTracked(null);
   };
-  (0, import_react92.useLayoutEffect)(() => {
+  (0, import_react93.useLayoutEffect)(() => {
     const element = frame2.current;
     if (!element || leaving || !tabId) {
       void actions.browserShow(null);
@@ -62522,7 +62664,7 @@ function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages, ho
       window.removeEventListener("resize", schedule);
     };
   }, [tabId, showGuest, leaving]);
-  (0, import_react92.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     setDraft(null);
     if (landed && !page.url) input.current?.focus();
   }, [tabId, landed]);
@@ -62542,38 +62684,38 @@ function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages, ho
     input.current?.blur();
   }, editing);
   const secure = /^https:/i.test(page.url);
-  return (0, import_react92.createElement)(
+  return (0, import_react93.createElement)(
     "div",
     { className: "bt-panel-view bt-panel-browser", "aria-label": t("{name}'s browser", { name: bot.name }) },
-    actions.browserTakeover ? (0, import_react92.createElement)(
+    actions.browserTakeover ? (0, import_react93.createElement)(
       "div",
       { className: "bt-browser-takeover", "data-held": hold?.by === "user" || void 0 },
-      (0, import_react92.createElement)("span", null, hold?.by === "user" ? t("You control this browser") : hold?.by === "bot" ? t("The Bot handed this browser to you: {reason}", { reason: hold.reason }) : t("The Bot controls this browser")),
-      hold?.by ? (0, import_react92.createElement)("button", { type: "button", onClick: () => void actions.browserGiveBack(bot.id) }, t("Give back")) : (0, import_react92.createElement)(
+      (0, import_react93.createElement)("span", null, hold?.by === "user" ? t("You control this browser") : hold?.by === "bot" ? t("The Bot handed this browser to you: {reason}", { reason: hold.reason }) : t("The Bot controls this browser")),
+      hold?.by ? (0, import_react93.createElement)("button", { type: "button", onClick: () => void actions.browserGiveBack(bot.id) }, t("Give back")) : (0, import_react93.createElement)(
         "span",
         { className: "bt-browser-takeover-actions" },
-        (0, import_react92.createElement)("button", { type: "button", onClick: () => void actions.browserTakeover(bot.id) }, t("Take over")),
-        (0, import_react92.createElement)("button", { type: "button", onClick: () => void actions.browserStop(bot.id) }, t("Stop"))
+        (0, import_react93.createElement)("button", { type: "button", onClick: () => void actions.browserTakeover(bot.id) }, t("Take over")),
+        (0, import_react93.createElement)("button", { type: "button", onClick: () => void actions.browserStop(bot.id) }, t("Stop"))
       )
     ) : null,
-    (0, import_react92.createElement)(
+    (0, import_react93.createElement)(
       "div",
       { className: "bt-browser-bar" },
-      (0, import_react92.createElement)("button", { type: "button", className: "bt-icon-btn", "aria-label": t("Back"), title: t("Back"), disabled: !page.canGoBack, onClick: () => actions.browserCommand(tabId, "back") }, (0, import_react92.createElement)(BackIcon)),
-      (0, import_react92.createElement)("button", { type: "button", className: "bt-icon-btn", "aria-label": t("Forward"), title: t("Forward"), disabled: !page.canGoForward, onClick: () => actions.browserCommand(tabId, "forward") }, (0, import_react92.createElement)(ForwardIcon)),
-      (0, import_react92.createElement)("button", {
+      (0, import_react93.createElement)("button", { type: "button", className: "bt-icon-btn", "aria-label": t("Back"), title: t("Back"), disabled: !page.canGoBack, onClick: () => actions.browserCommand(tabId, "back") }, (0, import_react93.createElement)(BackIcon)),
+      (0, import_react93.createElement)("button", { type: "button", className: "bt-icon-btn", "aria-label": t("Forward"), title: t("Forward"), disabled: !page.canGoForward, onClick: () => actions.browserCommand(tabId, "forward") }, (0, import_react93.createElement)(ForwardIcon)),
+      (0, import_react93.createElement)("button", {
         type: "button",
         className: "bt-icon-btn",
         disabled: !page.url,
         "aria-label": page.loading ? t("Stop") : t("Reload"),
         title: page.loading ? t("Stop") : t("Reload"),
         onClick: () => actions.browserCommand(tabId, page.loading ? "stop" : "reload")
-      }, (0, import_react92.createElement)(page.loading ? StopIcon : ReloadIcon)),
-      (0, import_react92.createElement)(
+      }, (0, import_react93.createElement)(page.loading ? StopIcon : ReloadIcon)),
+      (0, import_react93.createElement)(
         "form",
         { className: "bt-browser-address", onSubmit: go, "data-editing": editing || void 0 },
-        (0, import_react92.createElement)("span", { className: "bt-browser-scheme", "aria-hidden": true }, (0, import_react92.createElement)(secure && !editing ? LockIcon2 : GlobeIcon2)),
-        (0, import_react92.createElement)("input", {
+        (0, import_react93.createElement)("span", { className: "bt-browser-scheme", "aria-hidden": true }, (0, import_react93.createElement)(secure && !editing ? LockIcon2 : GlobeIcon2)),
+        (0, import_react93.createElement)("input", {
           ref: input,
           type: "text",
           spellCheck: false,
@@ -62599,14 +62741,14 @@ function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages, ho
           }
         })
       ),
-      (0, import_react92.createElement)("button", {
+      (0, import_react93.createElement)("button", {
         type: "button",
         className: "bt-icon-btn",
         "aria-label": t("New browser tab"),
         title: t("New browser tab"),
         onClick: () => actions.browserNewTab(bot.id)
-      }, (0, import_react92.createElement)(PlusTabIcon)),
-      imports ? (0, import_react92.createElement)("button", {
+      }, (0, import_react93.createElement)(PlusTabIcon)),
+      imports ? (0, import_react93.createElement)("button", {
         type: "button",
         className: "bt-icon-btn bt-import-btn",
         "aria-label": t("Import cookies"),
@@ -62617,13 +62759,13 @@ function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages, ho
           if (flow === "menu") setFlowTracked(null);
           else openImport();
         }
-      }, (0, import_react92.createElement)(ImportIcon)) : null,
-      page.loading ? (0, import_react92.createElement)("span", { className: "bt-browser-progress", "aria-hidden": true }) : null
+      }, (0, import_react93.createElement)(ImportIcon)) : null,
+      page.loading ? (0, import_react93.createElement)("span", { className: "bt-browser-progress", "aria-hidden": true }) : null
     ),
-    (0, import_react92.createElement)(
+    (0, import_react93.createElement)(
       "div",
       { ref: frame2, className: "bt-browser-frame", "data-guest": showGuest || void 0 },
-      flow === "menu" ? (0, import_react92.createElement)(ImportMenu, {
+      flow === "menu" ? (0, import_react93.createElement)(ImportMenu, {
         sources: orderImportSources(sources, lastSourceId),
         lastSourceId,
         loading: sources === null,
@@ -62634,7 +62776,7 @@ function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages, ho
         onSource: pickSource,
         onClose: () => setFlowTracked(null)
       }) : null,
-      typeof flow === "object" && flow !== null ? (0, import_react92.createElement)(ImportCard, {
+      typeof flow === "object" && flow !== null ? (0, import_react93.createElement)(ImportCard, {
         flow,
         page,
         busy,
@@ -62656,21 +62798,21 @@ function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages, ho
         onDone: () => setFlowTracked(null),
         onReload: () => actions.browserCommand(tabId, "reload")
       }) : null,
-      flow === null && page.error ? (0, import_react92.createElement)(
+      flow === null && page.error ? (0, import_react93.createElement)(
         "div",
         { className: "bt-browser-empty" },
-        (0, import_react92.createElement)("div", { className: "bt-browser-empty-title" }, t("This page didn’t load")),
-        (0, import_react92.createElement)("div", { className: "bt-browser-empty-text" }, t(page.error)),
-        page.url ? (0, import_react92.createElement)("button", { type: "button", className: "bt-browser-retry", onClick: () => {
+        (0, import_react93.createElement)("div", { className: "bt-browser-empty-title" }, t("This page didn’t load")),
+        (0, import_react93.createElement)("div", { className: "bt-browser-empty-text" }, t(page.error)),
+        page.url ? (0, import_react93.createElement)("button", { type: "button", className: "bt-browser-retry", onClick: () => {
           void actions.browserNavigate(tabId, page.url);
         } }, t("Try again")) : null
-      ) : flow === null && !page.url ? (0, import_react92.createElement)(
+      ) : flow === null && !page.url ? (0, import_react93.createElement)(
         "div",
         { className: "bt-browser-empty" },
-        (0, import_react92.createElement)(BotMark, { bot, size: 48, state: "idle", live: true }),
-        (0, import_react92.createElement)("div", { className: "bt-browser-empty-title" }, t("{name}'s browser", { name: bot.name })),
-        (0, import_react92.createElement)("div", { className: "bt-browser-empty-text" }, t("Open a page here and {name} can read it with you. Logins and cookies stay with {name}; other Bots never see them.", { name: bot.name })),
-        imports ? (0, import_react92.createElement)("button", { type: "button", className: "bt-browser-retry", onClick: openImport }, t("Import cookies")) : null
+        (0, import_react93.createElement)(BotMark, { bot, size: 48, state: "idle", live: true }),
+        (0, import_react93.createElement)("div", { className: "bt-browser-empty-title" }, t("{name}'s browser", { name: bot.name })),
+        (0, import_react93.createElement)("div", { className: "bt-browser-empty-text" }, t("Open a page here and {name} can read it with you. Logins and cookies stay with {name}; other Bots never see them.", { name: bot.name })),
+        imports ? (0, import_react93.createElement)("button", { type: "button", className: "bt-browser-retry", onClick: openImport }, t("Import cookies")) : null
       ) : null
     )
   );
@@ -62689,18 +62831,18 @@ function importError(error) {
 }
 function ImportMenu({ sources, lastSourceId, loading, busy, canPaste, onFile, onPaste, onSource, onClose }) {
   useEscape(onClose);
-  return (0, import_react92.createElement)(
+  return (0, import_react93.createElement)(
     "div",
     { className: "bt-import-menu", role: "menu", "aria-label": t("Import cookies") },
-    (0, import_react92.createElement)("div", { className: "bt-import-menu-title" }, t("Import from browser")),
-    loading ? (0, import_react92.createElement)("div", { className: "bt-import-menu-note" }, t("Loading…")) : sources.length === 0 ? (0, import_react92.createElement)("div", { className: "bt-import-menu-note" }, t("No browsers found")) : sources.map((source) => {
+    (0, import_react93.createElement)("div", { className: "bt-import-menu-title" }, t("Import from browser")),
+    loading ? (0, import_react93.createElement)("div", { className: "bt-import-menu-note" }, t("Loading…")) : sources.length === 0 ? (0, import_react93.createElement)("div", { className: "bt-import-menu-note" }, t("No browsers found")) : sources.map((source) => {
       const isLast = source.id === lastSourceId;
       const needsPerm = Boolean(source.needsPermission);
       const isReady = Boolean(source.liveDebugReady);
       const hasCount = typeof source.cookieCount === "number" && !needsPerm && !isReady;
       const showFallback = !isLast && !needsPerm && !isReady && !hasCount && !source.email;
       const hasMeta = isLast || needsPerm || isReady || hasCount || showFallback;
-      return (0, import_react92.createElement)(
+      return (0, import_react93.createElement)(
         "button",
         {
           key: source.id,
@@ -62711,48 +62853,48 @@ function ImportMenu({ sources, lastSourceId, loading, busy, canPaste, onFile, on
           title: source.email ? `${source.label} (${source.email})` : source.label,
           onClick: () => onSource(source)
         },
-        (0, import_react92.createElement)(WindowIcon, { className: "bt-import-item-icon" }),
-        (0, import_react92.createElement)(
+        (0, import_react93.createElement)(WindowIcon, { className: "bt-import-item-icon" }),
+        (0, import_react93.createElement)(
           "span",
           { className: "bt-import-item-main" },
-          (0, import_react92.createElement)("span", { className: "bt-import-item-name" }, source.label),
-          source.email ? (0, import_react92.createElement)("span", { className: "bt-import-item-email" }, source.email) : null
+          (0, import_react93.createElement)("span", { className: "bt-import-item-name" }, source.label),
+          source.email ? (0, import_react93.createElement)("span", { className: "bt-import-item-email" }, source.email) : null
         ),
-        hasMeta ? (0, import_react92.createElement)(
+        hasMeta ? (0, import_react93.createElement)(
           "span",
           { className: "bt-import-item-meta" },
-          isLast ? (0, import_react92.createElement)("span", { className: "bt-import-item-tag" }, t("Last used")) : null,
-          needsPerm ? (0, import_react92.createElement)("span", { className: "bt-import-item-sub", "data-warn": true }, t("Permission needed")) : null,
-          isReady ? (0, import_react92.createElement)("span", { className: "bt-import-item-sub", "data-ready": true }, t("Ready")) : null,
-          hasCount ? (0, import_react92.createElement)("span", { className: "bt-import-item-sub" }, t("{count} cookies", { count: source.cookieCount })) : null,
-          showFallback ? (0, import_react92.createElement)("span", { className: "bt-import-item-sub" }, t("Browser profile")) : null
+          isLast ? (0, import_react93.createElement)("span", { className: "bt-import-item-tag" }, t("Last used")) : null,
+          needsPerm ? (0, import_react93.createElement)("span", { className: "bt-import-item-sub", "data-warn": true }, t("Permission needed")) : null,
+          isReady ? (0, import_react93.createElement)("span", { className: "bt-import-item-sub", "data-ready": true }, t("Ready")) : null,
+          hasCount ? (0, import_react93.createElement)("span", { className: "bt-import-item-sub" }, t("{count} cookies", { count: source.cookieCount })) : null,
+          showFallback ? (0, import_react93.createElement)("span", { className: "bt-import-item-sub" }, t("Browser profile")) : null
         ) : null
       );
     }),
-    (0, import_react92.createElement)("div", { className: "bt-import-sep", role: "separator" }),
-    (0, import_react92.createElement)(
+    (0, import_react93.createElement)("div", { className: "bt-import-sep", role: "separator" }),
+    (0, import_react93.createElement)(
       "button",
       { type: "button", className: "bt-import-item", role: "menuitem", disabled: busy, onClick: onFile },
-      (0, import_react92.createElement)(FileIcon, { className: "bt-import-item-icon" }),
-      (0, import_react92.createElement)("span", { className: "bt-import-item-name" }, t("From a file…")),
-      (0, import_react92.createElement)("span", { className: "bt-import-item-sub" }, t("cookies.txt, JSON, storageState"))
+      (0, import_react93.createElement)(FileIcon, { className: "bt-import-item-icon" }),
+      (0, import_react93.createElement)("span", { className: "bt-import-item-name" }, t("From a file…")),
+      (0, import_react93.createElement)("span", { className: "bt-import-item-sub" }, t("cookies.txt, JSON, storageState"))
     ),
-    canPaste ? (0, import_react92.createElement)(
+    canPaste ? (0, import_react93.createElement)(
       "button",
       { type: "button", className: "bt-import-item", role: "menuitem", disabled: busy, onClick: onPaste },
-      (0, import_react92.createElement)(PasteIcon, { className: "bt-import-item-icon" }),
-      (0, import_react92.createElement)("span", { className: "bt-import-item-name" }, t("Paste cookies or cURL…")),
-      (0, import_react92.createElement)("span", { className: "bt-import-item-sub" }, t("JSON, cURL, header"))
+      (0, import_react93.createElement)(PasteIcon, { className: "bt-import-item-icon" }),
+      (0, import_react93.createElement)("span", { className: "bt-import-item-name" }, t("Paste cookies or cURL…")),
+      (0, import_react93.createElement)("span", { className: "bt-import-item-sub" }, t("JSON, cURL, header"))
     ) : null
   );
 }
 function SafariPermissionCard({ flow, busy, imports, onOpenPermission, onPermissionGranted, onRetrySource, onCancel }) {
   const { source } = flow;
-  const [granted, setGranted] = (0, import_react92.useState)(false);
-  const notifiedRef = (0, import_react92.useRef)(false);
-  const onGrantedRef = (0, import_react92.useRef)(onPermissionGranted);
+  const [granted, setGranted] = (0, import_react93.useState)(false);
+  const notifiedRef = (0, import_react93.useRef)(false);
+  const onGrantedRef = (0, import_react93.useRef)(onPermissionGranted);
   onGrantedRef.current = onPermissionGranted;
-  (0, import_react92.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     const canProbe = typeof imports?.probe === "function";
     if (!canProbe) return void 0;
     let active = true;
@@ -62782,33 +62924,33 @@ function SafariPermissionCard({ flow, busy, imports, onOpenPermission, onPermiss
       clearTimeout(timer);
     };
   }, [imports, source.id]);
-  return (0, import_react92.createElement)("div", { className: "bt-import-card" }, (0, import_react92.createElement)(
+  return (0, import_react93.createElement)("div", { className: "bt-import-card" }, (0, import_react93.createElement)(
     "div",
     { className: "bt-import-box" },
-    (0, import_react92.createElement)("div", { className: "bt-import-title" }, t("Allow Safari access")),
-    (0, import_react92.createElement)(
+    (0, import_react93.createElement)("div", { className: "bt-import-title" }, t("Allow Safari access")),
+    (0, import_react93.createElement)(
       "div",
       { className: "bt-import-text" },
       t("macOS protects Safari cookies with Full Disk Access. Enable DS Bot once in System Settings to import from Safari.")
     ),
-    (0, import_react92.createElement)(
+    (0, import_react93.createElement)(
       "div",
       { className: "bt-import-steps" },
-      (0, import_react92.createElement)("div", { className: "bt-import-step" }, t("1. Open Full Disk Access in System Settings and turn on DS Bot.")),
-      (0, import_react92.createElement)("div", { className: "bt-import-step" }, t("2. If macOS asks to quit and reopen DS Bot, click Quit & Reopen, then try again."))
+      (0, import_react93.createElement)("div", { className: "bt-import-step" }, t("1. Open Full Disk Access in System Settings and turn on DS Bot.")),
+      (0, import_react93.createElement)("div", { className: "bt-import-step" }, t("2. If macOS asks to quit and reopen DS Bot, click Quit & Reopen, then try again."))
     ),
-    granted ? (0, import_react92.createElement)("div", { className: "bt-import-ready-note" }, t("Full Disk Access granted — ready to import.")) : null,
-    (0, import_react92.createElement)(
+    granted ? (0, import_react93.createElement)("div", { className: "bt-import-ready-note" }, t("Full Disk Access granted — ready to import.")) : null,
+    (0, import_react93.createElement)(
       "div",
       { className: "bt-import-actions" },
-      (0, import_react92.createElement)("button", { type: "button", className: "bt-import-plain", disabled: busy, onClick: onCancel }, t("Cancel")),
-      imports?.openPermission ? (0, import_react92.createElement)("button", {
+      (0, import_react93.createElement)("button", { type: "button", className: "bt-import-plain", disabled: busy, onClick: onCancel }, t("Cancel")),
+      imports?.openPermission ? (0, import_react93.createElement)("button", {
         type: "button",
         className: granted ? "bt-import-plain" : "bt-import-primary",
         disabled: busy,
         onClick: onOpenPermission
       }, t("Open System Settings")) : null,
-      (0, import_react92.createElement)("button", {
+      (0, import_react93.createElement)("button", {
         type: "button",
         className: granted || !imports?.openPermission ? "bt-import-primary" : "bt-import-plain",
         disabled: busy,
@@ -62821,18 +62963,18 @@ function RemoteDebugCard({ flow, busy, imports, onRetrySource, onLaunchSource, o
   const { source, info } = flow;
   const inspectUrl = info?.inspectUrl || "chrome://inspect/#remote-debugging";
   const browserName = info?.browserName || source.name;
-  const [copied, setCopied] = (0, import_react92.useState)(false);
-  const [detected, setDetected] = (0, import_react92.useState)(false);
-  const copyTimerRef = (0, import_react92.useRef)(null);
-  const mountedRef = (0, import_react92.useRef)(true);
-  (0, import_react92.useEffect)(() => {
+  const [copied, setCopied] = (0, import_react93.useState)(false);
+  const [detected, setDetected] = (0, import_react93.useState)(false);
+  const copyTimerRef = (0, import_react93.useRef)(null);
+  const mountedRef = (0, import_react93.useRef)(true);
+  (0, import_react93.useEffect)(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       clearTimeout(copyTimerRef.current);
     };
   }, []);
-  (0, import_react92.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     const canProbe = typeof imports?.probe === "function";
     const canList = typeof imports?.sources === "function";
     if (!canProbe && !canList) return void 0;
@@ -62869,45 +63011,45 @@ function RemoteDebugCard({ flow, busy, imports, onRetrySource, onLaunchSource, o
     }, () => {
     });
   };
-  return (0, import_react92.createElement)("div", { className: "bt-import-card" }, (0, import_react92.createElement)(
+  return (0, import_react93.createElement)("div", { className: "bt-import-card" }, (0, import_react93.createElement)(
     "div",
     { className: "bt-import-box" },
-    (0, import_react92.createElement)("div", { className: "bt-import-title" }, t("Connect to {name}", { name: browserName })),
-    (0, import_react92.createElement)(
+    (0, import_react93.createElement)("div", { className: "bt-import-title" }, t("Connect to {name}", { name: browserName })),
+    (0, import_react93.createElement)(
       "div",
       { className: "bt-import-text" },
       t("{name} protects its cookies on Windows. Enable its built-in remote debugging switch once — no extension needed.", { name: browserName })
     ),
-    (0, import_react92.createElement)(
+    (0, import_react93.createElement)(
       "div",
       { className: "bt-import-steps" },
-      (0, import_react92.createElement)("div", { className: "bt-import-step" }, t("1. Open this address in {name}:", { name: browserName })),
-      (0, import_react92.createElement)(
+      (0, import_react93.createElement)("div", { className: "bt-import-step" }, t("1. Open this address in {name}:", { name: browserName })),
+      (0, import_react93.createElement)(
         "div",
         { className: "bt-import-copy-row" },
-        (0, import_react92.createElement)("code", { className: "bt-import-code" }, inspectUrl),
-        (0, import_react92.createElement)("button", { type: "button", className: "bt-import-mini", onClick: copyAddress }, copied ? t("Copied") : t("Copy"))
+        (0, import_react93.createElement)("code", { className: "bt-import-code" }, inspectUrl),
+        (0, import_react93.createElement)("button", { type: "button", className: "bt-import-mini", onClick: copyAddress }, copied ? t("Copied") : t("Copy"))
       ),
-      (0, import_react92.createElement)("div", { className: "bt-import-step" }, t("2. Turn on “Allow remote debugging for this browser instance”, then click Allow when {name} prompts.", { name: browserName }))
+      (0, import_react93.createElement)("div", { className: "bt-import-step" }, t("2. Turn on “Allow remote debugging for this browser instance”, then click Allow when {name} prompts.", { name: browserName }))
     ),
-    detected ? (0, import_react92.createElement)("div", { className: "bt-import-ready-note" }, t("Remote debugging detected — ready to import.")) : null,
-    (0, import_react92.createElement)(
+    detected ? (0, import_react93.createElement)("div", { className: "bt-import-ready-note" }, t("Remote debugging detected — ready to import.")) : null,
+    (0, import_react93.createElement)(
       "div",
       { className: "bt-import-actions" },
-      !info?.running && info?.hasExe ? (0, import_react92.createElement)("button", { type: "button", className: "bt-import-plain", disabled: busy, onClick: onLaunchSource }, t("Open {name}", { name: browserName })) : (0, import_react92.createElement)("button", { type: "button", className: "bt-import-plain", disabled: busy, onClick: onFile }, t("From a file…")),
-      (0, import_react92.createElement)("button", { type: "button", className: "bt-import-plain", disabled: busy, onClick: onCancel }, t("Cancel")),
-      (0, import_react92.createElement)("button", { type: "button", className: "bt-import-primary", disabled: busy, onClick: onRetrySource }, busy ? t("Connecting…") : t("Connect and import"))
+      !info?.running && info?.hasExe ? (0, import_react93.createElement)("button", { type: "button", className: "bt-import-plain", disabled: busy, onClick: onLaunchSource }, t("Open {name}", { name: browserName })) : (0, import_react93.createElement)("button", { type: "button", className: "bt-import-plain", disabled: busy, onClick: onFile }, t("From a file…")),
+      (0, import_react93.createElement)("button", { type: "button", className: "bt-import-plain", disabled: busy, onClick: onCancel }, t("Cancel")),
+      (0, import_react93.createElement)("button", { type: "button", className: "bt-import-primary", disabled: busy, onClick: onRetrySource }, busy ? t("Connecting…") : t("Connect and import"))
     )
   ));
 }
 function PasteCard2({ flow, busy, onSubmitPaste, onCancel }) {
-  const [text, setText] = (0, import_react92.useState)("");
-  const [siteUrl, setSiteUrl] = (0, import_react92.useState)(flow.siteUrl || "");
-  return (0, import_react92.createElement)("div", { className: "bt-import-card" }, (0, import_react92.createElement)(
+  const [text, setText] = (0, import_react93.useState)("");
+  const [siteUrl, setSiteUrl] = (0, import_react93.useState)(flow.siteUrl || "");
+  return (0, import_react93.createElement)("div", { className: "bt-import-card" }, (0, import_react93.createElement)(
     "div",
     { className: "bt-import-box" },
-    (0, import_react92.createElement)("div", { className: "bt-import-title" }, t("Paste cookies or cURL")),
-    (0, import_react92.createElement)("textarea", {
+    (0, import_react93.createElement)("div", { className: "bt-import-title" }, t("Paste cookies or cURL")),
+    (0, import_react93.createElement)("textarea", {
       className: "bt-import-textarea",
       rows: 5,
       spellCheck: false,
@@ -62915,7 +63057,7 @@ function PasteCard2({ flow, busy, onSubmitPaste, onCancel }) {
       value: text,
       onChange: (event) => setText(event.target.value)
     }),
-    (0, import_react92.createElement)("input", {
+    (0, import_react93.createElement)("input", {
       type: "text",
       className: "bt-import-input",
       spellCheck: false,
@@ -62923,11 +63065,11 @@ function PasteCard2({ flow, busy, onSubmitPaste, onCancel }) {
       value: siteUrl,
       onChange: (event) => setSiteUrl(event.target.value)
     }),
-    (0, import_react92.createElement)(
+    (0, import_react93.createElement)(
       "div",
       { className: "bt-import-actions" },
-      (0, import_react92.createElement)("button", { type: "button", className: "bt-import-plain", disabled: busy, onClick: onCancel }, t("Cancel")),
-      (0, import_react92.createElement)("button", {
+      (0, import_react93.createElement)("button", { type: "button", className: "bt-import-plain", disabled: busy, onClick: onCancel }, t("Cancel")),
+      (0, import_react93.createElement)("button", {
         type: "button",
         className: "bt-import-primary",
         disabled: busy || !text.trim(),
@@ -62941,9 +63083,9 @@ function PreviewCard({ flow, page, busy, onApply, onCancel }) {
   const sites = (preview.sites ?? []).filter((s) => (s.cookies ?? 0) > 0 || (s.localStorage ?? 0) > 0);
   const currentHost = hostOfUrl(page.url);
   const matchingCurrent = currentHost ? sites.filter((s) => siteMatchesHost(s.site, currentHost)).map((s) => s.site) : [];
-  const [selected, setSelected] = (0, import_react92.useState)(() => new Set(sites.map((s) => s.site)));
-  const [query, setQuery] = (0, import_react92.useState)("");
-  const [persistSession, setPersistSession] = (0, import_react92.useState)(true);
+  const [selected, setSelected] = (0, import_react93.useState)(() => new Set(sites.map((s) => s.site)));
+  const [query, setQuery] = (0, import_react93.useState)("");
+  const [persistSession, setPersistSession] = (0, import_react93.useState)(true);
   const hasSession = preview.notes.includes("session-cookies");
   const allSelected = selected.size === sites.length;
   const currentOnlySelected = matchingCurrent.length > 0 && selected.size === matchingCurrent.length && matchingCurrent.every((s) => selected.has(s));
@@ -62965,37 +63107,37 @@ function PreviewCard({ flow, page, busy, onApply, onCancel }) {
     const chosen = allSelected ? void 0 : [...selected];
     onApply({ sites: chosen, persistSession: hasSession ? persistSession : false });
   };
-  return (0, import_react92.createElement)("div", { className: "bt-import-card" }, (0, import_react92.createElement)(
+  return (0, import_react93.createElement)("div", { className: "bt-import-card" }, (0, import_react93.createElement)(
     "div",
     { className: "bt-import-box" },
-    (0, import_react92.createElement)("div", { className: "bt-import-title" }, t("Import {count} cookies", { count: selectedCookies })),
-    (0, import_react92.createElement)(
+    (0, import_react93.createElement)("div", { className: "bt-import-title" }, t("Import {count} cookies", { count: selectedCookies })),
+    (0, import_react93.createElement)(
       "div",
       { className: "bt-import-sub" },
       preview.source?.label ?? "",
       flow.restarted ? ` · ${t("the browser was restarted")}` : "",
       selectedStorage > 0 ? ` · ${t("{count} storage entries", { count: selectedStorage })}` : ""
     ),
-    matchingCurrent.length > 0 && sites.length > 1 ? (0, import_react92.createElement)(
+    matchingCurrent.length > 0 && sites.length > 1 ? (0, import_react93.createElement)(
       "div",
       { className: "bt-import-scope" },
-      (0, import_react92.createElement)("button", {
+      (0, import_react93.createElement)("button", {
         type: "button",
         className: "bt-import-pill",
         "aria-pressed": allSelected,
         onClick: selectAll
       }, t("All sites ({count})", { count: sites.length })),
-      (0, import_react92.createElement)("button", {
+      (0, import_react93.createElement)("button", {
         type: "button",
         className: "bt-import-pill",
         "aria-pressed": currentOnlySelected,
         onClick: selectCurrent
       }, t("This site ({host})", { host: currentHost }))
     ) : null,
-    sites.length > 6 ? (0, import_react92.createElement)(
+    sites.length > 6 ? (0, import_react93.createElement)(
       "div",
       { className: "bt-import-filter-row" },
-      (0, import_react92.createElement)("input", {
+      (0, import_react93.createElement)("input", {
         type: "text",
         className: "bt-import-input",
         spellCheck: false,
@@ -63003,25 +63145,25 @@ function PreviewCard({ flow, page, busy, onApply, onCancel }) {
         value: query,
         onChange: (event) => setQuery(event.target.value)
       }),
-      (0, import_react92.createElement)("button", {
+      (0, import_react93.createElement)("button", {
         type: "button",
         className: "bt-import-mini",
         onClick: allSelected ? clearAll : selectAll
       }, allSelected ? t("Clear") : t("All"))
     ) : null,
-    sites.length ? (0, import_react92.createElement)(
+    sites.length ? (0, import_react93.createElement)(
       "div",
       { className: "bt-import-list" },
-      visibleSites.map((site) => (0, import_react92.createElement)(
+      visibleSites.map((site) => (0, import_react93.createElement)(
         "label",
         { key: site.site, className: "bt-import-line bt-import-check-row" },
-        (0, import_react92.createElement)("input", {
+        (0, import_react93.createElement)("input", {
           type: "checkbox",
           checked: selected.has(site.site),
           onChange: () => toggleSite(site.site)
         }),
-        (0, import_react92.createElement)("span", { className: "bt-import-line-name" }, site.site),
-        (0, import_react92.createElement)(
+        (0, import_react93.createElement)("span", { className: "bt-import-line-name" }, site.site),
+        (0, import_react93.createElement)(
           "span",
           { className: "bt-import-line-count" },
           t("{count}", { count: site.cookies }),
@@ -63029,100 +63171,100 @@ function PreviewCard({ flow, page, busy, onApply, onCancel }) {
         )
       ))
     ) : null,
-    preview.skipped.length ? (0, import_react92.createElement)(
+    preview.skipped.length ? (0, import_react93.createElement)(
       "div",
       { className: "bt-import-list" },
-      (0, import_react92.createElement)("div", { className: "bt-import-note" }, t("{count} skipped", { count: preview.skipped.length })),
-      preview.skipped.slice(0, 5).map((item, index) => (0, import_react92.createElement)(
+      (0, import_react93.createElement)("div", { className: "bt-import-note" }, t("{count} skipped", { count: preview.skipped.length })),
+      preview.skipped.slice(0, 5).map((item, index) => (0, import_react93.createElement)(
         "div",
         { key: index, className: "bt-import-line" },
-        (0, import_react92.createElement)("span", { className: "bt-import-line-name" }, item.name ?? item.where),
-        (0, import_react92.createElement)("span", { className: "bt-import-line-reason" }, item.reason)
+        (0, import_react93.createElement)("span", { className: "bt-import-line-name" }, item.name ?? item.where),
+        (0, import_react93.createElement)("span", { className: "bt-import-line-reason" }, item.reason)
       )),
-      preview.skipped.length > 5 ? (0, import_react92.createElement)("div", { className: "bt-import-line" }, (0, import_react92.createElement)("span", { className: "bt-import-line-reason" }, t("and {count} more", { count: preview.skipped.length - 5 }))) : null
+      preview.skipped.length > 5 ? (0, import_react93.createElement)("div", { className: "bt-import-line" }, (0, import_react93.createElement)("span", { className: "bt-import-line-reason" }, t("and {count} more", { count: preview.skipped.length - 5 }))) : null
     ) : null,
-    preview.warnings.length ? (0, import_react92.createElement)(
+    preview.warnings.length ? (0, import_react93.createElement)(
       "details",
       { className: "bt-import-warns" },
-      (0, import_react92.createElement)("summary", null, t("{count} adjusted", { count: preview.warnings.reduce((n, w) => n + w.count, 0) })),
-      preview.warnings.map((w, index) => (0, import_react92.createElement)(
+      (0, import_react93.createElement)("summary", null, t("{count} adjusted", { count: preview.warnings.reduce((n, w) => n + w.count, 0) })),
+      preview.warnings.map((w, index) => (0, import_react93.createElement)(
         "div",
         { key: index, className: "bt-import-line" },
-        (0, import_react92.createElement)("span", { className: "bt-import-line-reason" }, `${w.count} × ${w.message}`)
+        (0, import_react93.createElement)("span", { className: "bt-import-line-reason" }, `${w.count} × ${w.message}`)
       ))
     ) : null,
-    hasSession ? (0, import_react92.createElement)(
+    hasSession ? (0, import_react93.createElement)(
       "label",
       { className: "bt-import-toggle" },
-      (0, import_react92.createElement)("input", { type: "checkbox", checked: persistSession, onChange: (event) => setPersistSession(event.target.checked) }),
-      (0, import_react92.createElement)("span", null, t("Keep session logins after app restart"))
+      (0, import_react93.createElement)("input", { type: "checkbox", checked: persistSession, onChange: (event) => setPersistSession(event.target.checked) }),
+      (0, import_react93.createElement)("span", null, t("Keep session logins after app restart"))
     ) : null,
-    preview.notes.includes("local-storage-left") ? (0, import_react92.createElement)("div", { className: "bt-import-note" }, t("Some sites also keep sign-in outside cookies; you may need to sign in again there.")) : null,
-    (0, import_react92.createElement)(
+    preview.notes.includes("local-storage-left") ? (0, import_react93.createElement)("div", { className: "bt-import-note" }, t("Some sites also keep sign-in outside cookies; you may need to sign in again there.")) : null,
+    (0, import_react93.createElement)(
       "div",
       { className: "bt-import-actions" },
-      (0, import_react92.createElement)("button", { type: "button", className: "bt-import-plain", disabled: busy, onClick: onCancel }, t("Cancel")),
-      (0, import_react92.createElement)("button", { type: "button", className: "bt-import-primary", disabled: busy || selectedCookies === 0 && selectedStorage === 0, onClick: submit }, busy ? t("Importing…") : t("Import"))
+      (0, import_react93.createElement)("button", { type: "button", className: "bt-import-plain", disabled: busy, onClick: onCancel }, t("Cancel")),
+      (0, import_react93.createElement)("button", { type: "button", className: "bt-import-primary", disabled: busy || selectedCookies === 0 && selectedStorage === 0, onClick: submit }, busy ? t("Importing…") : t("Import"))
     )
   ));
 }
 function ImportCard({ flow, page, busy, imports, onApply, onCancel, onCloseAndImport, onRetrySource, onLaunchSource, onOpenPermission, onPermissionGranted, onFile, onSubmitPaste, onDone, onReload }) {
   const { stage } = flow;
   if (stage === "connecting") {
-    return (0, import_react92.createElement)("div", { className: "bt-import-card" }, (0, import_react92.createElement)(
+    return (0, import_react93.createElement)("div", { className: "bt-import-card" }, (0, import_react93.createElement)(
       "div",
       { className: "bt-import-box" },
-      (0, import_react92.createElement)("div", { className: "bt-import-title" }, t("Reading {name}…", { name: flow.source.name })),
-      (0, import_react92.createElement)("div", { className: "bt-import-sub" }, flow.source.label),
-      (0, import_react92.createElement)("div", { className: "bt-import-text" }, t("If {name} or your system asks for permission, click Allow.", { name: flow.source.name })),
-      (0, import_react92.createElement)(
+      (0, import_react93.createElement)("div", { className: "bt-import-title" }, t("Reading {name}…", { name: flow.source.name })),
+      (0, import_react93.createElement)("div", { className: "bt-import-sub" }, flow.source.label),
+      (0, import_react93.createElement)("div", { className: "bt-import-text" }, t("If {name} or your system asks for permission, click Allow.", { name: flow.source.name })),
+      (0, import_react93.createElement)(
         "div",
         { className: "bt-import-actions" },
-        (0, import_react92.createElement)("button", { type: "button", className: "bt-import-plain", onClick: onCancel }, t("Cancel"))
+        (0, import_react93.createElement)("button", { type: "button", className: "bt-import-plain", onClick: onCancel }, t("Cancel"))
       )
     ));
   }
   if (stage === "safari-permission") {
-    return (0, import_react92.createElement)(SafariPermissionCard, { flow, busy, imports, onOpenPermission, onPermissionGranted, onRetrySource, onCancel });
+    return (0, import_react93.createElement)(SafariPermissionCard, { flow, busy, imports, onOpenPermission, onPermissionGranted, onRetrySource, onCancel });
   }
   if (stage === "remote-debug") {
-    return (0, import_react92.createElement)(RemoteDebugCard, { flow, busy, imports, onRetrySource, onLaunchSource, onFile, onCancel });
+    return (0, import_react93.createElement)(RemoteDebugCard, { flow, busy, imports, onRetrySource, onLaunchSource, onFile, onCancel });
   }
   if (stage === "paste") {
-    return (0, import_react92.createElement)(PasteCard2, { flow, busy, onSubmitPaste, onCancel });
+    return (0, import_react93.createElement)(PasteCard2, { flow, busy, onSubmitPaste, onCancel });
   }
   if (stage === "running") {
-    return (0, import_react92.createElement)("div", { className: "bt-import-card" }, (0, import_react92.createElement)(
+    return (0, import_react93.createElement)("div", { className: "bt-import-card" }, (0, import_react93.createElement)(
       "div",
       { className: "bt-import-box" },
-      (0, import_react92.createElement)("div", { className: "bt-import-title" }, t("{name} is running", { name: flow.source.name })),
-      (0, import_react92.createElement)("div", { className: "bt-import-text" }, t("It must close for a moment so its cookies can be copied. It will reopen with your tabs.")),
-      (0, import_react92.createElement)(
+      (0, import_react93.createElement)("div", { className: "bt-import-title" }, t("{name} is running", { name: flow.source.name })),
+      (0, import_react93.createElement)("div", { className: "bt-import-text" }, t("It must close for a moment so its cookies can be copied. It will reopen with your tabs.")),
+      (0, import_react93.createElement)(
         "div",
         { className: "bt-import-actions" },
-        (0, import_react92.createElement)("button", { type: "button", className: "bt-import-plain", disabled: busy, onClick: onCancel }, t("Cancel")),
-        (0, import_react92.createElement)("button", { type: "button", className: "bt-import-primary", disabled: busy, onClick: onCloseAndImport }, busy ? t("Closing…") : t("Close {name} and import", { name: flow.source.name }))
+        (0, import_react93.createElement)("button", { type: "button", className: "bt-import-plain", disabled: busy, onClick: onCancel }, t("Cancel")),
+        (0, import_react93.createElement)("button", { type: "button", className: "bt-import-primary", disabled: busy, onClick: onCloseAndImport }, busy ? t("Closing…") : t("Close {name} and import", { name: flow.source.name }))
       )
     ));
   }
   if (stage === "error") {
-    return (0, import_react92.createElement)("div", { className: "bt-import-card" }, (0, import_react92.createElement)(
+    return (0, import_react93.createElement)("div", { className: "bt-import-card" }, (0, import_react93.createElement)(
       "div",
       { className: "bt-import-box" },
-      (0, import_react92.createElement)("div", { className: "bt-import-title" }, t("Import failed")),
-      (0, import_react92.createElement)("div", { className: "bt-import-text" }, flow.message),
-      (0, import_react92.createElement)("div", { className: "bt-import-actions" }, (0, import_react92.createElement)("button", { type: "button", className: "bt-import-plain", onClick: onCancel }, t("Close")))
+      (0, import_react93.createElement)("div", { className: "bt-import-title" }, t("Import failed")),
+      (0, import_react93.createElement)("div", { className: "bt-import-text" }, flow.message),
+      (0, import_react93.createElement)("div", { className: "bt-import-actions" }, (0, import_react93.createElement)("button", { type: "button", className: "bt-import-plain", onClick: onCancel }, t("Close")))
     ));
   }
   if (stage === "result") {
     const { report } = flow;
     const problems = [...report.dropped ?? [], ...report.failed ?? []];
     const title = report.stored > 0 ? t("Imported {count} cookies", { count: report.stored }) : (report.originsStored ?? 0) > 0 ? t("Imported storage for {count} sites", { count: report.originsStored }) : t("No cookies were stored");
-    return (0, import_react92.createElement)("div", { className: "bt-import-card" }, (0, import_react92.createElement)(
+    return (0, import_react93.createElement)("div", { className: "bt-import-card" }, (0, import_react93.createElement)(
       "div",
       { className: "bt-import-box" },
-      (0, import_react92.createElement)("div", { className: "bt-import-title" }, title),
-      (0, import_react92.createElement)(
+      (0, import_react93.createElement)("div", { className: "bt-import-title" }, title),
+      (0, import_react93.createElement)(
         "div",
         { className: "bt-import-sub" },
         [
@@ -63131,32 +63273,33 @@ function ImportCard({ flow, page, busy, imports, onApply, onCancel, onCloseAndIm
           flow.reloaded ? t("page reloaded") : null
         ].filter(Boolean).join(" · ")
       ),
-      problems.length ? (0, import_react92.createElement)(
+      problems.length ? (0, import_react93.createElement)(
         "div",
         { className: "bt-import-list" },
-        problems.slice(0, 8).map((item, index) => (0, import_react92.createElement)(
+        problems.slice(0, 8).map((item, index) => (0, import_react93.createElement)(
           "div",
           { key: index, className: "bt-import-line" },
-          (0, import_react92.createElement)("span", { className: "bt-import-line-name" }, item.name ?? "—"),
-          (0, import_react92.createElement)("span", { className: "bt-import-line-reason" }, item.reason)
+          (0, import_react93.createElement)("span", { className: "bt-import-line-name" }, item.name ?? "—"),
+          (0, import_react93.createElement)("span", { className: "bt-import-line-reason" }, item.reason)
         )),
-        problems.length > 8 ? (0, import_react92.createElement)("div", { className: "bt-import-line" }, (0, import_react92.createElement)("span", { className: "bt-import-line-reason" }, t("and {count} more", { count: problems.length - 8 }))) : null
+        problems.length > 8 ? (0, import_react93.createElement)("div", { className: "bt-import-line" }, (0, import_react93.createElement)("span", { className: "bt-import-line-reason" }, t("and {count} more", { count: problems.length - 8 }))) : null
       ) : null,
-      (0, import_react92.createElement)(
+      (0, import_react93.createElement)(
         "div",
         { className: "bt-import-actions" },
-        page.url && !flow.reloaded ? (0, import_react92.createElement)("button", { type: "button", className: "bt-import-plain", onClick: onReload }, t("Reload the page")) : null,
-        (0, import_react92.createElement)("button", { type: "button", className: "bt-import-primary", onClick: onDone }, t("Done"))
+        page.url && !flow.reloaded ? (0, import_react93.createElement)("button", { type: "button", className: "bt-import-plain", onClick: onReload }, t("Reload the page")) : null,
+        (0, import_react93.createElement)("button", { type: "button", className: "bt-import-primary", onClick: onDone }, t("Done"))
       )
     ));
   }
-  return (0, import_react92.createElement)(PreviewCard, { key: flow.id, flow, page, busy, onApply, onCancel });
+  return (0, import_react93.createElement)(PreviewCard, { key: flow.id, flow, page, busy, onApply, onCancel });
 }
 function BotPanel({ pane, leaving, room: room2, overlay, roster, actions, useSessions, useSessionStatus, useActivity, useWork, useBrowserTabs, useBrowserPages, useBrowserHolds, useComputer }) {
   const bot = roster.byId[pane.id];
   const roomSubject = roster.roomsById?.[pane.id];
   const subjectId = bot?.id ?? roomSubject?.id ?? pane.id;
-  const canBrowse = Boolean(bot && roster.browser === true && actions.browserShow);
+  const egoBrowser = roster.plugins?.slots?.browser?.active === "builtin:ego";
+  const canBrowse = Boolean(bot && (egoBrowser || roster.browser === true && actions.browserShow));
   const sideChats = bot ? sideChatsOf(roster, bot.id) : [];
   const sideChat = sideChats.find((chat) => chat?.id === pane.side);
   const taskBot = pane.task?.botId ? roster.byId?.[pane.task.botId] : void 0;
@@ -63166,45 +63309,45 @@ function BotPanel({ pane, leaving, room: room2, overlay, roster, actions, useSes
   const active = tabState.active;
   const page = useBrowserPages((pages) => (active ? pages[active] : null) ?? EMPTY_PAGE);
   const hold = useBrowserHolds?.((map) => bot ? map[bot.id] ?? null : null) ?? null;
-  const root = (0, import_react92.useRef)(null);
-  const [flight] = (0, import_react92.useState)(() => createFlight({ shape: SPRING_SHAPE }));
-  const intent = (0, import_react92.useRef)(null);
-  const [landed, setLanded] = (0, import_react92.useState)(false);
-  const [settling, setSettling] = (0, import_react92.useState)(false);
-  const [width, setWidth] = (0, import_react92.useState)(savedWidth);
-  const [dragging, setDragging] = (0, import_react92.useState)(false);
-  const [resizing, setResizing] = (0, import_react92.useState)(false);
+  const root = (0, import_react93.useRef)(null);
+  const [flight] = (0, import_react93.useState)(() => createFlight({ shape: SPRING_SHAPE }));
+  const intent = (0, import_react93.useRef)(null);
+  const [landed, setLanded] = (0, import_react93.useState)(false);
+  const [settling, setSettling] = (0, import_react93.useState)(false);
+  const [width, setWidth] = (0, import_react93.useState)(savedWidth);
+  const [dragging, setDragging] = (0, import_react93.useState)(false);
+  const [resizing, setResizing] = (0, import_react93.useState)(false);
   const instant = dragging || resizing;
-  const [reading, setReading] = (0, import_react92.useState)(false);
+  const [reading, setReading] = (0, import_react93.useState)(false);
   const panelWidth = fitWidth(width ?? (view === "browser" ? DEFAULT_WIDTH : DETAILS_WIDTH), widthRange(view, room2));
-  (0, import_react92.useLayoutEffect)(() => {
+  (0, import_react93.useLayoutEffect)(() => {
     if (view === "browser" && width === null) setWidth(DEFAULT_WIDTH);
   }, [view, width]);
-  (0, import_react92.useLayoutEffect)(() => {
+  (0, import_react93.useLayoutEffect)(() => {
     chatRoom.hold(instant);
   }, [instant]);
-  const [last, setLast] = (0, import_react92.useState)({ view, width: panelWidth });
+  const [last, setLast] = (0, import_react93.useState)({ view, width: panelWidth });
   if (last.view !== view || last.width !== panelWidth) {
     setLast({ view, width: panelWidth });
     if (last.view !== view) setSettling(last.width !== panelWidth && !instant && !overlay);
   }
-  const shownView = (0, import_react92.useRef)(view);
-  (0, import_react92.useLayoutEffect)(() => {
+  const shownView = (0, import_react93.useRef)(view);
+  (0, import_react93.useLayoutEffect)(() => {
     const switched = settling && shownView.current !== view;
     shownView.current = view;
     if (switched) chatRoom.hold(true);
     chatRoom.setRight(leaving || overlay ? null : panelWidth);
     if (switched) chatRoom.hold(false);
   }, [view, panelWidth, leaving, overlay]);
-  const dragCleanup = (0, import_react92.useRef)(null);
+  const dragCleanup = (0, import_react93.useRef)(null);
   useEscape(() => actions.closeOverlay(), !leaving, { priority: -1 });
-  (0, import_react92.useEffect)(() => () => {
+  (0, import_react93.useEffect)(() => () => {
     dragCleanup.current?.();
     chatRoom.setRight(null);
     chatRoom.hold(false);
   }, []);
-  const mounted = (0, import_react92.useRef)(false);
-  (0, import_react92.useEffect)(() => {
+  const mounted = (0, import_react93.useRef)(false);
+  (0, import_react93.useEffect)(() => {
     if (!mounted.current) {
       mounted.current = true;
       return void 0;
@@ -63213,34 +63356,34 @@ function BotPanel({ pane, leaving, room: room2, overlay, roster, actions, useSes
     const timer = setTimeout(() => setResizing(false), 160);
     return () => clearTimeout(timer);
   }, [room2]);
-  (0, import_react92.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     if (!settling) return void 0;
     const timer = setTimeout(() => setSettling(false), SPRING_SHAPE.duration + 40);
     return () => clearTimeout(timer);
   }, [settling, view]);
-  (0, import_react92.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     const timer = setTimeout(() => setLanded(true), 360);
     return () => clearTimeout(timer);
   }, []);
-  (0, import_react92.useEffect)(() => {
-    if (canBrowse) actions.browserEnsure(bot.id);
-  }, [bot?.id, canBrowse]);
-  (0, import_react92.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
+    if (canBrowse && !egoBrowser) actions.browserEnsure(bot.id);
+  }, [bot?.id, canBrowse, egoBrowser]);
+  (0, import_react93.useEffect)(() => {
     if (view === "browser" && (active === null || !tabState.ids.includes(active))) actions.setPanelView("details");
   }, [view, active, tabState.ids.length]);
-  (0, import_react92.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     if (pane.view === "side" && sideChat === void 0) actions.setPanelView("details");
   }, [pane.view, sideChat]);
-  (0, import_react92.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     if (pane.view === "task" && taskEntry === void 0) actions.closeTask?.();
   }, [pane.view, taskEntry]);
-  (0, import_react92.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     if (view !== "browser" || leaving) void actions.browserShow?.(null);
   }, [view, leaving]);
-  (0, import_react92.useEffect)(() => () => {
+  (0, import_react93.useEffect)(() => () => {
     void actions.browserShow?.(null);
   }, []);
-  (0, import_react92.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     if (!page.readAt || Date.now() - page.readAt > READ_FLASH_MS) return void 0;
     setReading(true);
     const timer = setTimeout(() => setReading(false), READ_FLASH_MS);
@@ -63287,11 +63430,11 @@ function BotPanel({ pane, leaving, room: room2, overlay, roster, actions, useSes
     beginSwitch(next);
     actions.setPanelView(next);
   };
-  const viewRef = (0, import_react92.useRef)(view);
+  const viewRef = (0, import_react93.useRef)(view);
   viewRef.current = view;
-  const beginSwitchRef = (0, import_react92.useRef)(beginSwitch);
+  const beginSwitchRef = (0, import_react93.useRef)(beginSwitch);
   beginSwitchRef.current = beginSwitch;
-  const panelActions = (0, import_react92.useMemo)(() => {
+  const panelActions = (0, import_react93.useMemo)(() => {
     const next = { ...actions };
     for (const name of ["openBrowser", "browserNewTab", "browserPick"]) {
       if (actions[name]) next[name] = (...args) => {
@@ -63307,7 +63450,7 @@ function BotPanel({ pane, leaving, room: room2, overlay, roster, actions, useSes
     }
     return next;
   }, [actions]);
-  (0, import_react92.useLayoutEffect)(() => {
+  (0, import_react93.useLayoutEffect)(() => {
     const note = intent.current;
     intent.current = null;
     const current2 = note !== null && note.next === view && note.id === subjectId && performance.now() - note.at < INTENT_MS && !instant && !leaving && !reducedMotion();
@@ -63322,10 +63465,10 @@ function BotPanel({ pane, leaving, room: room2, overlay, roster, actions, useSes
     }
     flight.begin({ panel: root.current, end: note.end, node: note.node, from: note.from });
   }, [view, subjectId]);
-  (0, import_react92.useLayoutEffect)(() => {
+  (0, import_react93.useLayoutEffect)(() => {
     if (instant || leaving) flight.finish();
   }, [instant, leaving]);
-  (0, import_react92.useEffect)(() => flight.finish, []);
+  (0, import_react93.useEffect)(() => flight.finish, []);
   const startResize = (event) => {
     if (event.button !== 0 || leaving || overlay) return;
     event.preventDefault();
@@ -63375,7 +63518,7 @@ function BotPanel({ pane, leaving, room: room2, overlay, roster, actions, useSes
     for (const name of ends) grip.addEventListener(name, onEnd);
   };
   const hasStrip = panelHasStrip(canBrowse, tabState.ids.length, sideChats.length, taskEntry !== void 0);
-  return (0, import_react92.createElement)(
+  return (0, import_react93.createElement)(
     "aside",
     {
       ref: root,
@@ -63393,15 +63536,15 @@ function BotPanel({ pane, leaving, room: room2, overlay, roster, actions, useSes
         if (event.target === event.currentTarget) setLanded(true);
       }
     },
-    leaving || overlay ? null : (0, import_react92.createElement)("div", { className: "bt-panel-grip", role: "separator", "aria-orientation": "vertical", "aria-label": t("Resize panel"), onPointerDown: startResize }),
+    leaving || overlay ? null : (0, import_react93.createElement)("div", { className: "bt-panel-grip", role: "separator", "aria-orientation": "vertical", "aria-label": t("Resize panel"), onPointerDown: startResize }),
     // Over the whole window while dragging: the cursor stays a resize cursor and the
     // pages underneath (the chat, the guest) see no pointer.
-    dragging ? (0, import_react_dom12.createPortal)((0, import_react92.createElement)("div", { className: "bt-drag-shield", "aria-hidden": true }), document.body) : null,
-    hasStrip ? (0, import_react92.createElement)(PanelStrip, { bot, roomSubject, subject: pane.id, view, ids: tabState.ids, active, sides: sideChats, side: pane.side, task: taskEntry, canBrowse, reading, onView: switchView, actions: panelActions, useBrowserPages }) : null,
-    view === "browser" && bot ? (0, import_react92.createElement)(BrowserView, { key: `browser:${active}`, bot, tabId: active, leaving, landed: landed && !settling, actions, useBrowserPages, hold }) : view === "side" && sideChat ? (0, import_react92.createElement)("div", { key: `side:${sideChat.id}`, className: "bt-panel-view" }, (0, import_react92.createElement)(SideChatView, { subject: pane.id, chat: sideChat, roster, actions: panelActions })) : view === "task" && taskEntry && taskBot ? (0, import_react92.createElement)("div", { key: `task:${taskEntry.id}`, className: "bt-panel-view" }, (0, import_react92.createElement)(TaskReaderView, { bot: taskBot, task: taskEntry, actions: panelActions })) : (0, import_react92.createElement)(
+    dragging ? (0, import_react_dom12.createPortal)((0, import_react93.createElement)("div", { className: "bt-drag-shield", "aria-hidden": true }), document.body) : null,
+    hasStrip ? (0, import_react93.createElement)(PanelStrip, { bot, roomSubject, subject: pane.id, view, ids: tabState.ids, active, sides: sideChats, side: pane.side, task: taskEntry, canBrowse, reading, onView: switchView, actions: panelActions, useBrowserPages }) : null,
+    view === "browser" && bot ? egoBrowser ? (0, import_react93.createElement)(EgoBrowserView, { key: `ego:${bot.id}`, bot, actions, leaving, landed: landed && !settling }) : (0, import_react93.createElement)(BrowserView, { key: `browser:${active}`, bot, tabId: active, leaving, landed: landed && !settling, actions, useBrowserPages, hold }) : view === "side" && sideChat ? (0, import_react93.createElement)("div", { key: `side:${sideChat.id}`, className: "bt-panel-view" }, (0, import_react93.createElement)(SideChatView, { subject: pane.id, chat: sideChat, roster, actions: panelActions })) : view === "task" && taskEntry && taskBot ? (0, import_react93.createElement)("div", { key: `task:${taskEntry.id}`, className: "bt-panel-view" }, (0, import_react93.createElement)(TaskReaderView, { bot: taskBot, task: taskEntry, actions: panelActions })) : (0, import_react93.createElement)(
       "div",
       { key: `details:${subjectId}:${pane.renaming ? "rename" : ""}:${pane.tab ?? ""}`, className: "bt-panel-view" },
-      (0, import_react92.createElement)(DetailsDrawer, {
+      (0, import_react93.createElement)(DetailsDrawer, {
         sessionId: pane.id,
         startRenaming: pane.renaming,
         startTab: pane.tab,
@@ -63476,6 +63619,16 @@ var BROWSER_CSS = `
 .bt-browser-progress{position:absolute;left:0;right:0;bottom:-1px;height:2px;overflow:hidden;pointer-events:none}
 .bt-browser-progress::after{content:"";position:absolute;inset:0;width:40%;background:var(--bt-accent,#4D6BFE);border-radius:2px;animation:bt-browser-load 1.1s cubic-bezier(.4,0,.2,1) infinite}
 @keyframes bt-browser-load{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+.bt-ego{position:relative;display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.bt-ego-bar{display:flex;align-items:center;gap:8px;padding:8px 10px 7px;border-bottom:.5px solid var(--bt-line);flex:none;min-width:0}
+.bt-ego-badge{font:600 10px/1 ui-sans-serif,system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--bt-ink-3);flex:none}
+.bt-ego-address{flex:1;min-width:0;height:24px;border:0;border-radius:4px;padding:0 7px;background:var(--bt-card);color:var(--bt-ink);font:12px/1.2 ui-sans-serif,system-ui;outline:none}
+.bt-ego-address:focus{box-shadow:0 0 0 1px var(--bt-line)}
+.bt-ego-title{flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--bt-ink-3)}
+.bt-ego-stage{flex:1;min-height:0;overflow:hidden;background:var(--bt-card);outline:none;cursor:default}
+.bt-ego-stage:focus-visible{box-shadow:inset 0 0 0 2px var(--bt-accent)}
+.bt-ego-frame{width:100%;height:auto;display:block;user-select:none;-webkit-user-drag:none}
+.bt-ego-empty{display:flex;align-items:center;justify-content:center;height:100%;padding:24px;color:var(--bt-ink-3);font-size:12px;text-align:center}
 .bt-browser-frame{position:relative;flex:1;min-height:0;background:var(--bt-main)}
 .bt-browser-frame[data-guest]{background:#fff}
 .bt-browser-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:32px;text-align:center;animation:bt-foot-in .3s ease}
@@ -63581,7 +63734,7 @@ var BROWSER_CSS = `
 `;
 
 // src/client/opening.js
-var import_react93 = require("react");
+var import_react94 = require("react");
 var OPENING_WAIT_MS = 5e3;
 function openingPastWait(pending, target) {
   if (!pending || pending.target !== target || pending.slow === true) return pending ?? null;
@@ -63635,7 +63788,7 @@ function openingModel({ pending, current: current2, roster }) {
 }
 function OpeningCover({ model, column }) {
   if (model === null) return null;
-  return (0, import_react93.createElement)(
+  return (0, import_react94.createElement)(
     "div",
     {
       className: "bt-opening",
@@ -63643,12 +63796,12 @@ function OpeningCover({ model, column }) {
       role: "status",
       "aria-live": "polite"
     },
-    (0, import_react93.createElement)(
+    (0, import_react94.createElement)(
       "div",
       { className: "bt-opening-card" },
-      (0, import_react93.createElement)("span", { className: "bt-opening-mark" }, model.bot ? (0, import_react93.createElement)(BotMark, { bot: model.bot, size: 44 }) : (0, import_react93.createElement)(PeopleIcon)),
-      model.name ? (0, import_react93.createElement)("span", { className: "bt-opening-name" }, model.name) : null,
-      (0, import_react93.createElement)("span", { className: "bt-opening-note" }, t(model.slow ? "Still opening…" : "Opening…"))
+      (0, import_react94.createElement)("span", { className: "bt-opening-mark" }, model.bot ? (0, import_react94.createElement)(BotMark, { bot: model.bot, size: 44 }) : (0, import_react94.createElement)(PeopleIcon)),
+      model.name ? (0, import_react94.createElement)("span", { className: "bt-opening-name" }, model.name) : null,
+      (0, import_react94.createElement)("span", { className: "bt-opening-note" }, t(model.slow ? "Still opening…" : "Opening…"))
     )
   );
 }
@@ -64295,7 +64448,7 @@ function siteCatalogModel(directory, { environment = "all", query = "", includeA
 }
 
 // src/client/sites-page.js
-var import_react94 = require("react");
+var import_react95 = require("react");
 var environmentWord = (value) => value === "production" ? t("Production") : value === "preview" ? t("Preview") : value === "local" ? t("Local") : t("Docs");
 var healthWord = (status) => status === "online" ? t("Online") : status === "auth" ? t("Sign-in required") : status === "error" ? t("HTTP error") : status === "offline" ? t("Offline") : t("Not checked");
 var shortPath = (value) => {
@@ -64318,21 +64471,21 @@ function SiteSummary({ counts: counts2 = {} }) {
     [counts2.attention ?? 0, t("Needs attention"), "needs", RefreshIcon],
     [counts2.groups ?? 0, t("Groups"), "rules", StarLineIcon]
   ];
-  return (0, import_react94.createElement)(
+  return (0, import_react95.createElement)(
     "div",
     { className: "bt-teamov-portfolio bt-sites-summary" },
-    (0, import_react94.createElement)("div", { className: "bt-teamov-portfolio-mark" }, (0, import_react94.createElement)(GlobeIcon)),
-    (0, import_react94.createElement)(
+    (0, import_react95.createElement)("div", { className: "bt-teamov-portfolio-mark" }, (0, import_react95.createElement)(GlobeIcon)),
+    (0, import_react95.createElement)(
       "div",
       { className: "bt-teamov-portfolio-copy" },
-      (0, import_react94.createElement)("b", null, t("Published sites")),
-      (0, import_react94.createElement)("span", null, t("Production, previews and local entry points"))
+      (0, import_react95.createElement)("b", null, t("Published sites")),
+      (0, import_react95.createElement)("span", null, t("Production, previews and local entry points"))
     ),
-    (0, import_react94.createElement)("div", { className: "bt-teamov-portfolio-stats" }, rows2.map(([value, label, kind, Icon]) => (0, import_react94.createElement)("span", { key: label, "data-kind": kind }, (0, import_react94.createElement)("b", null, value), (0, import_react94.createElement)("small", null, (0, import_react94.createElement)(Icon), label))))
+    (0, import_react95.createElement)("div", { className: "bt-teamov-portfolio-stats" }, rows2.map(([value, label, kind, Icon]) => (0, import_react95.createElement)("span", { key: label, "data-kind": kind }, (0, import_react95.createElement)("b", null, value), (0, import_react95.createElement)("small", null, (0, import_react95.createElement)(Icon), label))))
   );
 }
 function SiteForm({ site, groups, paths, busy, onSubmit, onCancel }) {
-  const [form, setForm] = (0, import_react94.useState)(() => ({
+  const [form, setForm] = (0, import_react95.useState)(() => ({
     id: site?.id,
     name: site?.name ?? "",
     url: site?.url ?? "",
@@ -64350,115 +64503,115 @@ function SiteForm({ site, groups, paths, busy, onSubmit, onCancel }) {
     event.preventDefault();
     onSubmit({ ...form, groupId: form.groupId || null, tags: tagsOf(form.tags) });
   };
-  return (0, import_react94.createElement)(
+  return (0, import_react95.createElement)(
     "form",
     { className: "bt-site-form", onSubmit: submit },
-    (0, import_react94.createElement)(
+    (0, import_react95.createElement)(
       "div",
       { className: "bt-site-form-head" },
-      (0, import_react94.createElement)("div", null, (0, import_react94.createElement)("span", { className: "bt-teamov-kicker" }, site ? t("Edit site") : t("New site")), (0, import_react94.createElement)("h4", null, form.name || t("Published site"))),
-      (0, import_react94.createElement)("button", { type: "button", className: "bt-round bt-round-sm", "aria-label": t("Close"), title: t("Close"), onClick: onCancel }, (0, import_react94.createElement)(CloseIcon))
+      (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, site ? t("Edit site") : t("New site")), (0, import_react95.createElement)("h4", null, form.name || t("Published site"))),
+      (0, import_react95.createElement)("button", { type: "button", className: "bt-round bt-round-sm", "aria-label": t("Close"), title: t("Close"), onClick: onCancel }, (0, import_react95.createElement)(CloseIcon))
     ),
-    (0, import_react94.createElement)(
+    (0, import_react95.createElement)(
       "div",
       { className: "bt-site-form-grid" },
-      (0, import_react94.createElement)("label", null, (0, import_react94.createElement)("span", null, t("Name")), (0, import_react94.createElement)("input", { required: true, maxLength: 100, value: form.name, placeholder: t("Site name"), onChange: field("name") })),
-      (0, import_react94.createElement)("label", null, (0, import_react94.createElement)("span", null, t("URL")), (0, import_react94.createElement)("input", { required: true, type: "url", value: form.url, placeholder: "https://example.com", onChange: field("url") })),
-      (0, import_react94.createElement)("label", null, (0, import_react94.createElement)("span", null, t("Site type")), (0, import_react94.createElement)(
+      (0, import_react95.createElement)("label", null, (0, import_react95.createElement)("span", null, t("Name")), (0, import_react95.createElement)("input", { required: true, maxLength: 100, value: form.name, placeholder: t("Site name"), onChange: field("name") })),
+      (0, import_react95.createElement)("label", null, (0, import_react95.createElement)("span", null, t("URL")), (0, import_react95.createElement)("input", { required: true, type: "url", value: form.url, placeholder: "https://example.com", onChange: field("url") })),
+      (0, import_react95.createElement)("label", null, (0, import_react95.createElement)("span", null, t("Site type")), (0, import_react95.createElement)(
         "select",
         { value: form.environment, onChange: field("environment") },
-        ["production", "preview", "local", "docs"].map((value) => (0, import_react94.createElement)("option", { key: value, value }, environmentWord(value)))
+        ["production", "preview", "local", "docs"].map((value) => (0, import_react95.createElement)("option", { key: value, value }, environmentWord(value)))
       )),
-      (0, import_react94.createElement)("label", null, (0, import_react94.createElement)("span", null, t("Site group")), (0, import_react94.createElement)(
+      (0, import_react95.createElement)("label", null, (0, import_react95.createElement)("span", null, t("Site group")), (0, import_react95.createElement)(
         "select",
         { value: form.groupId, onChange: field("groupId") },
-        (0, import_react94.createElement)("option", { value: "" }, t("Ungrouped")),
-        groups.map((group) => (0, import_react94.createElement)("option", { key: group.id, value: group.id }, group.name))
+        (0, import_react95.createElement)("option", { value: "" }, t("Ungrouped")),
+        groups.map((group) => (0, import_react95.createElement)("option", { key: group.id, value: group.id }, group.name))
       )),
-      (0, import_react94.createElement)(
+      (0, import_react95.createElement)(
         "label",
         { className: "wide" },
-        (0, import_react94.createElement)("span", null, t("Project folder")),
-        (0, import_react94.createElement)("input", { value: form.projectPath, list: "bt-site-project-paths", placeholder: t("Optional project folder"), onChange: field("projectPath") }),
-        (0, import_react94.createElement)("datalist", { id: "bt-site-project-paths" }, paths.map((path2) => (0, import_react94.createElement)("option", { key: path2, value: path2 })))
+        (0, import_react95.createElement)("span", null, t("Project folder")),
+        (0, import_react95.createElement)("input", { value: form.projectPath, list: "bt-site-project-paths", placeholder: t("Optional project folder"), onChange: field("projectPath") }),
+        (0, import_react95.createElement)("datalist", { id: "bt-site-project-paths" }, paths.map((path2) => (0, import_react95.createElement)("option", { key: path2, value: path2 })))
       ),
-      (0, import_react94.createElement)("label", { className: "wide" }, (0, import_react94.createElement)("span", null, t("Repository")), (0, import_react94.createElement)("input", { value: form.repoUrl, placeholder: t("Optional repository URL"), onChange: field("repoUrl") })),
-      (0, import_react94.createElement)("label", { className: "wide" }, (0, import_react94.createElement)("span", null, t("Tags")), (0, import_react94.createElement)("input", { value: form.tags, placeholder: t("Comma-separated tags"), onChange: field("tags") })),
-      (0, import_react94.createElement)("label", { className: "wide" }, (0, import_react94.createElement)("span", null, t("Notes")), (0, import_react94.createElement)("textarea", { rows: 3, maxLength: 2e3, value: form.notes, placeholder: t("What this entry is for"), onChange: field("notes") }))
+      (0, import_react95.createElement)("label", { className: "wide" }, (0, import_react95.createElement)("span", null, t("Repository")), (0, import_react95.createElement)("input", { value: form.repoUrl, placeholder: t("Optional repository URL"), onChange: field("repoUrl") })),
+      (0, import_react95.createElement)("label", { className: "wide" }, (0, import_react95.createElement)("span", null, t("Tags")), (0, import_react95.createElement)("input", { value: form.tags, placeholder: t("Comma-separated tags"), onChange: field("tags") })),
+      (0, import_react95.createElement)("label", { className: "wide" }, (0, import_react95.createElement)("span", null, t("Notes")), (0, import_react95.createElement)("textarea", { rows: 3, maxLength: 2e3, value: form.notes, placeholder: t("What this entry is for"), onChange: field("notes") }))
     ),
-    (0, import_react94.createElement)(
+    (0, import_react95.createElement)(
       "div",
       { className: "bt-site-form-foot" },
-      (0, import_react94.createElement)("label", { className: "bt-site-check" }, (0, import_react94.createElement)("input", { type: "checkbox", checked: form.favorite, onChange: (event) => setForm((value) => ({ ...value, favorite: event.target.checked })) }), t("Pin to the top")),
-      (0, import_react94.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: busy, onClick: onCancel }, t("Cancel")),
-      (0, import_react94.createElement)("button", { type: "submit", className: "bt-soft bt-soft-sm bt-with-icon", disabled: busy || form.name.trim() === "" || form.url.trim() === "" }, (0, import_react94.createElement)(CheckIcon), busy ? t("Saving…") : t("Save site"))
+      (0, import_react95.createElement)("label", { className: "bt-site-check" }, (0, import_react95.createElement)("input", { type: "checkbox", checked: form.favorite, onChange: (event) => setForm((value) => ({ ...value, favorite: event.target.checked })) }), t("Pin to the top")),
+      (0, import_react95.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: busy, onClick: onCancel }, t("Cancel")),
+      (0, import_react95.createElement)("button", { type: "submit", className: "bt-soft bt-soft-sm bt-with-icon", disabled: busy || form.name.trim() === "" || form.url.trim() === "" }, (0, import_react95.createElement)(CheckIcon), busy ? t("Saving…") : t("Save site"))
     )
   );
 }
 function GroupForm({ group, busy, onSubmit, onCancel, onDelete }) {
-  const [name, setName] = (0, import_react94.useState)(group?.name ?? "");
-  const [color, setColor] = (0, import_react94.useState)(group?.color ?? "blue");
-  return (0, import_react94.createElement)(
+  const [name, setName] = (0, import_react95.useState)(group?.name ?? "");
+  const [color, setColor] = (0, import_react95.useState)(group?.color ?? "blue");
+  return (0, import_react95.createElement)(
     "form",
     { className: "bt-site-group-form", onSubmit: (event) => {
       event.preventDefault();
       if (name.trim()) onSubmit({ id: group?.id, name: name.trim(), color });
     } },
-    (0, import_react94.createElement)("input", { autoFocus: true, maxLength: 100, value: name, placeholder: t("Site group name"), "aria-label": t("Site group name"), onChange: (event) => setName(event.target.value) }),
-    (0, import_react94.createElement)(
+    (0, import_react95.createElement)("input", { autoFocus: true, maxLength: 100, value: name, placeholder: t("Site group name"), "aria-label": t("Site group name"), onChange: (event) => setName(event.target.value) }),
+    (0, import_react95.createElement)(
       "select",
       { value: color, "aria-label": t("Group color"), onChange: (event) => setColor(event.target.value) },
-      ["blue", "orange", "green", "violet", "rose"].map((value) => (0, import_react94.createElement)("option", { key: value, value }, t(value[0].toUpperCase() + value.slice(1))))
+      ["blue", "orange", "green", "violet", "rose"].map((value) => (0, import_react95.createElement)("option", { key: value, value }, t(value[0].toUpperCase() + value.slice(1))))
     ),
-    (0, import_react94.createElement)("button", { type: "submit", className: "bt-soft bt-soft-sm", disabled: busy || name.trim() === "" }, t("Save")),
-    group ? (0, import_react94.createElement)("button", { type: "button", className: "bt-teamov-link danger", disabled: busy, onClick: onDelete }, t("Remove group")) : null,
-    (0, import_react94.createElement)("button", { type: "button", className: "bt-teamov-link", onClick: onCancel }, t("Cancel"))
+    (0, import_react95.createElement)("button", { type: "submit", className: "bt-soft bt-soft-sm", disabled: busy || name.trim() === "" }, t("Save")),
+    group ? (0, import_react95.createElement)("button", { type: "button", className: "bt-teamov-link danger", disabled: busy, onClick: onDelete }, t("Remove group")) : null,
+    (0, import_react95.createElement)("button", { type: "button", className: "bt-teamov-link", onClick: onCancel }, t("Cancel"))
   );
 }
 function SiteRow({ site, checking, busy, onEdit, onCheck, onArchive }) {
   const health = site.health?.status ?? "unknown";
-  return (0, import_react94.createElement)(
+  return (0, import_react95.createElement)(
     "article",
     { className: "bt-site-row", "data-health": health, "data-archived": site.archived || void 0 },
-    (0, import_react94.createElement)("span", { className: "bt-site-mark", title: healthWord(health), "aria-label": healthWord(health) }, (0, import_react94.createElement)(GlobeIcon), (0, import_react94.createElement)("i")),
-    (0, import_react94.createElement)(
+    (0, import_react95.createElement)("span", { className: "bt-site-mark", title: healthWord(health), "aria-label": healthWord(health) }, (0, import_react95.createElement)(GlobeIcon), (0, import_react95.createElement)("i")),
+    (0, import_react95.createElement)(
       "a",
       { className: "bt-site-main", href: site.url, target: "_blank", rel: "noopener noreferrer" },
-      (0, import_react94.createElement)("span", { className: "bt-site-name" }, (0, import_react94.createElement)("b", null, site.favorite ? (0, import_react94.createElement)(StarLineIcon) : null, site.name), (0, import_react94.createElement)("small", null, hostOf3(site.url))),
-      (0, import_react94.createElement)(
+      (0, import_react95.createElement)("span", { className: "bt-site-name" }, (0, import_react95.createElement)("b", null, site.favorite ? (0, import_react95.createElement)(StarLineIcon) : null, site.name), (0, import_react95.createElement)("small", null, hostOf3(site.url))),
+      (0, import_react95.createElement)(
         "span",
         { className: "bt-site-tags" },
-        (0, import_react94.createElement)("i", { "data-env": site.environment }, environmentWord(site.environment)),
-        site.projectPath ? (0, import_react94.createElement)("em", null, shortPath(site.projectPath)) : null,
-        (site.tags ?? []).slice(0, 3).map((tag) => (0, import_react94.createElement)("em", { key: tag }, tag))
+        (0, import_react95.createElement)("i", { "data-env": site.environment }, environmentWord(site.environment)),
+        site.projectPath ? (0, import_react95.createElement)("em", null, shortPath(site.projectPath)) : null,
+        (site.tags ?? []).slice(0, 3).map((tag) => (0, import_react95.createElement)("em", { key: tag }, tag))
       )
     ),
-    (0, import_react94.createElement)(
+    (0, import_react95.createElement)(
       "span",
       { className: "bt-site-meta" },
-      (0, import_react94.createElement)("b", null, healthWord(health)),
-      (0, import_react94.createElement)("small", null, site.health?.checkedAt ? `${t("Checked {time}", { time: relativeShort(site.health.checkedAt) })}${site.health.latencyMs == null ? "" : ` · ${site.health.latencyMs} ms`}` : t("Never checked"))
+      (0, import_react95.createElement)("b", null, healthWord(health)),
+      (0, import_react95.createElement)("small", null, site.health?.checkedAt ? `${t("Checked {time}", { time: relativeShort(site.health.checkedAt) })}${site.health.latencyMs == null ? "" : ` · ${site.health.latencyMs} ms`}` : t("Never checked"))
     ),
-    (0, import_react94.createElement)(
+    (0, import_react95.createElement)(
       "span",
       { className: "bt-site-actions" },
-      (0, import_react94.createElement)("button", { type: "button", className: "bt-round bt-round-sm", title: t("Check now"), "aria-label": t("Check now"), disabled: checking || busy, onClick: onCheck }, (0, import_react94.createElement)(RefreshIcon)),
-      (0, import_react94.createElement)("button", { type: "button", className: "bt-round bt-round-sm", title: t("Edit site"), "aria-label": t("Edit site"), disabled: busy, onClick: onEdit }, (0, import_react94.createElement)(PencilIcon)),
-      site.archived ? (0, import_react94.createElement)("button", { type: "button", className: "bt-teamov-link", disabled: busy, onClick: () => onArchive(false) }, t("Restore")) : (0, import_react94.createElement)("button", { type: "button", className: "bt-teamov-link", disabled: busy, onClick: () => onArchive(true) }, t("Archive"))
+      (0, import_react95.createElement)("button", { type: "button", className: "bt-round bt-round-sm", title: t("Check now"), "aria-label": t("Check now"), disabled: checking || busy, onClick: onCheck }, (0, import_react95.createElement)(RefreshIcon)),
+      (0, import_react95.createElement)("button", { type: "button", className: "bt-round bt-round-sm", title: t("Edit site"), "aria-label": t("Edit site"), disabled: busy, onClick: onEdit }, (0, import_react95.createElement)(PencilIcon)),
+      site.archived ? (0, import_react95.createElement)("button", { type: "button", className: "bt-teamov-link", disabled: busy, onClick: () => onArchive(false) }, t("Restore")) : (0, import_react95.createElement)("button", { type: "button", className: "bt-teamov-link", disabled: busy, onClick: () => onArchive(true) }, t("Archive"))
     ),
-    (0, import_react94.createElement)("a", { className: "bt-site-open", href: site.url, target: "_blank", rel: "noopener noreferrer", "aria-label": t("Open {name}", { name: site.name }), title: t("Open") }, (0, import_react94.createElement)(ChevronRightIcon))
+    (0, import_react95.createElement)("a", { className: "bt-site-open", href: site.url, target: "_blank", rel: "noopener noreferrer", "aria-label": t("Open {name}", { name: site.name }), title: t("Open") }, (0, import_react95.createElement)(ChevronRightIcon))
   );
 }
 function SitesView({ data, loading, failed, busy, actions, paths = [], onData }) {
-  const [environment, setEnvironment] = (0, import_react94.useState)("all");
-  const [query, setQuery] = (0, import_react94.useState)("");
-  const [includeArchived, setIncludeArchived] = (0, import_react94.useState)(false);
-  const [editing, setEditing] = (0, import_react94.useState)(void 0);
-  const [editingGroup, setEditingGroup] = (0, import_react94.useState)(void 0);
-  const [checking, setChecking] = (0, import_react94.useState)(null);
-  const [working, setWorking] = (0, import_react94.useState)(false);
-  const [error, setError] = (0, import_react94.useState)("");
-  const model = (0, import_react94.useMemo)(() => siteCatalogModel(data, { environment, query, includeArchived }), [data, environment, query, includeArchived]);
+  const [environment, setEnvironment] = (0, import_react95.useState)("all");
+  const [query, setQuery] = (0, import_react95.useState)("");
+  const [includeArchived, setIncludeArchived] = (0, import_react95.useState)(false);
+  const [editing, setEditing] = (0, import_react95.useState)(void 0);
+  const [editingGroup, setEditingGroup] = (0, import_react95.useState)(void 0);
+  const [checking, setChecking] = (0, import_react95.useState)(null);
+  const [working, setWorking] = (0, import_react95.useState)(false);
+  const [error, setError] = (0, import_react95.useState)("");
+  const model = (0, import_react95.useMemo)(() => siteCatalogModel(data, { environment, query, includeArchived }), [data, environment, query, includeArchived]);
   const filtered = query.trim() !== "" || environment !== "all";
   const blocked = busy || working;
   const run2 = async (work) => {
@@ -64504,23 +64657,23 @@ function SitesView({ data, loading, failed, busy, actions, paths = [], onData })
     if (next !== null) onData(next);
     setEditingGroup(void 0);
   };
-  return (0, import_react94.createElement)(
+  return (0, import_react95.createElement)(
     "div",
     { className: "bt-teamov-body bt-sites-body", id: "bt-teamov-sites", role: "tabpanel" },
-    (0, import_react94.createElement)(
+    (0, import_react95.createElement)(
       "div",
       { className: "bt-teamov-view-head bt-sites-head" },
-      (0, import_react94.createElement)("div", null, (0, import_react94.createElement)("span", { className: "bt-teamov-kicker" }, t("Published sites")), (0, import_react94.createElement)("h3", null, t("One entry point for everything we ship"))),
-      (0, import_react94.createElement)(
+      (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Published sites")), (0, import_react95.createElement)("h3", null, t("One entry point for everything we ship"))),
+      (0, import_react95.createElement)(
         "div",
         { className: "bt-teamov-view-actions" },
-        (0, import_react94.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: blocked, onClick: () => setEditingGroup(null) }, (0, import_react94.createElement)(PlusIcon), t("New group")),
-        (0, import_react94.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-with-icon", disabled: blocked, onClick: () => setEditing({}) }, (0, import_react94.createElement)(PlusIcon), t("Add site"))
+        (0, import_react95.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: blocked, onClick: () => setEditingGroup(null) }, (0, import_react95.createElement)(PlusIcon), t("New group")),
+        (0, import_react95.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-with-icon", disabled: blocked, onClick: () => setEditing({}) }, (0, import_react95.createElement)(PlusIcon), t("Add site"))
       )
     ),
-    failed ? (0, import_react94.createElement)("div", { className: "bt-teamov-insight-state", role: "alert" }, t("The site directory could not be read")) : null,
-    error ? (0, import_react94.createElement)("div", { className: "bt-site-error", role: "alert" }, error, (0, import_react94.createElement)("button", { type: "button", className: "bt-round bt-round-sm", "aria-label": t("Close"), onClick: () => setError("") }, (0, import_react94.createElement)(CloseIcon))) : null,
-    editing !== void 0 ? (0, import_react94.createElement)(SiteForm, {
+    failed ? (0, import_react95.createElement)("div", { className: "bt-teamov-insight-state", role: "alert" }, t("The site directory could not be read")) : null,
+    error ? (0, import_react95.createElement)("div", { className: "bt-site-error", role: "alert" }, error, (0, import_react95.createElement)("button", { type: "button", className: "bt-round bt-round-sm", "aria-label": t("Close"), onClick: () => setError("") }, (0, import_react95.createElement)(CloseIcon))) : null,
+    editing !== void 0 ? (0, import_react95.createElement)(SiteForm, {
       key: editing.id ?? "new",
       site: editing.id ? editing : void 0,
       groups: data.groups,
@@ -64529,7 +64682,7 @@ function SitesView({ data, loading, failed, busy, actions, paths = [], onData })
       onSubmit: saveSite,
       onCancel: () => setEditing(void 0)
     }) : null,
-    editingGroup !== void 0 ? (0, import_react94.createElement)(GroupForm, {
+    editingGroup !== void 0 ? (0, import_react95.createElement)(GroupForm, {
       key: editingGroup?.id ?? "new-group",
       group: editingGroup?.id ? editingGroup : void 0,
       busy: blocked,
@@ -64539,40 +64692,40 @@ function SitesView({ data, loading, failed, busy, actions, paths = [], onData })
         void deleteGroup(editingGroup.id);
       }
     }) : null,
-    (0, import_react94.createElement)(
+    (0, import_react95.createElement)(
       "div",
       { className: "bt-sites-toolbar" },
-      (0, import_react94.createElement)("div", { className: "bt-sites-search" }, (0, import_react94.createElement)(GlobeIcon), (0, import_react94.createElement)("input", { value: query, placeholder: t("Search sites, tags or notes"), "aria-label": t("Search sites"), onChange: (event) => setQuery(event.target.value) })),
-      (0, import_react94.createElement)(
+      (0, import_react95.createElement)("div", { className: "bt-sites-search" }, (0, import_react95.createElement)(GlobeIcon), (0, import_react95.createElement)("input", { value: query, placeholder: t("Search sites, tags or notes"), "aria-label": t("Search sites"), onChange: (event) => setQuery(event.target.value) })),
+      (0, import_react95.createElement)(
         "div",
         { className: "bt-sites-filters" },
-        [["all", t("All")], ["production", t("Production")], ["preview", t("Preview")], ["local", t("Local")], ["docs", t("Docs")]].map(([id, label]) => (0, import_react94.createElement)("button", { key: id, type: "button", "data-active": environment === id || void 0, onClick: () => setEnvironment(id) }, label))
+        [["all", t("All")], ["production", t("Production")], ["preview", t("Preview")], ["local", t("Local")], ["docs", t("Docs")]].map(([id, label]) => (0, import_react95.createElement)("button", { key: id, type: "button", "data-active": environment === id || void 0, onClick: () => setEnvironment(id) }, label))
       ),
-      (0, import_react94.createElement)("button", { type: "button", className: "bt-sites-archive-toggle", "data-active": includeArchived || void 0, onClick: () => setIncludeArchived((value) => !value) }, t("Archived"), (0, import_react94.createElement)("i", null, data.counts.archived ?? 0))
+      (0, import_react95.createElement)("button", { type: "button", className: "bt-sites-archive-toggle", "data-active": includeArchived || void 0, onClick: () => setIncludeArchived((value) => !value) }, t("Archived"), (0, import_react95.createElement)("i", null, data.counts.archived ?? 0))
     ),
-    loading && data.sites.length === 0 ? (0, import_react94.createElement)("div", { className: "bt-teamov-insight-state", role: "status" }, t("Reading published sites…")) : null,
-    model.groups.length === 0 ? (0, import_react94.createElement)(
+    loading && data.sites.length === 0 ? (0, import_react95.createElement)("div", { className: "bt-teamov-insight-state", role: "status" }, t("Reading published sites…")) : null,
+    model.groups.length === 0 ? (0, import_react95.createElement)(
       "div",
       { className: "bt-sites-empty" },
-      (0, import_react94.createElement)(GlobeIcon),
-      (0, import_react94.createElement)("b", null, filtered ? t("No matching sites") : data.sites.length > 0 && !includeArchived ? t("No active sites") : t("No sites here yet")),
-      (0, import_react94.createElement)("span", null, filtered ? t("Try another search or filter.") : data.sites.length > 0 && !includeArchived ? t("Archived sites are hidden.") : t("Add a published URL, preview or local entry point.")),
-      (0, import_react94.createElement)("button", {
+      (0, import_react95.createElement)(GlobeIcon),
+      (0, import_react95.createElement)("b", null, filtered ? t("No matching sites") : data.sites.length > 0 && !includeArchived ? t("No active sites") : t("No sites here yet")),
+      (0, import_react95.createElement)("span", null, filtered ? t("Try another search or filter.") : data.sites.length > 0 && !includeArchived ? t("Archived sites are hidden.") : t("Add a published URL, preview or local entry point.")),
+      (0, import_react95.createElement)("button", {
         type: "button",
         className: "bt-soft bt-soft-sm",
         onClick: () => filtered ? (setEnvironment("all"), setQuery("")) : data.sites.length > 0 && !includeArchived ? setIncludeArchived(true) : setEditing({})
       }, filtered ? t("Clear filters") : data.sites.length > 0 && !includeArchived ? t("Show archived") : t("Add the first site"))
     ) : null,
-    (0, import_react94.createElement)("div", { className: "bt-sites-groups" }, model.groups.map((group) => (0, import_react94.createElement)(
+    (0, import_react95.createElement)("div", { className: "bt-sites-groups" }, model.groups.map((group) => (0, import_react95.createElement)(
       "section",
       { key: group.id, className: "bt-sites-group" },
-      (0, import_react94.createElement)(
+      (0, import_react95.createElement)(
         "div",
         { className: "bt-sites-group-head" },
-        (0, import_react94.createElement)("span", { className: "bt-sites-group-name" }, (0, import_react94.createElement)("i", { "data-color": group.color ?? "gray" }), (0, import_react94.createElement)("b", null, group.id === "__ungrouped__" ? t("Ungrouped") : group.name), (0, import_react94.createElement)("small", null, group.sites.length)),
-        group.id === "__ungrouped__" ? null : (0, import_react94.createElement)("button", { type: "button", className: "bt-teamov-link", onClick: () => setEditingGroup(group) }, t("Edit group"))
+        (0, import_react95.createElement)("span", { className: "bt-sites-group-name" }, (0, import_react95.createElement)("i", { "data-color": group.color ?? "gray" }), (0, import_react95.createElement)("b", null, group.id === "__ungrouped__" ? t("Ungrouped") : group.name), (0, import_react95.createElement)("small", null, group.sites.length)),
+        group.id === "__ungrouped__" ? null : (0, import_react95.createElement)("button", { type: "button", className: "bt-teamov-link", onClick: () => setEditingGroup(group) }, t("Edit group"))
       ),
-      (0, import_react94.createElement)("div", { className: "bt-site-list" }, group.sites.map((site) => (0, import_react94.createElement)(SiteRow, {
+      (0, import_react95.createElement)("div", { className: "bt-site-list" }, group.sites.map((site) => (0, import_react95.createElement)(SiteRow, {
         key: site.id,
         site,
         checking: checking === site.id,
@@ -64586,7 +64739,7 @@ function SitesView({ data, loading, failed, busy, actions, paths = [], onData })
         }
       })))
     ))),
-    (0, import_react94.createElement)("div", { className: "bt-teamov-refreshed" }, (0, import_react94.createElement)(ClockIcon), data?.counts?.online ? t("{count} online", { count: data.counts.online }) : t("Checked only when you ask"))
+    (0, import_react95.createElement)("div", { className: "bt-teamov-refreshed" }, (0, import_react95.createElement)(ClockIcon), data?.counts?.online ? t("{count} online", { count: data.counts.online }) : t("Checked only when you ask"))
   );
 }
 var SITES_CSS = `
@@ -64677,40 +64830,40 @@ var SITES_CSS = `
 `;
 
 // src/client/team-overview.js
-var import_react95 = require("react");
+var import_react96 = require("react");
 var stateText2 = (row) => row.alert ? t("Waiting for you") : row.doing?.switching ? t("Moving to a fresh Session") : row.running ? t("Working") : row.waitsOn.length > 0 ? t("Waiting for {names}", { names: row.waitsOn.join(t(" and ")) }) : row.unread ? t("Unread activity") : t("Idle");
 var rowDetail = (row) => row.running ? `${stateText2(row)} · ${workDetail(row.doing) || t("Working")}` : stateText2(row);
 var entryState = (entry) => entry.kind === "bot" ? entry.row.state : entry.row.approvals.length > 0 ? "alert" : entry.row.running ? "working" : entry.row.unread ? "unread" : "idle";
 function StateDot({ state }) {
-  return (0, import_react95.createElement)("span", { className: "bt-teamov-state-dot", "data-state": state, "aria-hidden": true });
+  return (0, import_react96.createElement)("span", { className: "bt-teamov-state-dot", "data-state": state, "aria-hidden": true });
 }
 function EmptyState() {
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-empty" },
-    (0, import_react95.createElement)(PeopleIcon),
-    (0, import_react95.createElement)("b", null, t("No team activity yet")),
-    (0, import_react95.createElement)("span", null, t("Bots, group chats and the work they hand to each other will appear here."))
+    (0, import_react96.createElement)(PeopleIcon),
+    (0, import_react96.createElement)("b", null, t("No team activity yet")),
+    (0, import_react96.createElement)("span", null, t("Bots, group chats and the work they hand to each other will appear here."))
   );
 }
 function Skeleton3() {
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-skeleton", "aria-busy": true, role: "status" },
-    (0, import_react95.createElement)("span", { className: "bt-sr" }, t("Loading team overview…")),
-    (0, import_react95.createElement)("i", { className: "bt-teamov-skel-title" }),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-skel-stats" }, (0, import_react95.createElement)("i"), (0, import_react95.createElement)("i"), (0, import_react95.createElement)("i")),
-    (0, import_react95.createElement)("i", { className: "bt-teamov-skel-line" }),
-    (0, import_react95.createElement)("i", { className: "bt-teamov-skel-line short" })
+    (0, import_react96.createElement)("span", { className: "bt-sr" }, t("Loading team overview…")),
+    (0, import_react96.createElement)("i", { className: "bt-teamov-skel-title" }),
+    (0, import_react96.createElement)("div", { className: "bt-teamov-skel-stats" }, (0, import_react96.createElement)("i"), (0, import_react96.createElement)("i"), (0, import_react96.createElement)("i")),
+    (0, import_react96.createElement)("i", { className: "bt-teamov-skel-line" }),
+    (0, import_react96.createElement)("i", { className: "bt-teamov-skel-line short" })
   );
 }
 function BootError() {
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-empty", role: "alert" },
-    (0, import_react95.createElement)(GaugeIcon),
-    (0, import_react95.createElement)("b", null, t("Team state is unavailable")),
-    (0, import_react95.createElement)("span", null, t("The team could not be read. Close this view and try again after the host reconnects."))
+    (0, import_react96.createElement)(GaugeIcon),
+    (0, import_react96.createElement)("b", null, t("Team state is unavailable")),
+    (0, import_react96.createElement)("span", null, t("The team could not be read. Close this view and try again after the host reconnects."))
   );
 }
 function Summary2({ counts: counts2 }) {
@@ -64742,19 +64895,19 @@ function Summary2({ counts: counts2 }) {
     [t("Unread"), pulse.unread],
     [t("Idle"), pulse.idle]
   ].map(([name, value]) => `${name}: ${value}`).join(", ");
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-summary" },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-ring", role: "img", "aria-label": label, style: { "--bt-teamov-ring": stops.length > 0 ? `conic-gradient(${stops.join(",")})` : "conic-gradient(var(--bt-line-2) 0 100%)" } },
-      (0, import_react95.createElement)("span", null, (0, import_react95.createElement)("b", null, pulse.total), (0, import_react95.createElement)("small", null, t("Team")))
+      (0, import_react96.createElement)("span", null, (0, import_react96.createElement)("b", null, pulse.total), (0, import_react96.createElement)("small", null, t("Team")))
     ),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-stats" }, items.map(([value, label2, kind]) => (0, import_react95.createElement)(
+    (0, import_react96.createElement)("div", { className: "bt-teamov-stats" }, items.map(([value, label2, kind]) => (0, import_react96.createElement)(
       "span",
       { key: label2, className: "bt-teamov-stat", "data-kind": kind },
-      (0, import_react95.createElement)("b", null, value),
-      (0, import_react95.createElement)("small", null, label2)
+      (0, import_react96.createElement)("b", null, value),
+      (0, import_react96.createElement)("small", null, label2)
     )))
   );
 }
@@ -64771,131 +64924,131 @@ function Attention2({ model, openEntry }) {
     ...model.questions.map((entry) => ({ key: `question:${entry.question.id}`, kind: "question", entry, bot: entry.owner, target: entry.owner, at: entry.at }))
   ].sort((a, b) => (b.at ?? 0) - (a.at ?? 0));
   if (rows2.length === 0) return null;
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "section",
     { className: "bt-teamov-section" },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-head" },
-      (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Needs you")), (0, import_react95.createElement)("h3", null, t("Decisions waiting"))),
-      (0, import_react95.createElement)("span", { className: "bt-teamov-count" }, rows2.length)
+      (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker" }, t("Needs you")), (0, import_react96.createElement)("h3", null, t("Decisions waiting"))),
+      (0, import_react96.createElement)("span", { className: "bt-teamov-count" }, rows2.length)
     ),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-list" }, rows2.map((row) => (0, import_react95.createElement)(
+    (0, import_react96.createElement)("div", { className: "bt-teamov-list" }, rows2.map((row) => (0, import_react96.createElement)(
       "button",
       { key: row.key, type: "button", className: "bt-teamov-attention", onClick: () => openEntry(row.target ?? row.bot) },
-      row.bot ? (0, import_react95.createElement)(BotAvatar, { bot: row.bot, size: 30, state: "alert" }) : (0, import_react95.createElement)("span", { className: "bt-teamov-attention-icon" }, (0, import_react95.createElement)(ClockIcon)),
-      (0, import_react95.createElement)(
+      row.bot ? (0, import_react96.createElement)(BotAvatar, { bot: row.bot, size: 30, state: "alert" }) : (0, import_react96.createElement)("span", { className: "bt-teamov-attention-icon" }, (0, import_react96.createElement)(ClockIcon)),
+      (0, import_react96.createElement)(
         "span",
         { className: "bt-teamov-row-text" },
-        (0, import_react95.createElement)("b", null, row.kind === "approval" ? row.approval.tool || t("Approval") : row.entry.question.question || t("Question")),
-        (0, import_react95.createElement)("small", null, row.kind === "approval" ? row.approval.reason || t("Waiting for your approval") : row.entry.question.detail || t("Waiting for your answer"))
+        (0, import_react96.createElement)("b", null, row.kind === "approval" ? row.approval.tool || t("Approval") : row.entry.question.question || t("Question")),
+        (0, import_react96.createElement)("small", null, row.kind === "approval" ? row.approval.reason || t("Waiting for your approval") : row.entry.question.detail || t("Waiting for your answer"))
       ),
-      Number.isFinite(row.at) ? (0, import_react95.createElement)(Elapsed, { at: row.at, className: "bt-teamov-age" }) : null,
-      (0, import_react95.createElement)(ChevronRightIcon)
+      Number.isFinite(row.at) ? (0, import_react96.createElement)(Elapsed, { at: row.at, className: "bt-teamov-age" }) : null,
+      (0, import_react96.createElement)(ChevronRightIcon)
     )))
   );
 }
 function Activity({ model, openEntry }) {
   if (model.activities.length === 0) return null;
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "section",
     { className: "bt-teamov-section" },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-head" },
-      (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Live work")), (0, import_react95.createElement)("h3", null, t("Happening now"))),
-      (0, import_react95.createElement)("span", { className: "bt-teamov-count" }, model.activities.length)
+      (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker" }, t("Live work")), (0, import_react96.createElement)("h3", null, t("Happening now"))),
+      (0, import_react96.createElement)("span", { className: "bt-teamov-count" }, model.activities.length)
     ),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-list" }, model.activities.map((entry) => (0, import_react95.createElement)(
+    (0, import_react96.createElement)("div", { className: "bt-teamov-list" }, model.activities.map((entry) => (0, import_react96.createElement)(
       "button",
       { key: entry.key, type: "button", className: "bt-teamov-row bt-teamov-live-row", onClick: () => openEntry(entry.kind === "room" ? entry.room : entry.bot) },
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "span",
         { className: "bt-teamov-activity-avatar", "data-state": entry.row.state },
-        (0, import_react95.createElement)(BotAvatar, { bot: entry.bot, size: 34, state: entry.row.state })
+        (0, import_react96.createElement)(BotAvatar, { bot: entry.bot, size: 34, state: entry.row.state })
       ),
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "span",
         { className: "bt-teamov-row-text" },
-        (0, import_react95.createElement)("b", null, entry.bot.name, entry.room ? (0, import_react95.createElement)("span", { className: "bt-teamov-context" }, ` · ${entry.room.name}`) : null),
-        (0, import_react95.createElement)("small", null, entry.doing?.switching ? t(entry.doing.folder ? "Moving this chat to its new folder" : "Moving to a fresh Session") : workDetail(entry.doing) || t("Working"))
+        (0, import_react96.createElement)("b", null, entry.bot.name, entry.room ? (0, import_react96.createElement)("span", { className: "bt-teamov-context" }, ` · ${entry.room.name}`) : null),
+        (0, import_react96.createElement)("small", null, entry.doing?.switching ? t(entry.doing.folder ? "Moving this chat to its new folder" : "Moving to a fresh Session") : workDetail(entry.doing) || t("Working"))
       ),
-      Number.isFinite(entry.since) ? (0, import_react95.createElement)(Elapsed, { at: entry.since, className: "bt-teamov-age" }) : null,
-      (0, import_react95.createElement)(ChevronRightIcon)
+      Number.isFinite(entry.since) ? (0, import_react96.createElement)(Elapsed, { at: entry.since, className: "bt-teamov-age" }) : null,
+      (0, import_react96.createElement)(ChevronRightIcon)
     )))
   );
 }
 function TeamSections({ model, openEntry }) {
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "section",
     { className: "bt-teamov-section" },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-head" },
-      (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Team")), (0, import_react95.createElement)("h3", null, t("Bots and groups"))),
-      (0, import_react95.createElement)("span", { className: "bt-teamov-count" }, model.counts.bots + model.counts.groups)
+      (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker" }, t("Team")), (0, import_react96.createElement)("h3", null, t("Bots and groups"))),
+      (0, import_react96.createElement)("span", { className: "bt-teamov-count" }, model.counts.bots + model.counts.groups)
     ),
-    model.sections.map((section) => (0, import_react95.createElement)(
+    model.sections.map((section) => (0, import_react96.createElement)(
       "div",
       { key: section.id, className: "bt-teamov-group" },
-      section.name ? (0, import_react95.createElement)(
+      section.name ? (0, import_react96.createElement)(
         "div",
         { className: "bt-teamov-group-head" },
-        (0, import_react95.createElement)("b", null, section.name),
-        (0, import_react95.createElement)(
+        (0, import_react96.createElement)("b", null, section.name),
+        (0, import_react96.createElement)(
           "span",
           { className: "bt-teamov-group-tail" },
-          (0, import_react95.createElement)("span", { className: "bt-teamov-mini-pulse", "aria-hidden": true }, section.entries.slice(0, 10).map((entry) => (0, import_react95.createElement)("i", { key: `${entry.kind}:${entry.id}`, "data-state": entryState(entry) }))),
-          (0, import_react95.createElement)("span", { className: "bt-teamov-group-count" }, section.entries.length)
+          (0, import_react96.createElement)("span", { className: "bt-teamov-mini-pulse", "aria-hidden": true }, section.entries.slice(0, 10).map((entry) => (0, import_react96.createElement)("i", { key: `${entry.kind}:${entry.id}`, "data-state": entryState(entry) }))),
+          (0, import_react96.createElement)("span", { className: "bt-teamov-group-count" }, section.entries.length)
         )
       ) : null,
-      section.entries.map((entry) => entry.kind === "bot" ? (0, import_react95.createElement)(
+      section.entries.map((entry) => entry.kind === "bot" ? (0, import_react96.createElement)(
         "button",
         { key: `bot:${entry.id}`, type: "button", className: "bt-teamov-row", onClick: () => openEntry(entry.row.bot) },
-        (0, import_react95.createElement)(BotAvatar, { bot: entry.row.bot, size: 34, state: entry.row.state }),
-        (0, import_react95.createElement)("span", { className: "bt-teamov-row-text" }, (0, import_react95.createElement)("b", null, entry.row.bot.name, (0, import_react95.createElement)(StateDot, { state: entry.row.state })), (0, import_react95.createElement)("small", null, rowDetail(entry.row))),
-        (0, import_react95.createElement)(ChevronRightIcon)
-      ) : (0, import_react95.createElement)(
+        (0, import_react96.createElement)(BotAvatar, { bot: entry.row.bot, size: 34, state: entry.row.state }),
+        (0, import_react96.createElement)("span", { className: "bt-teamov-row-text" }, (0, import_react96.createElement)("b", null, entry.row.bot.name, (0, import_react96.createElement)(StateDot, { state: entry.row.state })), (0, import_react96.createElement)("small", null, rowDetail(entry.row))),
+        (0, import_react96.createElement)(ChevronRightIcon)
+      ) : (0, import_react96.createElement)(
         "button",
         { key: `room:${entry.id}`, type: "button", className: "bt-teamov-row", onClick: () => openEntry(entry.row.room) },
-        (0, import_react95.createElement)(RoomAvatar, { room: entry.row.room, roster: model.roster, size: 34 }),
-        (0, import_react95.createElement)("span", { className: "bt-teamov-row-text" }, (0, import_react95.createElement)("b", null, entry.row.room.name), (0, import_react95.createElement)("small", null, entry.row.running ? t("{count} members working", { count: entry.row.members.length }) : t("{count} members", { count: entry.row.room.members.length }))),
-        (0, import_react95.createElement)(ChevronRightIcon)
+        (0, import_react96.createElement)(RoomAvatar, { room: entry.row.room, roster: model.roster, size: 34 }),
+        (0, import_react96.createElement)("span", { className: "bt-teamov-row-text" }, (0, import_react96.createElement)("b", null, entry.row.room.name), (0, import_react96.createElement)("small", null, entry.row.running ? t("{count} members working", { count: entry.row.members.length }) : t("{count} members", { count: entry.row.room.members.length }))),
+        (0, import_react96.createElement)(ChevronRightIcon)
       ))
     ))
   );
 }
 function Recent({ model, openEntry }) {
   if (model.recent.length === 0) return null;
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "section",
     { className: "bt-teamov-section" },
-    (0, import_react95.createElement)("div", { className: "bt-teamov-head" }, (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Recent records")), (0, import_react95.createElement)("h3", null, t("What changed")))),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-list" }, model.recent.slice(0, 8).map((entry) => (0, import_react95.createElement)(
+    (0, import_react96.createElement)("div", { className: "bt-teamov-head" }, (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker" }, t("Recent records")), (0, import_react96.createElement)("h3", null, t("What changed")))),
+    (0, import_react96.createElement)("div", { className: "bt-teamov-list" }, model.recent.slice(0, 8).map((entry) => (0, import_react96.createElement)(
       "button",
       { key: entry.key, type: "button", className: "bt-teamov-record", onClick: () => openEntry(entry.kind === "bot" ? entry.row.bot : entry.row.room) },
-      (0, import_react95.createElement)("i", { className: "bt-teamov-record-dot", "data-state": entry.kind === "bot" ? entry.row.state : roomState(entry.row), "aria-hidden": true }),
-      (0, import_react95.createElement)("span", { className: "bt-teamov-record-time" }, relativeShort(entry.at)),
-      (0, import_react95.createElement)("span", { className: "bt-teamov-row-text" }, (0, import_react95.createElement)("b", null, entry.name), (0, import_react95.createElement)("small", null, entry.preview || t("No message preview"))),
-      (0, import_react95.createElement)(ChevronRightIcon)
+      (0, import_react96.createElement)("i", { className: "bt-teamov-record-dot", "data-state": entry.kind === "bot" ? entry.row.state : roomState(entry.row), "aria-hidden": true }),
+      (0, import_react96.createElement)("span", { className: "bt-teamov-record-time" }, relativeShort(entry.at)),
+      (0, import_react96.createElement)("span", { className: "bt-teamov-row-text" }, (0, import_react96.createElement)("b", null, entry.name), (0, import_react96.createElement)("small", null, entry.preview || t("No message preview"))),
+      (0, import_react96.createElement)(ChevronRightIcon)
     )))
   );
 }
 function Learning({ model, openEntry }) {
   const rows2 = Object.entries(model.learning ?? {}).flatMap(([botId, proposals]) => (proposals ?? []).map((proposal) => ({ botId, proposal }))).slice(0, 3);
   if (rows2.length === 0) return null;
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "section",
     { className: "bt-teamov-section" },
-    (0, import_react95.createElement)("div", { className: "bt-teamov-head" }, (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Learning")), (0, import_react95.createElement)("h3", null, t("Proposals waiting")))),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-list" }, rows2.map(({ botId, proposal }) => {
+    (0, import_react96.createElement)("div", { className: "bt-teamov-head" }, (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker" }, t("Learning")), (0, import_react96.createElement)("h3", null, t("Proposals waiting")))),
+    (0, import_react96.createElement)("div", { className: "bt-teamov-list" }, rows2.map(({ botId, proposal }) => {
       const bot = model.botRows.get(botId)?.bot;
-      return (0, import_react95.createElement)(
+      return (0, import_react96.createElement)(
         "button",
         { key: proposal.id, type: "button", className: "bt-teamov-row", onClick: () => openEntry(bot) },
-        (0, import_react95.createElement)("span", { className: "bt-teamov-attention-icon" }, (0, import_react95.createElement)(MemoryIcon)),
-        (0, import_react95.createElement)("span", { className: "bt-teamov-row-text" }, (0, import_react95.createElement)("b", null, proposal.name || t("Bot improvement")), (0, import_react95.createElement)("small", null, proposal.description || proposal.kind || t("Awaiting approval"))),
-        (0, import_react95.createElement)(ChevronRightIcon)
+        (0, import_react96.createElement)("span", { className: "bt-teamov-attention-icon" }, (0, import_react96.createElement)(MemoryIcon)),
+        (0, import_react96.createElement)("span", { className: "bt-teamov-row-text" }, (0, import_react96.createElement)("b", null, proposal.name || t("Bot improvement")), (0, import_react96.createElement)("small", null, proposal.description || proposal.kind || t("Awaiting approval"))),
+        (0, import_react96.createElement)(ChevronRightIcon)
       );
     }))
   );
@@ -64915,17 +65068,17 @@ function ProjectSummary({ counts: counts2 }) {
     [counts2.work, t("Open work"), "work"],
     [counts2.standards, t("With rules"), "rules"]
   ];
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-portfolio" },
-    (0, import_react95.createElement)("div", { className: "bt-teamov-portfolio-mark" }, (0, import_react95.createElement)(FolderIcon)),
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)("div", { className: "bt-teamov-portfolio-mark" }, (0, import_react96.createElement)(FolderIcon)),
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-portfolio-copy" },
-      (0, import_react95.createElement)("b", null, t("Project portfolio")),
-      (0, import_react95.createElement)("span", null, t("Live work, memory and captured standards"))
+      (0, import_react96.createElement)("b", null, t("Project portfolio")),
+      (0, import_react96.createElement)("span", null, t("Live work, memory and captured standards"))
     ),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-portfolio-stats" }, items.map(([value, label, kind]) => (0, import_react95.createElement)("span", { key: label, "data-kind": kind }, (0, import_react95.createElement)("b", null, value), (0, import_react95.createElement)("small", null, label))))
+    (0, import_react96.createElement)("div", { className: "bt-teamov-portfolio-stats" }, items.map(([value, label, kind]) => (0, import_react96.createElement)("span", { key: label, "data-kind": kind }, (0, import_react96.createElement)("b", null, value), (0, import_react96.createElement)("small", null, label))))
   );
 }
 function AgentSummary({ counts: counts2 }) {
@@ -64935,17 +65088,17 @@ function AgentSummary({ counts: counts2 }) {
     [counts2.needs, t("Need you"), "needs"],
     [counts2.improving, t("Learning queued"), "learning"]
   ];
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-portfolio" },
-    (0, import_react95.createElement)("div", { className: "bt-teamov-portfolio-mark" }, (0, import_react95.createElement)(GaugeIcon)),
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)("div", { className: "bt-teamov-portfolio-mark" }, (0, import_react96.createElement)(GaugeIcon)),
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-portfolio-copy" },
-      (0, import_react95.createElement)("b", null, t("Agent health")),
-      (0, import_react95.createElement)("span", null, t("Runtime, learning and standards evidence"))
+      (0, import_react96.createElement)("b", null, t("Agent health")),
+      (0, import_react96.createElement)("span", null, t("Runtime, learning and standards evidence"))
     ),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-portfolio-stats" }, items.map(([value, label, kind]) => (0, import_react95.createElement)("span", { key: label, "data-kind": kind }, (0, import_react95.createElement)("b", null, value), (0, import_react95.createElement)("small", null, label))))
+    (0, import_react96.createElement)("div", { className: "bt-teamov-portfolio-stats" }, items.map(([value, label, kind]) => (0, import_react96.createElement)("span", { key: label, "data-kind": kind }, (0, import_react96.createElement)("b", null, value), (0, import_react96.createElement)("small", null, label))))
   );
 }
 function DataTabs({ tab, setTab, model, projectCount, agentCount, siteCount, busy, refresh }) {
@@ -64964,10 +65117,10 @@ function DataTabs({ tab, setTab, model, projectCount, agentCount, siteCount, bus
     setTab(tabs[next][0]);
     requestAnimationFrame(() => tablist.children?.[next]?.focus());
   };
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-databar" },
-    (0, import_react95.createElement)("div", { className: "bt-teamov-tabs", role: "tablist", "aria-label": t("Overview sections"), onKeyDown: onKey }, tabs.map(([id, label, Icon, count]) => (0, import_react95.createElement)("button", {
+    (0, import_react96.createElement)("div", { className: "bt-teamov-tabs", role: "tablist", "aria-label": t("Overview sections"), onKeyDown: onKey }, tabs.map(([id, label, Icon, count]) => (0, import_react96.createElement)("button", {
       key: id,
       type: "button",
       role: "tab",
@@ -64976,12 +65129,12 @@ function DataTabs({ tab, setTab, model, projectCount, agentCount, siteCount, bus
       "aria-selected": tab === id,
       "aria-controls": `bt-teamov-${id}`,
       onClick: () => setTab(id)
-    }, (0, import_react95.createElement)(Icon), (0, import_react95.createElement)("span", null, label), count === null ? null : (0, import_react95.createElement)("i", null, count)))),
-    tab === "team" ? null : (0, import_react95.createElement)(
+    }, (0, import_react96.createElement)(Icon), (0, import_react96.createElement)("span", null, label), count === null ? null : (0, import_react96.createElement)("i", null, count)))),
+    tab === "team" ? null : (0, import_react96.createElement)(
       "button",
       { type: "button", className: "bt-teamov-refresh", disabled: busy, "aria-label": busy ? t("Refreshing…") : t("Refresh"), title: busy ? t("Refreshing…") : t("Refresh"), onClick: refresh },
-      (0, import_react95.createElement)(RefreshIcon),
-      (0, import_react95.createElement)("span", null, busy ? t("Refreshing…") : t("Refresh"))
+      (0, import_react96.createElement)(RefreshIcon),
+      (0, import_react96.createElement)("span", null, busy ? t("Refreshing…") : t("Refresh"))
     )
   );
 }
@@ -65000,79 +65153,79 @@ function eventProgressText(event) {
 var profileWord = (id) => id === "miniprogram" ? t("Mini program") : id === "video" ? t("Video") : id === "web" ? t("Web") : id === "app" ? t("App") : id === "backend" ? t("Backend") : id === "mixed" ? t("Mixed") : t("Generic");
 var fileRoleWord = (role) => role === "rules" ? t("Project rules") : role === "description" ? t("Project document") : role === "commands" ? t("Commands") : role === "standards" ? t("Standard pack") : role === "results" ? t("Check results") : role === "integration" ? t("Task source") : role === "project" ? t("Project marker") : t("Required file");
 function KnowledgeGlyph({ kind }) {
-  return kind === "memory" ? (0, import_react95.createElement)(MemoryIcon) : kind === "rules" || kind === "document" ? (0, import_react95.createElement)(PencilIcon) : kind === "sources" || kind === "source" ? (0, import_react95.createElement)(InfoIcon) : kind === "skills" ? (0, import_react95.createElement)(GoalIcon) : (0, import_react95.createElement)(TerminalIcon);
+  return kind === "memory" ? (0, import_react96.createElement)(MemoryIcon) : kind === "rules" || kind === "document" ? (0, import_react96.createElement)(PencilIcon) : kind === "sources" || kind === "source" ? (0, import_react96.createElement)(InfoIcon) : kind === "skills" ? (0, import_react96.createElement)(GoalIcon) : (0, import_react96.createElement)(TerminalIcon);
 }
 function ProjectRail({ project: project2 }) {
   const goal = project2.goal;
   const work = [...project2.bots.map((row) => row.state), ...project2.rooms.map(roomState)];
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-project-rail" },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-rail-row", "data-kind": "plan" },
-      (0, import_react95.createElement)("span", null, (0, import_react95.createElement)(GoalIcon), t("Plan")),
-      goal.stages.length > 0 ? (0, import_react95.createElement)("div", { className: "bt-teamov-flow-dots" }, goal.stages.map((stage, index) => (0, import_react95.createElement)("i", {
+      (0, import_react96.createElement)("span", null, (0, import_react96.createElement)(GoalIcon), t("Plan")),
+      goal.stages.length > 0 ? (0, import_react96.createElement)("div", { className: "bt-teamov-flow-dots" }, goal.stages.map((stage, index) => (0, import_react96.createElement)("i", {
         key: index,
         "data-state": stage.status === "passed" ? "done" : stage.current ? "current" : "todo",
         title: stage.title
-      }))) : (0, import_react95.createElement)("small", null, t("Not defined")),
-      (0, import_react95.createElement)("b", null, goal.total > 0 ? `${goal.passed}/${goal.total}` : "—")
+      }))) : (0, import_react96.createElement)("small", null, t("Not defined")),
+      (0, import_react96.createElement)("b", null, goal.total > 0 ? `${goal.passed}/${goal.total}` : "—")
     ),
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-rail-row", "data-kind": "work" },
-      (0, import_react95.createElement)("span", null, (0, import_react95.createElement)(PeopleIcon), t("Work")),
-      work.length > 0 ? (0, import_react95.createElement)("div", { className: "bt-teamov-flow-dots" }, work.map((state, index) => (0, import_react95.createElement)("i", { key: index, "data-state": state }))) : (0, import_react95.createElement)("small", null, t("Quiet")),
-      (0, import_react95.createElement)("b", null, project2.state.running > 0 ? project2.state.running : "—")
+      (0, import_react96.createElement)("span", null, (0, import_react96.createElement)(PeopleIcon), t("Work")),
+      work.length > 0 ? (0, import_react96.createElement)("div", { className: "bt-teamov-flow-dots" }, work.map((state, index) => (0, import_react96.createElement)("i", { key: index, "data-state": state }))) : (0, import_react96.createElement)("small", null, t("Quiet")),
+      (0, import_react96.createElement)("b", null, project2.state.running > 0 ? project2.state.running : "—")
     ),
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-rail-row", "data-kind": "evidence" },
-      (0, import_react95.createElement)("span", null, (0, import_react95.createElement)(CheckIcon), t("Evidence")),
-      (0, import_react95.createElement)("div", { className: "bt-teamov-evidence-dots" }, project2.standards.evidence.map((on, index) => (0, import_react95.createElement)("i", { key: index, "data-on": on || void 0 }))),
-      (0, import_react95.createElement)("b", null, `${project2.standards.covered}/4`)
+      (0, import_react96.createElement)("span", null, (0, import_react96.createElement)(CheckIcon), t("Evidence")),
+      (0, import_react96.createElement)("div", { className: "bt-teamov-evidence-dots" }, project2.standards.evidence.map((on, index) => (0, import_react96.createElement)("i", { key: index, "data-on": on || void 0 }))),
+      (0, import_react96.createElement)("b", null, `${project2.standards.covered}/4`)
     )
   );
 }
 function MetricSignal({ label, value, detail, tone }) {
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-signal", "data-tone": tone },
-    (0, import_react95.createElement)("span", null, label),
-    (0, import_react95.createElement)("b", null, value),
-    (0, import_react95.createElement)("small", null, detail)
+    (0, import_react96.createElement)("span", null, label),
+    (0, import_react96.createElement)("b", null, value),
+    (0, import_react96.createElement)("small", null, detail)
   );
 }
 function GoalFlow({ project: project2 }) {
   if (project2.goal.stages.length === 0) {
-    return (0, import_react95.createElement)(
+    return (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-no-plan" },
-      (0, import_react95.createElement)(GoalIcon),
-      (0, import_react95.createElement)("span", null, (0, import_react95.createElement)("b", null, t("No acceptance plan yet")), (0, import_react95.createElement)("small", null, t("Set a Goal in the project conversation to make progress measurable.")))
+      (0, import_react96.createElement)(GoalIcon),
+      (0, import_react96.createElement)("span", null, (0, import_react96.createElement)("b", null, t("No acceptance plan yet")), (0, import_react96.createElement)("small", null, t("Set a Goal in the project conversation to make progress measurable.")))
     );
   }
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-goal-flow", role: "list", "aria-label": t("Goal stages") },
-    project2.goal.stages.map((stage, index) => (0, import_react95.createElement)("div", {
+    project2.goal.stages.map((stage, index) => (0, import_react96.createElement)("div", {
       key: index,
       role: "listitem",
       className: "bt-teamov-goal-node",
       "data-state": stage.status === "passed" ? "done" : stage.current ? "current" : "todo"
-    }, (0, import_react95.createElement)("i", null, stage.status === "passed" ? (0, import_react95.createElement)(CheckIcon) : index + 1), (0, import_react95.createElement)("span", null, stage.title)))
+    }, (0, import_react96.createElement)("i", null, stage.status === "passed" ? (0, import_react96.createElement)(CheckIcon) : index + 1), (0, import_react96.createElement)("span", null, stage.title)))
   );
 }
 function CheckMatrix({ project: project2 }) {
   const rows2 = project2.completion.checks.rows;
-  if (rows2.length === 0) return (0, import_react95.createElement)("div", { className: "bt-teamov-quiet-block" }, (0, import_react95.createElement)(TerminalIcon), (0, import_react95.createElement)("span", null, t("No checks configured")));
-  return (0, import_react95.createElement)("div", { className: "bt-teamov-check-matrix" }, rows2.map((row) => (0, import_react95.createElement)(
+  if (rows2.length === 0) return (0, import_react96.createElement)("div", { className: "bt-teamov-quiet-block" }, (0, import_react96.createElement)(TerminalIcon), (0, import_react96.createElement)("span", null, t("No checks configured")));
+  return (0, import_react96.createElement)("div", { className: "bt-teamov-check-matrix" }, rows2.map((row) => (0, import_react96.createElement)(
     "div",
     { key: row.name, "data-state": row.status },
-    (0, import_react95.createElement)("i", { "aria-hidden": true }, row.status === "passed" ? (0, import_react95.createElement)(CheckIcon) : row.status === "failed" ? (0, import_react95.createElement)(CloseIcon) : (0, import_react95.createElement)(ClockIcon)),
-    (0, import_react95.createElement)("span", null, row.name),
-    (0, import_react95.createElement)("small", null, row.status === "passed" ? t("Passed") : row.status === "failed" ? t("Failed") : row.status === "unknown" ? t("Unverified") : t("Not recorded"))
+    (0, import_react96.createElement)("i", { "aria-hidden": true }, row.status === "passed" ? (0, import_react96.createElement)(CheckIcon) : row.status === "failed" ? (0, import_react96.createElement)(CloseIcon) : (0, import_react96.createElement)(ClockIcon)),
+    (0, import_react96.createElement)("span", null, row.name),
+    (0, import_react96.createElement)("small", null, row.status === "passed" ? t("Passed") : row.status === "failed" ? t("Failed") : row.status === "unknown" ? t("Unverified") : t("Not recorded"))
   )));
 }
 var workStateWord = (state) => state === "merged" ? t("Merged") : state === "closed" ? t("Closed") : state === "draft" ? t("Draft") : t("Open");
@@ -65080,26 +65233,26 @@ var checksWord = (checks) => checks?.status === "failed" ? t("Checks failed") : 
 var reviewWord = (decision) => decision === "approved" ? t("Review approved") : decision === "changes_requested" ? t("Changes requested") : "";
 function WorkItemsBoard({ project: project2, actions }) {
   const data = project2.workItems;
-  const [kind, setKind] = (0, import_react95.useState)("issues");
-  const [scope, setScope] = (0, import_react95.useState)("all");
+  const [kind, setKind] = (0, import_react96.useState)("issues");
+  const [scope, setScope] = (0, import_react96.useState)("all");
   if (data === void 0 || data.status === "not-linked" || data.status === "disabled") return null;
   if (data.status !== "ok" && data.status !== "stale") {
     const message = data.status === "needs-auth" ? t("GitHub sign-in needed") : data.status === "gh-missing" ? t("GitHub CLI or connector needed") : data.status === "not-found" ? t("Repository not found") : t("GitHub could not be read");
-    return (0, import_react95.createElement)(
+    return (0, import_react96.createElement)(
       "section",
       { className: "bt-teamov-workitems", "data-state": data.status },
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "div",
         { className: "bt-teamov-board-head" },
-        (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker bt-teamov-work-kicker" }, (0, import_react95.createElement)(QueueIcon), t("GitHub")), (0, import_react95.createElement)("h4", null, t("Project work"))),
-        (0, import_react95.createElement)("span", { className: "bt-teamov-board-badge", "data-warning": true }, t("Needs setup"))
+        (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker bt-teamov-work-kicker" }, (0, import_react96.createElement)(QueueIcon), t("GitHub")), (0, import_react96.createElement)("h4", null, t("Project work"))),
+        (0, import_react96.createElement)("span", { className: "bt-teamov-board-badge", "data-warning": true }, t("Needs setup"))
       ),
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "div",
         { className: "bt-teamov-work-empty" },
-        (0, import_react95.createElement)(GitHubMark),
-        (0, import_react95.createElement)("span", null, (0, import_react95.createElement)("b", null, message), (0, import_react95.createElement)("small", null, data.error || t("Connect a source to see issues and pull requests."))),
-        (0, import_react95.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => actions.openConnectors() }, t("Open connectors"))
+        (0, import_react96.createElement)(GitHubMark),
+        (0, import_react96.createElement)("span", null, (0, import_react96.createElement)("b", null, message), (0, import_react96.createElement)("small", null, data.error || t("Connect a source to see issues and pull requests."))),
+        (0, import_react96.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => actions.openConnectors() }, t("Open connectors"))
       )
     );
   }
@@ -65111,47 +65264,47 @@ function WorkItemsBoard({ project: project2, actions }) {
   const viewAll = base ? `${base}/${kind === "issues" ? "issues" : "pulls"}` : null;
   const scopeItems = [["all", t("All")], ["mine", t("Mine")], ...kind === "prs" ? [["review", t("Review")]] : []];
   const detail = data.stale ? t("Stale") : data.repos.length > 1 ? t("{count} repositories", { count: data.repos.length }) : repo?.slug ?? "";
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "section",
     { className: "bt-teamov-workitems", "data-state": data.stale ? "stale" : data.status },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-board-head" },
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "div",
         { className: "bt-teamov-work-title" },
-        (0, import_react95.createElement)("span", { className: "bt-teamov-kicker bt-teamov-work-kicker" }, (0, import_react95.createElement)(QueueIcon), t("GitHub")),
-        (0, import_react95.createElement)("h4", null, t("Project work"), detail ? (0, import_react95.createElement)("span", { className: "bt-teamov-profile-note" }, detail) : null)
+        (0, import_react96.createElement)("span", { className: "bt-teamov-kicker bt-teamov-work-kicker" }, (0, import_react96.createElement)(QueueIcon), t("GitHub")),
+        (0, import_react96.createElement)("h4", null, t("Project work"), detail ? (0, import_react96.createElement)("span", { className: "bt-teamov-profile-note" }, detail) : null)
       ),
-      (0, import_react95.createElement)("span", { className: "bt-teamov-board-badge", "data-warning": data.stale || void 0 }, (0, import_react95.createElement)("i", null), `${t("Auto")} · ${data.refreshSeconds || 60}s`)
+      (0, import_react96.createElement)("span", { className: "bt-teamov-board-badge", "data-warning": data.stale || void 0 }, (0, import_react96.createElement)("i", null), `${t("Auto")} · ${data.refreshSeconds || 60}s`)
     ),
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-work-toolbar" },
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "div",
         { className: "bt-teamov-work-tabs", role: "tablist", "aria-label": t("Project work") },
-        (0, import_react95.createElement)("button", { type: "button", role: "tab", "aria-selected": kind === "issues", "data-active": kind === "issues" || void 0, onClick: () => {
+        (0, import_react96.createElement)("button", { type: "button", role: "tab", "aria-selected": kind === "issues", "data-active": kind === "issues" || void 0, onClick: () => {
           setKind("issues");
           setScope("all");
-        } }, t("Issues"), (0, import_react95.createElement)("i", null, data.counts.issues)),
-        (0, import_react95.createElement)("button", { type: "button", role: "tab", "aria-selected": kind === "prs", "data-active": kind === "prs" || void 0, onClick: () => {
+        } }, t("Issues"), (0, import_react96.createElement)("i", null, data.counts.issues)),
+        (0, import_react96.createElement)("button", { type: "button", role: "tab", "aria-selected": kind === "prs", "data-active": kind === "prs" || void 0, onClick: () => {
           setKind("prs");
           setScope("all");
-        } }, t("Pull requests"), (0, import_react95.createElement)("i", null, data.counts.pullRequests))
+        } }, t("Pull requests"), (0, import_react96.createElement)("i", null, data.counts.pullRequests))
       ),
-      (0, import_react95.createElement)("div", { className: "bt-teamov-work-filters" }, scopeItems.map(([id, label]) => (0, import_react95.createElement)("button", { key: id, type: "button", "data-active": scope === id || void 0, onClick: () => setScope(id) }, label)))
+      (0, import_react96.createElement)("div", { className: "bt-teamov-work-filters" }, scopeItems.map(([id, label]) => (0, import_react96.createElement)("button", { key: id, type: "button", "data-active": scope === id || void 0, onClick: () => setScope(id) }, label)))
     ),
-    shown.length === 0 ? (0, import_react95.createElement)("div", { className: "bt-teamov-work-empty compact" }, (0, import_react95.createElement)(GitHubMark), (0, import_react95.createElement)("span", null, t("No work items"))) : (0, import_react95.createElement)("div", { className: "bt-teamov-work-list" }, shown.map((item) => {
-      const row = (0, import_react95.createElement)(
-        import_react95.Fragment,
+    shown.length === 0 ? (0, import_react96.createElement)("div", { className: "bt-teamov-work-empty compact" }, (0, import_react96.createElement)(GitHubMark), (0, import_react96.createElement)("span", null, t("No work items"))) : (0, import_react96.createElement)("div", { className: "bt-teamov-work-list" }, shown.map((item) => {
+      const row = (0, import_react96.createElement)(
+        import_react96.Fragment,
         null,
-        (0, import_react95.createElement)("span", { className: "bt-teamov-work-number" }, (0, import_react95.createElement)("b", null, `#${item.number}`), (0, import_react95.createElement)("small", null, item.type === "pr" ? "PR" : "Issue")),
-        (0, import_react95.createElement)(
+        (0, import_react96.createElement)("span", { className: "bt-teamov-work-number" }, (0, import_react96.createElement)("b", null, `#${item.number}`), (0, import_react96.createElement)("small", null, item.type === "pr" ? "PR" : "Issue")),
+        (0, import_react96.createElement)(
           "span",
           { className: "bt-teamov-work-copy" },
-          (0, import_react95.createElement)("b", null, item.title),
-          (0, import_react95.createElement)(
+          (0, import_react96.createElement)("b", null, item.title),
+          (0, import_react96.createElement)(
             "small",
             null,
             item.author ? t("by {name}", { name: item.author }) : "",
@@ -65159,72 +65312,72 @@ function WorkItemsBoard({ project: project2, actions }) {
             item.reviewDecision ? ` · ${reviewWord(item.reviewDecision)}` : ""
           )
         ),
-        (0, import_react95.createElement)(
+        (0, import_react96.createElement)(
           "span",
           { className: "bt-teamov-work-signals" },
-          (0, import_react95.createElement)("i", { "data-state": item.draft ? "draft" : item.state }, workStateWord(item.draft ? "draft" : item.state)),
-          item.type === "pr" ? (0, import_react95.createElement)("i", { "data-check": item.checks?.status }, checksWord(item.checks)) : null
+          (0, import_react96.createElement)("i", { "data-state": item.draft ? "draft" : item.state }, workStateWord(item.draft ? "draft" : item.state)),
+          item.type === "pr" ? (0, import_react96.createElement)("i", { "data-check": item.checks?.status }, checksWord(item.checks)) : null
         ),
-        (0, import_react95.createElement)("time", null, relativeShort(item.updatedAt)),
-        (0, import_react95.createElement)(ChevronRightIcon)
+        (0, import_react96.createElement)("time", null, relativeShort(item.updatedAt)),
+        (0, import_react96.createElement)(ChevronRightIcon)
       );
-      return item.url ? (0, import_react95.createElement)("a", { key: `${item.repo?.slug}:${item.type}:${item.number}`, className: "bt-teamov-work-row", href: item.url, target: "_blank", rel: "noopener noreferrer" }, row) : (0, import_react95.createElement)("div", { key: `${item.repo?.slug}:${item.type}:${item.number}`, className: "bt-teamov-work-row" }, row);
+      return item.url ? (0, import_react96.createElement)("a", { key: `${item.repo?.slug}:${item.type}:${item.number}`, className: "bt-teamov-work-row", href: item.url, target: "_blank", rel: "noopener noreferrer" }, row) : (0, import_react96.createElement)("div", { key: `${item.repo?.slug}:${item.type}:${item.number}`, className: "bt-teamov-work-row" }, row);
     })),
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-work-foot" },
-      (0, import_react95.createElement)("span", null, data.fetchedAt ? t("Updated {time}", { time: relativeShort(data.fetchedAt) }) : ""),
-      viewAll ? (0, import_react95.createElement)("a", { href: viewAll, target: "_blank", rel: "noopener noreferrer" }, t("View on GitHub"), (0, import_react95.createElement)(ChevronRightIcon)) : null
+      (0, import_react96.createElement)("span", null, data.fetchedAt ? t("Updated {time}", { time: relativeShort(data.fetchedAt) }) : ""),
+      viewAll ? (0, import_react96.createElement)("a", { href: viewAll, target: "_blank", rel: "noopener noreferrer" }, t("View on GitHub"), (0, import_react96.createElement)(ChevronRightIcon)) : null
     )
   );
 }
 function CompletionBoard({ project: project2 }) {
   const checks = project2.completion.checks;
   const recorded = project2.standards.quality;
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "section",
     { className: "bt-teamov-completion", "data-status": project2.completion.status },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-board-head" },
-      (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Completion model")), (0, import_react95.createElement)("h4", null, completionWord(project2.completion.status))),
-      (0, import_react95.createElement)("span", { className: "bt-teamov-board-badge" }, (0, import_react95.createElement)("i", null), t("Auto"))
+      (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker" }, t("Completion model")), (0, import_react96.createElement)("h4", null, completionWord(project2.completion.status))),
+      (0, import_react96.createElement)("span", { className: "bt-teamov-board-badge" }, (0, import_react96.createElement)("i", null), t("Auto"))
     ),
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-signal-grid" },
-      (0, import_react95.createElement)(MetricSignal, { label: t("Plan"), value: project2.goal.total > 0 ? `${project2.goal.passed}/${project2.goal.total}` : "—", detail: project2.goal.current || (project2.goal.total > 0 ? t("Stages passed") : t("No Goal")), tone: project2.goal.total > 0 ? "neutral" : "quiet" }),
-      (0, import_react95.createElement)(MetricSignal, { label: t("Recorded checks"), value: recorded ? `${checks.passed}/${checks.expected}` : "—", detail: recorded ? checks.failed > 0 ? t("{count} failing", { count: checks.failed }) : t("All recorded checks passed") : t("No result recorded"), tone: recorded ? checks.failed > 0 ? "danger" : "good" : "quiet" }),
-      (0, import_react95.createElement)(MetricSignal, { label: t("Evidence"), value: `${project2.standards.covered}/4`, detail: project2.completion.requirements.missing > 0 ? t("{count} required files missing", { count: project2.completion.requirements.missing }) : project2.completion.requirements.checksMissing > 0 ? t("{count} required checks unrecorded", { count: project2.completion.requirements.checksMissing }) : t("Folder · rules · sources · checks"), tone: project2.completion.requirements.missing > 0 || project2.completion.requirements.checksMissing > 0 ? "danger" : project2.standards.covered === 4 ? "good" : "neutral" })
+      (0, import_react96.createElement)(MetricSignal, { label: t("Plan"), value: project2.goal.total > 0 ? `${project2.goal.passed}/${project2.goal.total}` : "—", detail: project2.goal.current || (project2.goal.total > 0 ? t("Stages passed") : t("No Goal")), tone: project2.goal.total > 0 ? "neutral" : "quiet" }),
+      (0, import_react96.createElement)(MetricSignal, { label: t("Recorded checks"), value: recorded ? `${checks.passed}/${checks.expected}` : "—", detail: recorded ? checks.failed > 0 ? t("{count} failing", { count: checks.failed }) : t("All recorded checks passed") : t("No result recorded"), tone: recorded ? checks.failed > 0 ? "danger" : "good" : "quiet" }),
+      (0, import_react96.createElement)(MetricSignal, { label: t("Evidence"), value: `${project2.standards.covered}/4`, detail: project2.completion.requirements.missing > 0 ? t("{count} required files missing", { count: project2.completion.requirements.missing }) : project2.completion.requirements.checksMissing > 0 ? t("{count} required checks unrecorded", { count: project2.completion.requirements.checksMissing }) : t("Folder · rules · sources · checks"), tone: project2.completion.requirements.missing > 0 || project2.completion.requirements.checksMissing > 0 ? "danger" : project2.standards.covered === 4 ? "good" : "neutral" })
     ),
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-completion-grid" },
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "div",
         { className: "bt-teamov-board-block" },
-        (0, import_react95.createElement)("div", { className: "bt-teamov-block-title" }, (0, import_react95.createElement)(GoalIcon), (0, import_react95.createElement)("b", null, t("Acceptance flow")), (0, import_react95.createElement)("span", null, project2.goal.title || t("No Goal"))),
-        (0, import_react95.createElement)(GoalFlow, { project: project2 })
+        (0, import_react96.createElement)("div", { className: "bt-teamov-block-title" }, (0, import_react96.createElement)(GoalIcon), (0, import_react96.createElement)("b", null, t("Acceptance flow")), (0, import_react96.createElement)("span", null, project2.goal.title || t("No Goal"))),
+        (0, import_react96.createElement)(GoalFlow, { project: project2 })
       ),
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "div",
         { className: "bt-teamov-board-block" },
-        (0, import_react95.createElement)("div", { className: "bt-teamov-block-title" }, (0, import_react95.createElement)(TerminalIcon), (0, import_react95.createElement)("b", null, t("Check matrix")), (0, import_react95.createElement)("span", null, recorded ? t("Recorded {time}", { time: relativeShort(timestampOf2(recorded.checkedAt)) }) : t("Unverified"))),
-        (0, import_react95.createElement)(CheckMatrix, { project: project2 })
+        (0, import_react96.createElement)("div", { className: "bt-teamov-block-title" }, (0, import_react96.createElement)(TerminalIcon), (0, import_react96.createElement)("b", null, t("Check matrix")), (0, import_react96.createElement)("span", null, recorded ? t("Recorded {time}", { time: relativeShort(timestampOf2(recorded.checkedAt)) }) : t("Unverified"))),
+        (0, import_react96.createElement)(CheckMatrix, { project: project2 })
       )
     )
   );
 }
 function EvidenceStrip({ evidence, compact: compact2 = false }) {
   const labels2 = [t("Folder"), t("Rules"), t("Sources"), t("Checks")];
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: compact2 ? "bt-teamov-evidence compact" : "bt-teamov-evidence", role: "img", "aria-label": labels2.map((label, index) => `${label}: ${evidence[index] ? t("Found") : t("Missing")}`).join(", ") },
-    labels2.map((label, index) => (0, import_react95.createElement)(
+    labels2.map((label, index) => (0, import_react96.createElement)(
       "span",
       { key: label, "data-on": evidence[index] || void 0 },
-      (0, import_react95.createElement)("i"),
-      compact2 ? null : (0, import_react95.createElement)("small", null, label)
+      (0, import_react96.createElement)("i"),
+      compact2 ? null : (0, import_react96.createElement)("small", null, label)
     ))
   );
 }
@@ -65239,12 +65392,12 @@ function StandardsDossier({ project: project2 }) {
     ...project2.memory.topics.map((text) => ({ text, source: t("Memory") })),
     ...project2.learning.settled.filter((entry) => entry.outcome === "approved").map((entry) => ({ text: entry.name || entry.folder || t("Learned skill"), source: t("Learning") }))
   ].filter((entry, index, all) => entry.text && all.findIndex((other) => other.text === entry.text && other.source === entry.source) === index).slice(0, 12);
-  const fileRows = files.map((file) => (0, import_react95.createElement)(
+  const fileRows = files.map((file) => (0, import_react96.createElement)(
     "div",
     { key: `${file.folder}:${file.path}:${file.role}`, "data-missing": !file.exists || void 0 },
-    (0, import_react95.createElement)("i", null, file.exists ? (0, import_react95.createElement)(CheckIcon) : (0, import_react95.createElement)(CloseIcon)),
-    (0, import_react95.createElement)("span", null, (0, import_react95.createElement)("b", null, file.path), (0, import_react95.createElement)("small", null, fileRoleWord(file.role))),
-    file.findings?.rules !== void 0 ? (0, import_react95.createElement)("em", null, `${file.findings.rules}`) : null
+    (0, import_react96.createElement)("i", null, file.exists ? (0, import_react96.createElement)(CheckIcon) : (0, import_react96.createElement)(CloseIcon)),
+    (0, import_react96.createElement)("span", null, (0, import_react96.createElement)("b", null, file.path), (0, import_react96.createElement)("small", null, fileRoleWord(file.role))),
+    file.findings?.rules !== void 0 ? (0, import_react96.createElement)("em", null, `${file.findings.rules}`) : null
   ));
   const sourceRows = sources.map((source) => {
     const checkedAt = timestampOf2(source.checkedAt);
@@ -65255,79 +65408,79 @@ function StandardsDossier({ project: project2 }) {
       checkedAt ? relativeShort(checkedAt) : t("Not reviewed"),
       stale ? t("Needs review") : null
     ].filter(Boolean).join(" · ") || t("Reference");
-    return (0, import_react95.createElement)(
+    return (0, import_react96.createElement)(
       "div",
       { key: source.url || source.name, "data-stale": stale || void 0 },
-      (0, import_react95.createElement)("span", null, (0, import_react95.createElement)("b", null, source.name), (0, import_react95.createElement)("small", null, detail)),
-      source.url ? (0, import_react95.createElement)("a", { href: source.url, target: "_blank", rel: "noreferrer" }, t("Open")) : null
+      (0, import_react96.createElement)("span", null, (0, import_react96.createElement)("b", null, source.name), (0, import_react96.createElement)("small", null, detail)),
+      source.url ? (0, import_react96.createElement)("a", { href: source.url, target: "_blank", rel: "noreferrer" }, t("Open")) : null
     );
   });
-  const experienceChips = experiences.map((entry, index) => (0, import_react95.createElement)(
+  const experienceChips = experiences.map((entry, index) => (0, import_react96.createElement)(
     "span",
     { key: `${entry.text}:${index}`, title: entry.source },
-    (0, import_react95.createElement)("b", null, entry.text),
-    (0, import_react95.createElement)("small", null, entry.source)
+    (0, import_react96.createElement)("b", null, entry.text),
+    (0, import_react96.createElement)("small", null, entry.source)
   ));
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "section",
     { className: "bt-teamov-standards-dossier" },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-board-head" },
-      (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Standards")), (0, import_react95.createElement)("h4", null, profileWord(standards.profile?.id), (0, import_react95.createElement)("span", { className: "bt-teamov-profile-note" }, standards.profile?.declared ? t("Declared pack") : t("Detected from files")))),
-      (0, import_react95.createElement)("span", { className: "bt-teamov-board-badge", "data-warning": presentFiles < standards.adoptedFiles.length || void 0 }, t("{present} of {total} files", { present: presentFiles, total: standards.adoptedFiles.length }))
+      (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker" }, t("Standards")), (0, import_react96.createElement)("h4", null, profileWord(standards.profile?.id), (0, import_react96.createElement)("span", { className: "bt-teamov-profile-note" }, standards.profile?.declared ? t("Declared pack") : t("Detected from files")))),
+      (0, import_react96.createElement)("span", { className: "bt-teamov-board-badge", "data-warning": presentFiles < standards.adoptedFiles.length || void 0 }, t("{present} of {total} files", { present: presentFiles, total: standards.adoptedFiles.length }))
     ),
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-standards-grid" },
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "div",
         { className: "bt-teamov-standard-block" },
-        (0, import_react95.createElement)("div", { className: "bt-teamov-block-title" }, (0, import_react95.createElement)(PencilIcon), (0, import_react95.createElement)("b", null, t("Adopted files")), (0, import_react95.createElement)("span", null, t("What the rules come from"))),
-        (0, import_react95.createElement)("div", { className: "bt-teamov-file-list" }, files.length === 0 ? (0, import_react95.createElement)("small", null, t("No adopted files found")) : fileRows)
+        (0, import_react96.createElement)("div", { className: "bt-teamov-block-title" }, (0, import_react96.createElement)(PencilIcon), (0, import_react96.createElement)("b", null, t("Adopted files")), (0, import_react96.createElement)("span", null, t("What the rules come from"))),
+        (0, import_react96.createElement)("div", { className: "bt-teamov-file-list" }, files.length === 0 ? (0, import_react96.createElement)("small", null, t("No adopted files found")) : fileRows)
       ),
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "div",
         { className: "bt-teamov-standard-block" },
-        (0, import_react95.createElement)("div", { className: "bt-teamov-block-title" }, (0, import_react95.createElement)(InfoIcon), (0, import_react95.createElement)("b", null, t("Official sources")), (0, import_react95.createElement)("span", null, t("Declared references"))),
-        (0, import_react95.createElement)("div", { className: "bt-teamov-source-list" }, sources.length === 0 ? (0, import_react95.createElement)("small", null, t("No official sources declared")) : sourceRows)
+        (0, import_react96.createElement)("div", { className: "bt-teamov-block-title" }, (0, import_react96.createElement)(InfoIcon), (0, import_react96.createElement)("b", null, t("Official sources")), (0, import_react96.createElement)("span", null, t("Declared references"))),
+        (0, import_react96.createElement)("div", { className: "bt-teamov-source-list" }, sources.length === 0 ? (0, import_react96.createElement)("small", null, t("No official sources declared")) : sourceRows)
       ),
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "div",
         { className: "bt-teamov-standard-block" },
-        (0, import_react95.createElement)("div", { className: "bt-teamov-block-title" }, (0, import_react95.createElement)(MemoryIcon), (0, import_react95.createElement)("b", null, t("Experience captured")), (0, import_react95.createElement)("span", null, t("Rules and lessons"))),
-        (0, import_react95.createElement)("div", { className: "bt-teamov-experience-chips" }, experiences.length === 0 ? (0, import_react95.createElement)("small", null, t("No experience captured yet")) : experienceChips)
+        (0, import_react96.createElement)("div", { className: "bt-teamov-block-title" }, (0, import_react96.createElement)(MemoryIcon), (0, import_react96.createElement)("b", null, t("Experience captured")), (0, import_react96.createElement)("span", null, t("Rules and lessons"))),
+        (0, import_react96.createElement)("div", { className: "bt-teamov-experience-chips" }, experiences.length === 0 ? (0, import_react96.createElement)("small", null, t("No experience captured yet")) : experienceChips)
       )
     )
   );
 }
 function KnowledgeBoard({ project: project2 }) {
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "section",
     { className: "bt-teamov-knowledge" },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-board-head" },
-      (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Experience")), (0, import_react95.createElement)("h4", null, t("Knowledge captured"))),
-      (0, import_react95.createElement)("span", { className: "bt-teamov-count" }, project2.experience.count)
+      (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker" }, t("Experience")), (0, import_react96.createElement)("h4", null, t("Knowledge captured"))),
+      (0, import_react96.createElement)("span", { className: "bt-teamov-count" }, project2.experience.count)
     ),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-knowledge-grid" }, project2.experience.knowledge.map((item) => (0, import_react95.createElement)(
+    (0, import_react96.createElement)("div", { className: "bt-teamov-knowledge-grid" }, project2.experience.knowledge.map((item) => (0, import_react96.createElement)(
       "div",
       { key: item.kind, className: "bt-teamov-knowledge-tile", "data-kind": item.kind },
-      (0, import_react95.createElement)("span", null, (0, import_react95.createElement)(KnowledgeGlyph, { kind: item.kind })),
-      (0, import_react95.createElement)("b", null, item.count),
-      (0, import_react95.createElement)("small", null, knowledgeWord(item.kind))
+      (0, import_react96.createElement)("span", null, (0, import_react96.createElement)(KnowledgeGlyph, { kind: item.kind })),
+      (0, import_react96.createElement)("b", null, item.count),
+      (0, import_react96.createElement)("small", null, knowledgeWord(item.kind))
     ))),
-    project2.standards.sources.length > 0 ? (0, import_react95.createElement)("div", { className: "bt-teamov-source-row" }, project2.standards.sources.slice(0, 3).map((source) => (0, import_react95.createElement)("a", { key: source, href: source, target: "_blank", rel: "noreferrer", title: source }, source.replace(/^https?:\/\//, "").split("/")[0]))) : null
+    project2.standards.sources.length > 0 ? (0, import_react96.createElement)("div", { className: "bt-teamov-source-row" }, project2.standards.sources.slice(0, 3).map((source) => (0, import_react96.createElement)("a", { key: source, href: source, target: "_blank", rel: "noreferrer", title: source }, source.replace(/^https?:\/\//, "").split("/")[0]))) : null
   );
 }
 function ExperienceTimeline({ project: project2 }) {
   if (project2.experience.events.length === 0) {
-    return (0, import_react95.createElement)(
+    return (0, import_react96.createElement)(
       "section",
       { className: "bt-teamov-experience" },
-      (0, import_react95.createElement)("div", { className: "bt-teamov-board-head" }, (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Timeline")), (0, import_react95.createElement)("h4", null, t("Project record")))),
-      (0, import_react95.createElement)("div", { className: "bt-teamov-quiet-block" }, (0, import_react95.createElement)(ClockIcon), (0, import_react95.createElement)("span", null, t("No project changes recorded yet")))
+      (0, import_react96.createElement)("div", { className: "bt-teamov-board-head" }, (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker" }, t("Timeline")), (0, import_react96.createElement)("h4", null, t("Project record")))),
+      (0, import_react96.createElement)("div", { className: "bt-teamov-quiet-block" }, (0, import_react96.createElement)(ClockIcon), (0, import_react96.createElement)("span", null, t("No project changes recorded yet")))
     );
   }
   const events = project2.experience.events.map((event, index) => {
@@ -65335,115 +65488,115 @@ function ExperienceTimeline({ project: project2 }) {
     const evidence = event.evidence && event.evidence !== event.text ? event.evidence : "";
     const progress = eventProgressText(event);
     const files = event.files?.length > 0 ? `${event.files.slice(0, 6).join(" · ")}${event.files.length > 6 ? ` · ${t("and {count} more", { count: event.files.length - 6 })}` : ""}` : "";
-    const detail = (0, import_react95.createElement)(
+    const detail = (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-timeline-detail" },
-      reason ? (0, import_react95.createElement)("p", null, (0, import_react95.createElement)("b", null, t("Reason")), reason) : null,
-      progress ? (0, import_react95.createElement)("p", null, (0, import_react95.createElement)("b", null, t("Progress")), progress) : null,
-      files ? (0, import_react95.createElement)("p", { className: "bt-teamov-timeline-files" }, (0, import_react95.createElement)("b", null, t("Files")), files) : null,
-      evidence ? (0, import_react95.createElement)("p", null, (0, import_react95.createElement)("b", null, t("Evidence")), evidence) : null,
-      event.text && event.text !== reason && event.text !== evidence ? (0, import_react95.createElement)("p", null, (0, import_react95.createElement)("b", null, t("Recorded")), event.text) : null,
-      (0, import_react95.createElement)("p", { className: "bt-teamov-timeline-source" }, (0, import_react95.createElement)("b", null, t("Source")), `${event.source || eventActionWord(event)} · ${eventOriginWord(event)}`)
+      reason ? (0, import_react96.createElement)("p", null, (0, import_react96.createElement)("b", null, t("Reason")), reason) : null,
+      progress ? (0, import_react96.createElement)("p", null, (0, import_react96.createElement)("b", null, t("Progress")), progress) : null,
+      files ? (0, import_react96.createElement)("p", { className: "bt-teamov-timeline-files" }, (0, import_react96.createElement)("b", null, t("Files")), files) : null,
+      evidence ? (0, import_react96.createElement)("p", null, (0, import_react96.createElement)("b", null, t("Evidence")), evidence) : null,
+      event.text && event.text !== reason && event.text !== evidence ? (0, import_react96.createElement)("p", null, (0, import_react96.createElement)("b", null, t("Recorded")), event.text) : null,
+      (0, import_react96.createElement)("p", { className: "bt-teamov-timeline-source" }, (0, import_react96.createElement)("b", null, t("Source")), `${event.source || eventActionWord(event)} · ${eventOriginWord(event)}`)
     );
-    return (0, import_react95.createElement)(
+    return (0, import_react96.createElement)(
       "details",
       { key: `${event.kind}:${event.at}:${index}`, className: "bt-teamov-timeline-event", "data-kind": event.kind, "data-action": event.action || void 0, "data-source": event.sourceKind || void 0 },
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "summary",
         null,
-        (0, import_react95.createElement)("i", { "aria-hidden": true }),
-        (0, import_react95.createElement)("time", null, relativeShort(event.at)),
-        (0, import_react95.createElement)("span", null, (0, import_react95.createElement)("b", null, eventActionWord(event)), eventTitle(event) ? (0, import_react95.createElement)("small", null, eventTitle(event)) : null)
+        (0, import_react96.createElement)("i", { "aria-hidden": true }),
+        (0, import_react96.createElement)("time", null, relativeShort(event.at)),
+        (0, import_react96.createElement)("span", null, (0, import_react96.createElement)("b", null, eventActionWord(event)), eventTitle(event) ? (0, import_react96.createElement)("small", null, eventTitle(event)) : null)
       ),
       detail
     );
   });
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "section",
     { className: "bt-teamov-experience" },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-board-head" },
-      (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Timeline")), (0, import_react95.createElement)("h4", null, t("Project record"))),
-      (0, import_react95.createElement)("span", { className: "bt-teamov-count" }, project2.changes.count)
+      (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker" }, t("Timeline")), (0, import_react96.createElement)("h4", null, t("Project record"))),
+      (0, import_react96.createElement)("span", { className: "bt-teamov-count" }, project2.changes.count)
     ),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-timeline" }, events)
+    (0, import_react96.createElement)("div", { className: "bt-teamov-timeline" }, events)
   );
 }
 function StandardsLibrary({ data }) {
   if (data.standardsLibrary.length === 0) return null;
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "section",
     { className: "bt-teamov-standards-library" },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-view-head" },
-      (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Standards library")), (0, import_react95.createElement)("h3", null, t("Rules accumulated by project type"))),
-      (0, import_react95.createElement)("span", { className: "bt-teamov-count" }, data.standardsLibrary.length)
+      (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker" }, t("Standards library")), (0, import_react96.createElement)("h3", null, t("Rules accumulated by project type"))),
+      (0, import_react96.createElement)("span", { className: "bt-teamov-count" }, data.standardsLibrary.length)
     ),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-standards-library-grid" }, data.standardsLibrary.map((profile) => (0, import_react95.createElement)(
+    (0, import_react96.createElement)("div", { className: "bt-teamov-standards-library-grid" }, data.standardsLibrary.map((profile) => (0, import_react96.createElement)(
       "div",
       { key: profile.id, className: "bt-teamov-profile-card", "data-profile": profile.id },
-      (0, import_react95.createElement)("span", { className: "bt-teamov-profile-icon" }, (0, import_react95.createElement)(InfoIcon)),
-      (0, import_react95.createElement)("span", { className: "bt-teamov-profile-copy" }, (0, import_react95.createElement)("b", null, profileWord(profile.id)), (0, import_react95.createElement)("small", null, t("{count} projects", { count: profile.projects }))),
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)("span", { className: "bt-teamov-profile-icon" }, (0, import_react96.createElement)(InfoIcon)),
+      (0, import_react96.createElement)("span", { className: "bt-teamov-profile-copy" }, (0, import_react96.createElement)("b", null, profileWord(profile.id)), (0, import_react96.createElement)("small", null, t("{count} projects", { count: profile.projects }))),
+      (0, import_react96.createElement)(
         "span",
         { className: "bt-teamov-profile-stats" },
-        (0, import_react95.createElement)("span", null, (0, import_react95.createElement)("b", null, profile.files), (0, import_react95.createElement)("small", null, t("Adopted files"))),
-        (0, import_react95.createElement)("span", null, (0, import_react95.createElement)("b", null, profile.sources), (0, import_react95.createElement)("small", null, t("Sources"))),
-        (0, import_react95.createElement)("span", null, (0, import_react95.createElement)("b", null, profile.rules), (0, import_react95.createElement)("small", null, t("Rules"))),
-        (0, import_react95.createElement)("span", null, (0, import_react95.createElement)("b", null, profile.skills), (0, import_react95.createElement)("small", null, t("Skills")))
+        (0, import_react96.createElement)("span", null, (0, import_react96.createElement)("b", null, profile.files), (0, import_react96.createElement)("small", null, t("Adopted files"))),
+        (0, import_react96.createElement)("span", null, (0, import_react96.createElement)("b", null, profile.sources), (0, import_react96.createElement)("small", null, t("Sources"))),
+        (0, import_react96.createElement)("span", null, (0, import_react96.createElement)("b", null, profile.rules), (0, import_react96.createElement)("small", null, t("Rules"))),
+        (0, import_react96.createElement)("span", null, (0, import_react96.createElement)("b", null, profile.skills), (0, import_react96.createElement)("small", null, t("Skills")))
       )
     )))
   );
 }
 function ProjectCard({ project: project2, expanded, toggle, openEntry, actions }) {
   const status = project2.state;
-  const details = expanded ? (0, import_react95.createElement)(
+  const details = expanded ? (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-project-body" },
-    (0, import_react95.createElement)(CompletionBoard, { project: project2 }),
-    (0, import_react95.createElement)(WorkItemsBoard, { project: project2, actions }),
-    (0, import_react95.createElement)(StandardsDossier, { project: project2 }),
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(CompletionBoard, { project: project2 }),
+    (0, import_react96.createElement)(WorkItemsBoard, { project: project2, actions }),
+    (0, import_react96.createElement)(StandardsDossier, { project: project2 }),
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-project-insights" },
-      (0, import_react95.createElement)(KnowledgeBoard, { project: project2 }),
-      (0, import_react95.createElement)(ExperienceTimeline, { project: project2 })
+      (0, import_react96.createElement)(KnowledgeBoard, { project: project2 }),
+      (0, import_react96.createElement)(ExperienceTimeline, { project: project2 })
     ),
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-project-actions" },
-      project2.target ? (0, import_react95.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => openEntry(project2.target) }, t("Open project"), (0, import_react95.createElement)(ChevronRightIcon)) : null,
-      project2.target ? (0, import_react95.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => actions.openMemoryFromOverview(project2.target.id) }, (0, import_react95.createElement)(MemoryIcon), t("Open memory")) : null
+      project2.target ? (0, import_react96.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => openEntry(project2.target) }, t("Open project"), (0, import_react96.createElement)(ChevronRightIcon)) : null,
+      project2.target ? (0, import_react96.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => actions.openMemoryFromOverview(project2.target.id) }, (0, import_react96.createElement)(MemoryIcon), t("Open memory")) : null
     )
   ) : null;
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "article",
     { className: "bt-teamov-project", "data-state": status.state, "data-expanded": expanded || void 0 },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "button",
       { type: "button", className: "bt-teamov-project-head", "aria-expanded": expanded, onClick: toggle },
-      (0, import_react95.createElement)("span", { className: "bt-teamov-project-icon" }, (0, import_react95.createElement)(FolderIcon)),
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)("span", { className: "bt-teamov-project-icon" }, (0, import_react96.createElement)(FolderIcon)),
+      (0, import_react96.createElement)(
         "span",
         { className: "bt-teamov-project-title" },
-        (0, import_react95.createElement)("b", null, projectName(project2), project2.color ? (0, import_react95.createElement)("i", { className: "bt-teamov-project-color", style: { background: project2.color } }) : null),
-        (0, import_react95.createElement)("small", null, `${profileWord(project2.standards.profile?.id)} · ${project2.folders.length > 0 ? project2.folders.map(shortPath2).join(t(", ")) : t("No working folder")}`)
+        (0, import_react96.createElement)("b", null, projectName(project2), project2.color ? (0, import_react96.createElement)("i", { className: "bt-teamov-project-color", style: { background: project2.color } }) : null),
+        (0, import_react96.createElement)("small", null, `${profileWord(project2.standards.profile?.id)} · ${project2.folders.length > 0 ? project2.folders.map(shortPath2).join(t(", ")) : t("No working folder")}`)
       ),
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "span",
         { className: "bt-teamov-project-side" },
-        (0, import_react95.createElement)("span", { className: "bt-teamov-project-state" }, (0, import_react95.createElement)(StateDot, { state: status.state }), completionWord(project2.completion.status)),
-        (0, import_react95.createElement)(ChevronDownIcon)
+        (0, import_react96.createElement)("span", { className: "bt-teamov-project-state" }, (0, import_react96.createElement)(StateDot, { state: status.state }), completionWord(project2.completion.status)),
+        (0, import_react96.createElement)(ChevronDownIcon)
       )
     ),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-project-progress" }, (0, import_react95.createElement)(ProjectRail, { project: project2 })),
+    (0, import_react96.createElement)("div", { className: "bt-teamov-project-progress" }, (0, import_react96.createElement)(ProjectRail, { project: project2 })),
     details
   );
 }
 function ProjectView({ model, data, insights, busy, failed, openEntry, actions, adding, setAdding, expanded, setExpanded }) {
-  const [draft, setDraft] = (0, import_react95.useState)("");
+  const [draft, setDraft] = (0, import_react96.useState)("");
   const submit = async (event) => {
     event.preventDefault();
     const name = draft.trim();
@@ -65452,41 +65605,41 @@ function ProjectView({ model, data, insights, busy, failed, openEntry, actions, 
     setDraft("");
     setAdding(false);
   };
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-body", id: "bt-teamov-projects", role: "tabpanel" },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-view-head" },
-      (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Projects")), (0, import_react95.createElement)("h3", null, t("What the team is building"))),
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker" }, t("Projects")), (0, import_react96.createElement)("h3", null, t("What the team is building"))),
+      (0, import_react96.createElement)(
         "div",
         { className: "bt-teamov-view-actions" },
-        (0, import_react95.createElement)("span", { className: "bt-teamov-auto-note" }, (0, import_react95.createElement)("i"), t("Auto refresh 15s")),
-        adding ? null : (0, import_react95.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-with-icon", onClick: () => setAdding(true) }, (0, import_react95.createElement)(PlusIcon), t("Add project"))
+        (0, import_react96.createElement)("span", { className: "bt-teamov-auto-note" }, (0, import_react96.createElement)("i"), t("Auto refresh 15s")),
+        adding ? null : (0, import_react96.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-with-icon", onClick: () => setAdding(true) }, (0, import_react96.createElement)(PlusIcon), t("Add project"))
       )
     ),
-    adding ? (0, import_react95.createElement)(
+    adding ? (0, import_react96.createElement)(
       "form",
       { className: "bt-teamov-add-project", onSubmit: submit },
-      (0, import_react95.createElement)("input", { autoFocus: true, maxLength: 32, value: draft, placeholder: t("Project name"), "aria-label": t("Project name"), onChange: (event) => setDraft(event.target.value), onKeyDown: (event) => {
+      (0, import_react96.createElement)("input", { autoFocus: true, maxLength: 32, value: draft, placeholder: t("Project name"), "aria-label": t("Project name"), onChange: (event) => setDraft(event.target.value), onKeyDown: (event) => {
         if (event.key === "Escape") {
           event.preventDefault();
           setAdding(false);
         }
       } }),
-      (0, import_react95.createElement)("button", { type: "submit", className: "bt-soft bt-soft-sm", disabled: draft.trim() === "" }, t("Create")),
-      (0, import_react95.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => setAdding(false) }, t("Cancel"))
+      (0, import_react96.createElement)("button", { type: "submit", className: "bt-soft bt-soft-sm", disabled: draft.trim() === "" }, t("Create")),
+      (0, import_react96.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => setAdding(false) }, t("Cancel"))
     ) : null,
     insightErrorView(insights, busy, failed),
-    data.projects.length === 0 ? (0, import_react95.createElement)(ProjectEmpty) : (0, import_react95.createElement)("div", { className: "bt-teamov-projects" }, data.projects.map((project2) => (0, import_react95.createElement)(ProjectCard, { key: project2.id, project: project2, expanded: expanded === project2.id, toggle: () => setExpanded(expanded === project2.id ? null : project2.id), openEntry, actions }))),
-    (0, import_react95.createElement)(StandardsLibrary, { data }),
-    (0, import_react95.createElement)(MemoryLibrary, { insights, model, openMemory: actions.openMemoryFromOverview }),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-refreshed" }, (0, import_react95.createElement)(ClockIcon), insights?.at ? t("Updated {time}", { time: relativeShort(insights.at) }) : t("Waiting for a scan"))
+    data.projects.length === 0 ? (0, import_react96.createElement)(ProjectEmpty) : (0, import_react96.createElement)("div", { className: "bt-teamov-projects" }, data.projects.map((project2) => (0, import_react96.createElement)(ProjectCard, { key: project2.id, project: project2, expanded: expanded === project2.id, toggle: () => setExpanded(expanded === project2.id ? null : project2.id), openEntry, actions }))),
+    (0, import_react96.createElement)(StandardsLibrary, { data }),
+    (0, import_react96.createElement)(MemoryLibrary, { insights, model, openMemory: actions.openMemoryFromOverview }),
+    (0, import_react96.createElement)("div", { className: "bt-teamov-refreshed" }, (0, import_react96.createElement)(ClockIcon), insights?.at ? t("Updated {time}", { time: relativeShort(insights.at) }) : t("Waiting for a scan"))
   );
 }
 function ProjectEmpty() {
-  return (0, import_react95.createElement)("div", { className: "bt-teamov-empty inline" }, (0, import_react95.createElement)(FolderIcon), (0, import_react95.createElement)("b", null, t("No projects yet")), (0, import_react95.createElement)("span", null, t("Add a project to group its Bots, conversations, memory and standards.")));
+  return (0, import_react96.createElement)("div", { className: "bt-teamov-empty inline" }, (0, import_react96.createElement)(FolderIcon), (0, import_react96.createElement)("b", null, t("No projects yet")), (0, import_react96.createElement)("span", null, t("Add a project to group its Bots, conversations, memory and standards.")));
 }
 function MemoryLibrary({ insights, model, openMemory }) {
   const memory = insights?.memory;
@@ -65497,24 +65650,24 @@ function MemoryLibrary({ insights, model, openMemory }) {
     ...(memory.team?.recent ?? []).map((entry) => ({ ...entry, id: mainBot?.id, owner: memory.team, team: true }))
   ].filter((entry) => entry.id).sort((a, b) => String(b.added ?? "").localeCompare(String(a.added ?? ""))).slice(0, 6);
   const topics = [.../* @__PURE__ */ new Set([...memory.team?.topics ?? [], ...Object.values(memory.owners ?? {}).flatMap((owner) => owner.topics ?? [])])].slice(0, 12);
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "section",
     { className: "bt-teamov-memory-library" },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-view-head" },
-      (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Memory library")), (0, import_react95.createElement)("h3", null, t("What the team has learned"))),
-      (0, import_react95.createElement)("span", { className: "bt-teamov-count" }, memory.total)
+      (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker" }, t("Memory library")), (0, import_react96.createElement)("h3", null, t("What the team has learned"))),
+      (0, import_react96.createElement)("span", { className: "bt-teamov-count" }, memory.total)
     ),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-memory-topics" }, topics.length === 0 ? (0, import_react95.createElement)("span", { className: "bt-teamov-quiet" }, t("No topics yet")) : topics.map((topic) => (0, import_react95.createElement)("span", { key: topic }, topic))),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-list" }, recent.map((entry, index) => {
+    (0, import_react96.createElement)("div", { className: "bt-teamov-memory-topics" }, topics.length === 0 ? (0, import_react96.createElement)("span", { className: "bt-teamov-quiet" }, t("No topics yet")) : topics.map((topic) => (0, import_react96.createElement)("span", { key: topic }, topic))),
+    (0, import_react96.createElement)("div", { className: "bt-teamov-list" }, recent.map((entry, index) => {
       const owner = ownerOf(model, entry.id);
-      return (0, import_react95.createElement)(
+      return (0, import_react96.createElement)(
         "button",
         { key: `${entry.id}:${index}`, type: "button", className: "bt-teamov-memory-row", onClick: () => owner ? openMemory(entry.id) : null },
-        (0, import_react95.createElement)("span", { className: "bt-teamov-memory-row-icon" }, (0, import_react95.createElement)(MemoryIcon)),
-        (0, import_react95.createElement)("span", { className: "bt-teamov-row-text" }, (0, import_react95.createElement)("b", null, entry.team ? t("Team memory") : owner?.name ?? t("Memory")), (0, import_react95.createElement)("small", null, entry.text)),
-        entry.topic ? (0, import_react95.createElement)("span", { className: "bt-teamov-memory-topic" }, entry.topic) : null
+        (0, import_react96.createElement)("span", { className: "bt-teamov-memory-row-icon" }, (0, import_react96.createElement)(MemoryIcon)),
+        (0, import_react96.createElement)("span", { className: "bt-teamov-row-text" }, (0, import_react96.createElement)("b", null, entry.team ? t("Team memory") : owner?.name ?? t("Memory")), (0, import_react96.createElement)("small", null, entry.text)),
+        entry.topic ? (0, import_react96.createElement)("span", { className: "bt-teamov-memory-topic" }, entry.topic) : null
       );
     }))
   );
@@ -65530,79 +65683,79 @@ function AgentCard({ row, openEntry, openMemory }) {
   const reviewed = row.learning.total;
   const approved = row.learning.approved;
   const pending = row.learning.pending;
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "article",
     { className: "bt-teamov-agent", "data-health": row.health },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-agent-head" },
-      row.kind === "dsh" ? (0, import_react95.createElement)("span", { className: "bt-teamov-agent-glyph" }, (0, import_react95.createElement)(GaugeIcon)) : (0, import_react95.createElement)(BotAvatar, { bot, size: 38, state: row.health === "blocked" ? "alert" : row.row.state }),
-      (0, import_react95.createElement)("span", { className: "bt-teamov-agent-title" }, (0, import_react95.createElement)("b", null, row.name, (0, import_react95.createElement)(StateDot, { state: row.health === "blocked" ? "alert" : row.health })), (0, import_react95.createElement)("small", null, [row.role, row.engine ?? row.model].filter(Boolean).join(" · ") || t("Agent"))),
-      (0, import_react95.createElement)("button", { type: "button", className: "bt-round bt-round-sm", disabled: row.kind === "dsh" ? !row.sessionId : false, "aria-label": t("Open {name}", { name: row.name }), onClick: open }, (0, import_react95.createElement)(ChevronRightIcon))
+      row.kind === "dsh" ? (0, import_react96.createElement)("span", { className: "bt-teamov-agent-glyph" }, (0, import_react96.createElement)(GaugeIcon)) : (0, import_react96.createElement)(BotAvatar, { bot, size: 38, state: row.health === "blocked" ? "alert" : row.row.state }),
+      (0, import_react96.createElement)("span", { className: "bt-teamov-agent-title" }, (0, import_react96.createElement)("b", null, row.name, (0, import_react96.createElement)(StateDot, { state: row.health === "blocked" ? "alert" : row.health })), (0, import_react96.createElement)("small", null, [row.role, row.engine ?? row.model].filter(Boolean).join(" · ") || t("Agent"))),
+      (0, import_react96.createElement)("button", { type: "button", className: "bt-round bt-round-sm", disabled: row.kind === "dsh" ? !row.sessionId : false, "aria-label": t("Open {name}", { name: row.name }), onClick: open }, (0, import_react96.createElement)(ChevronRightIcon))
     ),
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-agent-grid" },
-      (0, import_react95.createElement)("div", { className: "bt-teamov-agent-metric" }, (0, import_react95.createElement)("span", { className: "bt-teamov-mini-kicker" }, (0, import_react95.createElement)(GaugeIcon), t("Health")), (0, import_react95.createElement)("b", null, health), (0, import_react95.createElement)("small", null, row.row.running ? t("Live work is running") : t("Current runtime state"))),
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)("div", { className: "bt-teamov-agent-metric" }, (0, import_react96.createElement)("span", { className: "bt-teamov-mini-kicker" }, (0, import_react96.createElement)(GaugeIcon), t("Health")), (0, import_react96.createElement)("b", null, health), (0, import_react96.createElement)("small", null, row.row.running ? t("Live work is running") : t("Current runtime state"))),
+      (0, import_react96.createElement)(
         "div",
         { className: "bt-teamov-agent-metric" },
-        (0, import_react95.createElement)("span", { className: "bt-teamov-mini-kicker" }, (0, import_react95.createElement)(MemoryIcon), t("Self-improvement")),
-        (0, import_react95.createElement)(
+        (0, import_react96.createElement)("span", { className: "bt-teamov-mini-kicker" }, (0, import_react96.createElement)(MemoryIcon), t("Self-improvement")),
+        (0, import_react96.createElement)(
           "div",
           { className: "bt-teamov-learning-bar", role: "img", "aria-label": t("{approved} approved, {declined} declined, {pending} pending", { approved, declined: row.learning.declined, pending }) },
-          (0, import_react95.createElement)("i", { className: "approved", style: { flex: approved } }),
-          (0, import_react95.createElement)("i", { className: "declined", style: { flex: row.learning.declined } }),
-          (0, import_react95.createElement)("i", { className: "pending", style: { flex: pending } }),
-          reviewed + pending === 0 ? (0, import_react95.createElement)("i", { className: "empty" }) : null
+          (0, import_react96.createElement)("i", { className: "approved", style: { flex: approved } }),
+          (0, import_react96.createElement)("i", { className: "declined", style: { flex: row.learning.declined } }),
+          (0, import_react96.createElement)("i", { className: "pending", style: { flex: pending } }),
+          reviewed + pending === 0 ? (0, import_react96.createElement)("i", { className: "empty" }) : null
         ),
-        (0, import_react95.createElement)("small", null, reviewed + pending === 0 ? t("No review history") : t("{approved} approved · {pending} pending", { approved, pending }))
+        (0, import_react96.createElement)("small", null, reviewed + pending === 0 ? t("No review history") : t("{approved} approved · {pending} pending", { approved, pending }))
       ),
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "div",
         { className: "bt-teamov-agent-metric wide" },
-        (0, import_react95.createElement)("span", { className: "bt-teamov-mini-kicker" }, (0, import_react95.createElement)(TerminalIcon), t("Standards evidence")),
-        (0, import_react95.createElement)(EvidenceStrip, { evidence: row.evidence, compact: true }),
-        (0, import_react95.createElement)("small", null, t("{count} of 4 evidence points found", { count: row.evidenceCount })),
-        (0, import_react95.createElement)("small", { "data-quality": row.standards.quality ? "recorded" : "none" }, row.standards.quality ? t("Recorded checks: {passed} of {expected} passed", { passed: row.standards.quality.passed, expected: row.standards.quality.expected }) : t("No recorded check run")),
-        (0, import_react95.createElement)("div", { className: "bt-teamov-check-row" }, row.standards.checks.slice(0, 4).map((check) => (0, import_react95.createElement)("span", { key: check.name }, check.name)))
+        (0, import_react96.createElement)("span", { className: "bt-teamov-mini-kicker" }, (0, import_react96.createElement)(TerminalIcon), t("Standards evidence")),
+        (0, import_react96.createElement)(EvidenceStrip, { evidence: row.evidence, compact: true }),
+        (0, import_react96.createElement)("small", null, t("{count} of 4 evidence points found", { count: row.evidenceCount })),
+        (0, import_react96.createElement)("small", { "data-quality": row.standards.quality ? "recorded" : "none" }, row.standards.quality ? t("Recorded checks: {passed} of {expected} passed", { passed: row.standards.quality.passed, expected: row.standards.quality.expected }) : t("No recorded check run")),
+        (0, import_react96.createElement)("div", { className: "bt-teamov-check-row" }, row.standards.checks.slice(0, 4).map((check) => (0, import_react96.createElement)("span", { key: check.name }, check.name)))
       )
     ),
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-agent-foot" },
-      (0, import_react95.createElement)("span", null, (0, import_react95.createElement)(MemoryIcon), row.memory.count > 0 ? t("{count} memories · {topics} topics", { count: row.memory.count, topics: row.memory.topics.length }) : t("No memories saved")),
-      row.kind === "bot" ? (0, import_react95.createElement)("button", { type: "button", className: "bt-teamov-link", onClick: () => openMemory(row.id) }, t("Memory")) : null,
-      row.folder ? (0, import_react95.createElement)("span", { className: "bt-teamov-folder" }, `${profileWord(row.standards.profile?.id)} · ${shortPath2(row.folder)}`) : null
+      (0, import_react96.createElement)("span", null, (0, import_react96.createElement)(MemoryIcon), row.memory.count > 0 ? t("{count} memories · {topics} topics", { count: row.memory.count, topics: row.memory.topics.length }) : t("No memories saved")),
+      row.kind === "bot" ? (0, import_react96.createElement)("button", { type: "button", className: "bt-teamov-link", onClick: () => openMemory(row.id) }, t("Memory")) : null,
+      row.folder ? (0, import_react96.createElement)("span", { className: "bt-teamov-folder" }, `${profileWord(row.standards.profile?.id)} · ${shortPath2(row.folder)}`) : null
     )
   );
 }
 function AgentView({ data, openEntry, openMemory, insights, busy, failed }) {
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-body", id: "bt-teamov-agents", role: "tabpanel" },
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)(
       "div",
       { className: "bt-teamov-view-head" },
-      (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-kicker" }, t("Agents")), (0, import_react95.createElement)("h3", null, t("Health and self-improvement"))),
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-kicker" }, t("Agents")), (0, import_react96.createElement)("h3", null, t("Health and self-improvement"))),
+      (0, import_react96.createElement)(
         "div",
         { className: "bt-teamov-view-actions" },
-        (0, import_react95.createElement)("span", { className: "bt-teamov-auto-note" }, (0, import_react95.createElement)("i", { "data-live": data.counts.working > 0 || void 0 }), t("Auto refresh 15s")),
-        (0, import_react95.createElement)("span", { className: "bt-teamov-live-note" }, data.counts.working > 0 ? t("Live") : t("Quiet"))
+        (0, import_react96.createElement)("span", { className: "bt-teamov-auto-note" }, (0, import_react96.createElement)("i", { "data-live": data.counts.working > 0 || void 0 }), t("Auto refresh 15s")),
+        (0, import_react96.createElement)("span", { className: "bt-teamov-live-note" }, data.counts.working > 0 ? t("Live") : t("Quiet"))
       )
     ),
     insightErrorView(insights, busy, failed),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-agents" }, data.rows.map((row) => (0, import_react95.createElement)(AgentCard, { key: `${row.kind}:${row.id}`, row, openEntry, openMemory }))),
-    (0, import_react95.createElement)("div", { className: "bt-teamov-refreshed" }, (0, import_react95.createElement)(ClockIcon), insights?.at ? t("Updated {time}", { time: relativeShort(insights.at) }) : t("Waiting for a scan"))
+    (0, import_react96.createElement)("div", { className: "bt-teamov-agents" }, data.rows.map((row) => (0, import_react96.createElement)(AgentCard, { key: `${row.kind}:${row.id}`, row, openEntry, openMemory }))),
+    (0, import_react96.createElement)("div", { className: "bt-teamov-refreshed" }, (0, import_react96.createElement)(ClockIcon), insights?.at ? t("Updated {time}", { time: relativeShort(insights.at) }) : t("Waiting for a scan"))
   );
 }
 function insightErrorView(insights, busy, failed = false) {
   if (!failed && insights !== null) return null;
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-insight-state", role: failed ? "alert" : "status" },
-    (0, import_react95.createElement)("span", null, failed ? t("Could not read project evidence") : busy ? t("Reading memory and project files…") : t("Project evidence is unavailable"))
+    (0, import_react96.createElement)("span", null, failed ? t("Could not read project evidence") : busy ? t("Reading memory and project files…") : t("Project evidence is unavailable"))
   );
 }
 function TeamOverviewPanel({ useRoster, useWork, useSessionStatus, useUi, actions, leaving = false }) {
@@ -65610,23 +65763,23 @@ function TeamOverviewPanel({ useRoster, useWork, useSessionStatus, useUi, action
   const work = useWork((value) => value);
   const sessionStatus = useSessionStatus((value) => value);
   const bootFailed = useUi((value) => value.bootFailed === true);
-  const model = (0, import_react95.useMemo)(() => overviewModel(roster, work, sessionStatus), [roster, work, sessionStatus]);
-  const [tab, setTab] = (0, import_react95.useState)("team");
-  const [insights, setInsights] = (0, import_react95.useState)(null);
-  const [insightBusy, setInsightBusy] = (0, import_react95.useState)(false);
-  const [insightFailed, setInsightFailed] = (0, import_react95.useState)(false);
-  const [sites, setSites] = (0, import_react95.useState)(null);
-  const [siteBusy, setSiteBusy] = (0, import_react95.useState)(false);
-  const [siteFailed, setSiteFailed] = (0, import_react95.useState)(false);
-  const [addingProject, setAddingProject] = (0, import_react95.useState)(false);
-  const [expandedProject, setExpandedProject] = (0, import_react95.useState)(null);
-  const panel = (0, import_react95.useRef)(null);
-  const restoreFocus = (0, import_react95.useRef)(true);
-  const request = (0, import_react95.useRef)(0);
-  const siteRequest = (0, import_react95.useRef)(0);
-  const projects2 = (0, import_react95.useMemo)(() => projectModel(model, insights), [model, insights]);
-  const agents = (0, import_react95.useMemo)(() => agentBoardModel(model, insights), [model, insights]);
-  const loadInsights = (0, import_react95.useCallback)(async (fresh = false) => {
+  const model = (0, import_react96.useMemo)(() => overviewModel(roster, work, sessionStatus), [roster, work, sessionStatus]);
+  const [tab, setTab] = (0, import_react96.useState)("team");
+  const [insights, setInsights] = (0, import_react96.useState)(null);
+  const [insightBusy, setInsightBusy] = (0, import_react96.useState)(false);
+  const [insightFailed, setInsightFailed] = (0, import_react96.useState)(false);
+  const [sites, setSites] = (0, import_react96.useState)(null);
+  const [siteBusy, setSiteBusy] = (0, import_react96.useState)(false);
+  const [siteFailed, setSiteFailed] = (0, import_react96.useState)(false);
+  const [addingProject, setAddingProject] = (0, import_react96.useState)(false);
+  const [expandedProject, setExpandedProject] = (0, import_react96.useState)(null);
+  const panel = (0, import_react96.useRef)(null);
+  const restoreFocus = (0, import_react96.useRef)(true);
+  const request = (0, import_react96.useRef)(0);
+  const siteRequest = (0, import_react96.useRef)(0);
+  const projects2 = (0, import_react96.useMemo)(() => projectModel(model, insights), [model, insights]);
+  const agents = (0, import_react96.useMemo)(() => agentBoardModel(model, insights), [model, insights]);
+  const loadInsights = (0, import_react96.useCallback)(async (fresh = false) => {
     if (actions.teamOverviewInsights === void 0) return;
     const current2 = ++request.current;
     setInsightBusy(true);
@@ -65641,7 +65794,7 @@ function TeamOverviewPanel({ useRoster, useWork, useSessionStatus, useUi, action
       if (request.current === current2) setInsightBusy(false);
     }
   }, [actions]);
-  const loadSites = (0, import_react95.useCallback)(async () => {
+  const loadSites = (0, import_react96.useCallback)(async () => {
     if (actions.sites === void 0) return;
     const current2 = ++siteRequest.current;
     setSiteBusy(true);
@@ -65656,19 +65809,19 @@ function TeamOverviewPanel({ useRoster, useWork, useSessionStatus, useUi, action
       if (siteRequest.current === current2) setSiteBusy(false);
     }
   }, [actions]);
-  (0, import_react95.useEffect)(() => {
+  (0, import_react96.useEffect)(() => {
     if (!roster.ready) return void 0;
     void loadInsights(false);
     return void 0;
   }, [roster.ready, roster.revision, loadInsights]);
-  (0, import_react95.useEffect)(() => {
+  (0, import_react96.useEffect)(() => {
     if (!roster.ready || tab !== "projects" && tab !== "agents") return void 0;
     const timer = setInterval(() => {
       void loadInsights(false);
     }, 15e3);
     return () => clearInterval(timer);
   }, [roster.ready, tab, loadInsights]);
-  (0, import_react95.useEffect)(() => {
+  (0, import_react96.useEffect)(() => {
     if (!roster.ready || tab !== "sites") return void 0;
     void loadSites();
     const timer = setInterval(() => {
@@ -65676,7 +65829,7 @@ function TeamOverviewPanel({ useRoster, useWork, useSessionStatus, useUi, action
     }, 15e3);
     return () => clearInterval(timer);
   }, [roster.ready, tab, loadSites]);
-  (0, import_react95.useEffect)(() => {
+  (0, import_react96.useEffect)(() => {
     const previous = document.activeElement;
     const onKey = (event) => {
       if (event.key === "Escape") {
@@ -65716,33 +65869,33 @@ function TeamOverviewPanel({ useRoster, useWork, useSessionStatus, useUi, action
     restoreFocus.current = false;
     actions.openMemoryFromOverview(id);
   };
-  const teamBody = model.counts.bots === 0 && model.counts.groups === 0 ? (0, import_react95.createElement)(EmptyState) : (0, import_react95.createElement)(
+  const teamBody = model.counts.bots === 0 && model.counts.groups === 0 ? (0, import_react96.createElement)(EmptyState) : (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-body", id: "bt-teamov-team", role: "tabpanel" },
-    (0, import_react95.createElement)(Attention2, { model, openEntry }),
-    (0, import_react95.createElement)(Activity, { model, openEntry }),
-    (0, import_react95.createElement)(TeamSections, { model, openEntry }),
-    (0, import_react95.createElement)(Recent, { model, openEntry }),
-    (0, import_react95.createElement)(Learning, { model, openEntry })
+    (0, import_react96.createElement)(Attention2, { model, openEntry }),
+    (0, import_react96.createElement)(Activity, { model, openEntry }),
+    (0, import_react96.createElement)(TeamSections, { model, openEntry }),
+    (0, import_react96.createElement)(Recent, { model, openEntry }),
+    (0, import_react96.createElement)(Learning, { model, openEntry })
   );
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "div",
     { className: "bt-teamov-layer", "data-leaving": leaving || void 0 },
-    (0, import_react95.createElement)("div", { className: "bt-teamov-scrim", onMouseDown: actions.closeTeamOverview }),
-    (0, import_react95.createElement)(
+    (0, import_react96.createElement)("div", { className: "bt-teamov-scrim", onMouseDown: actions.closeTeamOverview }),
+    (0, import_react96.createElement)(
       "section",
       { ref: panel, className: "bt-teamov", role: "dialog", "aria-modal": true, "aria-labelledby": "bt-teamov-title", "data-leaving": leaving || void 0, onMouseDown: (event) => event.stopPropagation() },
-      (0, import_react95.createElement)(
+      (0, import_react96.createElement)(
         "header",
         { className: "bt-teamov-top" },
-        (0, import_react95.createElement)("div", null, (0, import_react95.createElement)("span", { className: "bt-teamov-eyebrow" }, t("Team workspace")), (0, import_react95.createElement)("h2", { id: "bt-teamov-title" }, t("Team overview"))),
-        (0, import_react95.createElement)("button", { type: "button", className: "bt-round", autoFocus: true, "aria-label": t("Close team overview"), title: t("Close"), onClick: actions.closeTeamOverview }, (0, import_react95.createElement)(CloseIcon))
+        (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("span", { className: "bt-teamov-eyebrow" }, t("Team workspace")), (0, import_react96.createElement)("h2", { id: "bt-teamov-title" }, t("Team overview"))),
+        (0, import_react96.createElement)("button", { type: "button", className: "bt-round", autoFocus: true, "aria-label": t("Close team overview"), title: t("Close"), onClick: actions.closeTeamOverview }, (0, import_react96.createElement)(CloseIcon))
       ),
-      !roster.ready ? bootFailed ? (0, import_react95.createElement)(BootError) : (0, import_react95.createElement)(Skeleton3) : (0, import_react95.createElement)(
-        import_react95.Fragment,
+      !roster.ready ? bootFailed ? (0, import_react96.createElement)(BootError) : (0, import_react96.createElement)(Skeleton3) : (0, import_react96.createElement)(
+        import_react96.Fragment,
         null,
-        tab === "team" ? (0, import_react95.createElement)(Summary2, { counts: model.counts }) : tab === "projects" ? (0, import_react95.createElement)(ProjectSummary, { counts: projects2.counts }) : tab === "agents" ? (0, import_react95.createElement)(AgentSummary, { counts: agents.counts }) : (0, import_react95.createElement)(SiteSummary, { counts: (sites ?? EMPTY_SITE_DIRECTORY).counts }),
-        (0, import_react95.createElement)(DataTabs, {
+        tab === "team" ? (0, import_react96.createElement)(Summary2, { counts: model.counts }) : tab === "projects" ? (0, import_react96.createElement)(ProjectSummary, { counts: projects2.counts }) : tab === "agents" ? (0, import_react96.createElement)(AgentSummary, { counts: agents.counts }) : (0, import_react96.createElement)(SiteSummary, { counts: (sites ?? EMPTY_SITE_DIRECTORY).counts }),
+        (0, import_react96.createElement)(DataTabs, {
           tab,
           setTab,
           model,
@@ -65752,7 +65905,7 @@ function TeamOverviewPanel({ useRoster, useWork, useSessionStatus, useUi, action
           busy: tab === "sites" ? siteBusy : insightBusy,
           refresh: () => void (tab === "sites" ? loadSites() : loadInsights(true))
         }),
-        tab === "team" ? teamBody : tab === "projects" ? (0, import_react95.createElement)(ProjectView, {
+        tab === "team" ? teamBody : tab === "projects" ? (0, import_react96.createElement)(ProjectView, {
           model,
           data: projects2,
           insights,
@@ -65764,7 +65917,7 @@ function TeamOverviewPanel({ useRoster, useWork, useSessionStatus, useUi, action
           setAdding: setAddingProject,
           expanded: expandedProject,
           setExpanded: setExpandedProject
-        }) : tab === "agents" ? (0, import_react95.createElement)(AgentView, { data: agents, openEntry, openMemory, insights, busy: insightBusy, failed: insightFailed }) : (0, import_react95.createElement)(SitesView, {
+        }) : tab === "agents" ? (0, import_react96.createElement)(AgentView, { data: agents, openEntry, openMemory, insights, busy: insightBusy, failed: insightFailed }) : (0, import_react96.createElement)(SitesView, {
           data: sites ?? EMPTY_SITE_DIRECTORY,
           loading: siteBusy,
           failed: siteFailed,
@@ -65782,11 +65935,11 @@ function TeamOverviewTab({ useUi, useSurface, actions }) {
   const mode = useSurface((value) => value.mode);
   const occupied = useUi((value) => value.details !== null || value.settings !== null || value.newChat !== null || value.exchange !== null || value.memory !== null);
   if (open || occupied || mode !== "bot") return null;
-  return (0, import_react95.createElement)(
+  return (0, import_react96.createElement)(
     "button",
     { type: "button", className: "bt-teamov-tab", title: t("Open team overview"), "aria-label": t("Open team overview"), onClick: actions.openTeamOverview },
-    (0, import_react95.createElement)(PeopleIcon),
-    (0, import_react95.createElement)("span", null, t("Team overview"))
+    (0, import_react96.createElement)(PeopleIcon),
+    (0, import_react96.createElement)("span", null, t("Team overview"))
   );
 }
 var TEAM_OVERVIEW_CSS = `
@@ -66211,7 +66364,7 @@ function resolveDataMode(record) {
 var isLiveDataMode = (mode) => mode === "live";
 
 // src/client/team-activity.js
-var import_react96 = require("react");
+var import_react97 = require("react");
 var copyText = () => ({
   title: t("Team activity"),
   subtitle: t("Real tasks, handoffs, and recent activity"),
@@ -66335,79 +66488,79 @@ var when3 = (at) => {
 };
 function OwnerMark({ task, roster, role, copy: copy2, size }) {
   if (task.ownerKind !== "bot" || !task.ownerId) {
-    return (0, import_react96.createElement)("span", { className: "bt-activity-owner-mark", style: { width: size, height: size }, "aria-label": task.ownerName || copy2.noOwner }, task.ownerKind === "group" ? "G" : "?");
+    return (0, import_react97.createElement)("span", { className: "bt-activity-owner-mark", style: { width: size, height: size }, "aria-label": task.ownerName || copy2.noOwner }, task.ownerKind === "group" ? "G" : "?");
   }
-  return (0, import_react96.createElement)(BotAvatar, { bot: botFor(roster, task, role), size, state: task.displayState ?? "idle", main: role?.main === true });
+  return (0, import_react97.createElement)(BotAvatar, { bot: botFor(roster, task, role), size, state: task.displayState ?? "idle", main: role?.main === true });
 }
 function DialogHead({ copy: copy2, onClose, dataMode, partial, roster }) {
   const lockReason = typeof roster?.readOnly === "string" ? roster.readOnly.trim() : "";
   const modeLabel = dataMode === "preview" ? copy2.preview : dataMode === "demo" ? copy2.demo : isLiveDataMode(dataMode) ? copy2.live : copy2.dataUnavailable;
-  return (0, import_react96.createElement)(
+  return (0, import_react97.createElement)(
     "header",
     { className: "bt-activity-head" },
-    (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("h2", null, copy2.title), (0, import_react96.createElement)("p", null, copy2.subtitle)),
-    (0, import_react96.createElement)(
+    (0, import_react97.createElement)("div", null, (0, import_react97.createElement)("h2", null, copy2.title), (0, import_react97.createElement)("p", null, copy2.subtitle)),
+    (0, import_react97.createElement)(
       "div",
       { className: "bt-activity-head-meta" },
-      dataMode ? (0, import_react96.createElement)("span", { className: "bt-activity-mode", "data-mode": dataMode }, modeLabel) : null,
-      partial ? (0, import_react96.createElement)("span", { className: "bt-activity-mode", "data-partial": true }, copy2.partial) : null,
-      (0, import_react96.createElement)("span", { className: "bt-activity-mode", "data-host-locked": lockReason || void 0, title: lockReason ? hostText(lockReason) : void 0 }, lockReason ? copy2.readOnlyHost : copy2.readOnly),
-      (0, import_react96.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-activity-close", onClick: onClose }, copy2.close)
+      dataMode ? (0, import_react97.createElement)("span", { className: "bt-activity-mode", "data-mode": dataMode }, modeLabel) : null,
+      partial ? (0, import_react97.createElement)("span", { className: "bt-activity-mode", "data-partial": true }, copy2.partial) : null,
+      (0, import_react97.createElement)("span", { className: "bt-activity-mode", "data-host-locked": lockReason || void 0, title: lockReason ? hostText(lockReason) : void 0 }, lockReason ? copy2.readOnlyHost : copy2.readOnly),
+      (0, import_react97.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-activity-close", onClick: onClose }, copy2.close)
     )
   );
 }
 function Filter({ label, value, options, allLabel, onChange }) {
-  return (0, import_react96.createElement)(
+  return (0, import_react97.createElement)(
     "label",
     { className: "bt-activity-filter" },
-    (0, import_react96.createElement)("span", null, label),
-    (0, import_react96.createElement)(
+    (0, import_react97.createElement)("span", null, label),
+    (0, import_react97.createElement)(
       "select",
       { className: "bt-select", value, onChange: (event) => onChange(event.target.value) },
-      (0, import_react96.createElement)("option", { value: "all" }, allLabel),
-      options.map((option) => (0, import_react96.createElement)("option", { key: option.value, value: option.value }, option.label))
+      (0, import_react97.createElement)("option", { value: "all" }, allLabel),
+      options.map((option) => (0, import_react97.createElement)("option", { key: option.value, value: option.value }, option.label))
     )
   );
 }
 function RoleStrip({ roles, copy: copy2 }) {
   if (roles.length === 0) return null;
-  return (0, import_react96.createElement)(
+  return (0, import_react97.createElement)(
     "div",
     { className: "bt-activity-roster-wrap" },
-    (0, import_react96.createElement)("div", { className: "bt-activity-section-head" }, (0, import_react96.createElement)("span", null, copy2.roster)),
-    (0, import_react96.createElement)(
+    (0, import_react97.createElement)("div", { className: "bt-activity-section-head" }, (0, import_react97.createElement)("span", null, copy2.roster)),
+    (0, import_react97.createElement)(
       "div",
       { className: "bt-activity-roster", "aria-label": copy2.roster },
-      roles.map((role) => (0, import_react96.createElement)(
+      roles.map((role) => (0, import_react97.createElement)(
         "div",
         { key: role.id, className: "bt-activity-role", "data-main": role.main || void 0 },
-        (0, import_react96.createElement)(BotAvatar, { bot: role, size: 28, main: role.main }),
-        (0, import_react96.createElement)(
+        (0, import_react97.createElement)(BotAvatar, { bot: role, size: 28, main: role.main }),
+        (0, import_react97.createElement)(
           "span",
           { className: "bt-activity-role-copy" },
-          (0, import_react96.createElement)("b", null, role.name),
-          (0, import_react96.createElement)("small", null, role.role || copy2.member)
+          (0, import_react97.createElement)("b", null, role.name),
+          (0, import_react97.createElement)("small", null, role.role || copy2.member)
         ),
-        (0, import_react96.createElement)("em", null, permissionOf(role, copy2))
+        (0, import_react97.createElement)("em", null, permissionOf(role, copy2))
       ))
     )
   );
 }
 function TaskRow4({ task, roster, role, selected, copy: copy2, onSelect }) {
   const roleLabel = task.ownerRole || role?.role;
-  return (0, import_react96.createElement)(
+  return (0, import_react97.createElement)(
     "button",
     { type: "button", className: "bt-activity-task", "data-task-id": task.id, "data-source": task.source, "data-status": task.sourceStatus, "data-owner-kind": task.ownerKind, "data-selected": selected || void 0, onClick: () => onSelect(task.id) },
-    (0, import_react96.createElement)(OwnerMark, { task, roster, role, copy: copy2, size: 30 }),
-    (0, import_react96.createElement)(
+    (0, import_react97.createElement)(OwnerMark, { task, roster, role, copy: copy2, size: 30 }),
+    (0, import_react97.createElement)(
       "span",
       { className: "bt-activity-task-main" },
-      (0, import_react96.createElement)("span", { className: "bt-activity-task-title" }, task.title || task.sourceId),
-      (0, import_react96.createElement)("span", { className: "bt-activity-task-meta" }, `${sourceLabel(task.source, copy2)} · ${task.ownerName || copy2.noOwner}${roleLabel ? ` · ${roleLabel}` : ""}`),
-      (0, import_react96.createElement)("span", { className: "bt-activity-task-state", "data-status": task.sourceStatus }, task.sourceStatus),
-      (0, import_react96.createElement)("span", { className: "bt-activity-task-evidence", "data-evidence-state": task.evidenceState ?? "pending" }, evidenceStateLabel(task.evidenceState, copy2))
+      (0, import_react97.createElement)("span", { className: "bt-activity-task-title" }, task.title || task.sourceId),
+      (0, import_react97.createElement)("span", { className: "bt-activity-task-meta" }, `${sourceLabel(task.source, copy2)} · ${task.ownerName || copy2.noOwner}${roleLabel ? ` · ${roleLabel}` : ""}`),
+      (0, import_react97.createElement)("span", { className: "bt-activity-task-state", "data-status": task.sourceStatus }, task.sourceStatus),
+      (0, import_react97.createElement)("span", { className: "bt-activity-task-evidence", "data-evidence-state": task.evidenceState ?? "pending" }, evidenceStateLabel(task.evidenceState, copy2))
     ),
-    (0, import_react96.createElement)("time", { className: "bt-activity-task-time" }, when3(task.updatedAt))
+    (0, import_react97.createElement)("time", { className: "bt-activity-task-time" }, when3(task.updatedAt))
   );
 }
 var trustLabel = (trust, copy2) => trust === "verified" ? copy2.verified : trust === "executed" ? copy2.executed : trust === "requested" ? copy2.requested : trust === "reported" ? copy2.reported : copy2.pending;
@@ -66429,7 +66582,7 @@ var evidenceFacts = (item, copy2) => [
   ...item.stale === true ? [copy2.staleEvidence] : []
 ];
 function TraceRow({ item, copy: copy2, selected, onSelect }) {
-  return (0, import_react96.createElement)(
+  return (0, import_react97.createElement)(
     "button",
     {
       type: "button",
@@ -66439,22 +66592,22 @@ function TraceRow({ item, copy: copy2, selected, onSelect }) {
       "data-selected": selected || void 0,
       onClick: () => onSelect(item)
     },
-    (0, import_react96.createElement)(
+    (0, import_react97.createElement)(
       "span",
       { className: "bt-trace-record-main" },
-      (0, import_react96.createElement)("b", null, traceTitle(item, copy2)),
-      (0, import_react96.createElement)("span", null, traceDetail(item, copy2)),
-      ...evidenceFacts(item, copy2).map((fact, index) => (0, import_react96.createElement)("span", { key: `fact:${index}`, className: "bt-evidence-fact" }, fact)),
-      (0, import_react96.createElement)("small", null, [item.sessionId, item.seq === null || item.seq === void 0 ? "" : `#${item.seq}`].filter(Boolean).join(" · "))
+      (0, import_react97.createElement)("b", null, traceTitle(item, copy2)),
+      (0, import_react97.createElement)("span", null, traceDetail(item, copy2)),
+      ...evidenceFacts(item, copy2).map((fact, index) => (0, import_react97.createElement)("span", { key: `fact:${index}`, className: "bt-evidence-fact" }, fact)),
+      (0, import_react97.createElement)("small", null, [item.sessionId, item.seq === null || item.seq === void 0 ? "" : `#${item.seq}`].filter(Boolean).join(" · "))
     ),
-    (0, import_react96.createElement)("span", { className: "bt-trace-trust", "data-trust": item.trust }, trustLabel(item.trust, copy2)),
-    (0, import_react96.createElement)("time", null, when3(item.at))
+    (0, import_react97.createElement)("span", { className: "bt-trace-trust", "data-trust": item.trust }, trustLabel(item.trust, copy2)),
+    (0, import_react97.createElement)("time", null, when3(item.at))
   );
 }
 function TraceExplorer({ trace, copy: copy2, view: forcedView, onSelectEvidence = () => {
 } }) {
-  const [localView, setLocalView] = (0, import_react96.useState)("timeline");
-  const [selectedRecordId, setSelectedRecordId] = (0, import_react96.useState)(null);
+  const [localView, setLocalView] = (0, import_react97.useState)("timeline");
+  const [selectedRecordId, setSelectedRecordId] = (0, import_react97.useState)(null);
   const view = forcedView ?? localView;
   const changeView = (next) => {
     if (forcedView === void 0) setLocalView(next);
@@ -66465,32 +66618,32 @@ function TraceExplorer({ trace, copy: copy2, view: forcedView, onSelectEvidence 
   };
   const records = Array.isArray(trace?.timeline) ? trace.timeline : [];
   const relationships = Array.isArray(trace?.relationships) ? trace.relationships : [];
-  const recordRows = records.map((item) => (0, import_react96.createElement)(TraceRow, { key: item.id, item, copy: copy2, selected: selectedRecordId === item.id, onSelect: selectRecord }));
-  const tab = (id, label) => (0, import_react96.createElement)("button", {
+  const recordRows = records.map((item) => (0, import_react97.createElement)(TraceRow, { key: item.id, item, copy: copy2, selected: selectedRecordId === item.id, onSelect: selectRecord }));
+  const tab = (id, label) => (0, import_react97.createElement)("button", {
     type: "button",
     className: "bt-trace-tab",
     "data-view": id,
     "aria-pressed": view === id,
     onClick: () => changeView(id)
   }, label);
-  return (0, import_react96.createElement)(
+  return (0, import_react97.createElement)(
     "section",
     { className: "bt-trace-explorer", "aria-label": copy2.traceExplorer },
-    (0, import_react96.createElement)("div", { className: "bt-trace-head" }, (0, import_react96.createElement)("h4", null, copy2.traceExplorer), (0, import_react96.createElement)("small", { className: "bt-activity-id" }, trace?.sourceId || trace?.sourceTaskId || "")),
-    (0, import_react96.createElement)("div", { className: "bt-trace-tabs", role: "tablist" }, tab("timeline", copy2.timeline), tab("relationships", copy2.relationships), tab("records", copy2.records)),
-    trace?.status === "partial" ? (0, import_react96.createElement)("p", { className: "bt-trace-note", role: "status" }, copy2.tracePartial) : null,
-    view === "relationships" ? relationships.length > 0 ? (0, import_react96.createElement)("div", { className: "bt-trace-relations" }, relationships.map((item, index) => (0, import_react96.createElement)(
+    (0, import_react97.createElement)("div", { className: "bt-trace-head" }, (0, import_react97.createElement)("h4", null, copy2.traceExplorer), (0, import_react97.createElement)("small", { className: "bt-activity-id" }, trace?.sourceId || trace?.sourceTaskId || "")),
+    (0, import_react97.createElement)("div", { className: "bt-trace-tabs", role: "tablist" }, tab("timeline", copy2.timeline), tab("relationships", copy2.relationships), tab("records", copy2.records)),
+    trace?.status === "partial" ? (0, import_react97.createElement)("p", { className: "bt-trace-note", role: "status" }, copy2.tracePartial) : null,
+    view === "relationships" ? relationships.length > 0 ? (0, import_react97.createElement)("div", { className: "bt-trace-relations" }, relationships.map((item, index) => (0, import_react97.createElement)(
       "div",
       { key: `${item.kind}:${index}`, className: "bt-trace-relation", "data-kind": item.kind },
-      (0, import_react96.createElement)("b", null, relationLabel(item, copy2)),
-      (0, import_react96.createElement)("span", null, `${item.from} → ${item.to}`)
-    ))) : (0, import_react96.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noTrace) : records.length > 0 ? (0, import_react96.createElement)("div", { className: "bt-trace-list", role: view === "timeline" ? "list" : void 0 }, recordRows) : (0, import_react96.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noTrace),
-    trace?.truncated ? (0, import_react96.createElement)("p", { className: "bt-trace-note" }, copy2.traceTruncated) : null
+      (0, import_react97.createElement)("b", null, relationLabel(item, copy2)),
+      (0, import_react97.createElement)("span", null, `${item.from} → ${item.to}`)
+    ))) : (0, import_react97.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noTrace) : records.length > 0 ? (0, import_react97.createElement)("div", { className: "bt-trace-list", role: view === "timeline" ? "list" : void 0 }, recordRows) : (0, import_react97.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noTrace),
+    trace?.truncated ? (0, import_react97.createElement)("p", { className: "bt-trace-note" }, copy2.traceTruncated) : null
   );
 }
 function EvidenceList({ evidence, selectedId, copy: copy2, onSelect }) {
-  if (evidence.length === 0) return (0, import_react96.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noEvidence);
-  return (0, import_react96.createElement)("div", { className: "bt-task-evidence-list" }, evidence.map((item) => (0, import_react96.createElement)(
+  if (evidence.length === 0) return (0, import_react97.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noEvidence);
+  return (0, import_react97.createElement)("div", { className: "bt-task-evidence-list" }, evidence.map((item) => (0, import_react97.createElement)(
     "button",
     {
       key: item.id,
@@ -66501,20 +66654,20 @@ function EvidenceList({ evidence, selectedId, copy: copy2, onSelect }) {
       "data-selected": selectedId === item.id || void 0,
       onClick: () => onSelect(item.id)
     },
-    (0, import_react96.createElement)(
+    (0, import_react97.createElement)(
       "span",
       null,
-      (0, import_react96.createElement)("b", null, traceTitle(item, copy2) || item.text || item.id),
-      (item.title || item.titleKey) && item.text ? (0, import_react96.createElement)("span", null, item.text) : null,
-      ...evidenceFacts(item, copy2).map((fact, index) => (0, import_react96.createElement)("span", { key: `fact:${index}`, className: "bt-evidence-fact" }, fact)),
-      (0, import_react96.createElement)("small", null, `${item.sourceId || ""}${item.at ? ` · ${when3(item.at)}` : ""}`)
+      (0, import_react97.createElement)("b", null, traceTitle(item, copy2) || item.text || item.id),
+      (item.title || item.titleKey) && item.text ? (0, import_react97.createElement)("span", null, item.text) : null,
+      ...evidenceFacts(item, copy2).map((fact, index) => (0, import_react97.createElement)("span", { key: `fact:${index}`, className: "bt-evidence-fact" }, fact)),
+      (0, import_react97.createElement)("small", null, `${item.sourceId || ""}${item.at ? ` · ${when3(item.at)}` : ""}`)
     ),
-    (0, import_react96.createElement)("em", null, trustLabel(item.trust, copy2))
+    (0, import_react97.createElement)("em", null, trustLabel(item.trust, copy2))
   )));
 }
 function Detail2({ task, detail, detailStatus, detailError, roster, rolesById, allTasks, copy: copy2 }) {
-  const [selectedEvidenceId, setSelectedEvidenceId] = (0, import_react96.useState)(null);
-  if (!task) return (0, import_react96.createElement)("aside", { className: "bt-activity-detail" }, (0, import_react96.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noDetail));
+  const [selectedEvidenceId, setSelectedEvidenceId] = (0, import_react97.useState)(null);
+  if (!task) return (0, import_react97.createElement)("aside", { className: "bt-activity-detail" }, (0, import_react97.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noDetail));
   const shown = detail?.task ?? task;
   const role = rolesById.get(shown.ownerId);
   const parent = shown.parentId ? allTasks.find((item) => item.id === shown.parentId) : void 0;
@@ -66538,79 +66691,79 @@ function Detail2({ task, detail, detailStatus, detailError, roster, rolesById, a
   const checks = Array.isArray(detail?.verification?.checks) ? detail.verification.checks : [];
   const evidence = Array.isArray(detail?.evidence) ? detail.evidence : [];
   const artifacts = Array.isArray(detail?.artifacts) ? detail.artifacts : [];
-  const detailNotice = detailStatus === "loading" && detail === null ? (0, import_react96.createElement)("p", { className: "bt-task-detail-state", role: "status" }, copy2.detailLoading) : detail?.empty === true ? (0, import_react96.createElement)("p", { className: "bt-task-detail-state", role: "status" }, copy2.detailUnavailable) : detailError ? (0, import_react96.createElement)("p", { className: "bt-task-detail-state", role: "alert" }, detail ? copy2.detailStale : detailError || copy2.detailError, detail ? (0, import_react96.createElement)("span", null, detailError) : null) : null;
-  return (0, import_react96.createElement)(
+  const detailNotice = detailStatus === "loading" && detail === null ? (0, import_react97.createElement)("p", { className: "bt-task-detail-state", role: "status" }, copy2.detailLoading) : detail?.empty === true ? (0, import_react97.createElement)("p", { className: "bt-task-detail-state", role: "status" }, copy2.detailUnavailable) : detailError ? (0, import_react97.createElement)("p", { className: "bt-task-detail-state", role: "alert" }, detail ? copy2.detailStale : detailError || copy2.detailError, detail ? (0, import_react97.createElement)("span", null, detailError) : null) : null;
+  return (0, import_react97.createElement)(
     "aside",
     { className: "bt-activity-detail", "aria-label": copy2.detail },
-    (0, import_react96.createElement)(
+    (0, import_react97.createElement)(
       "div",
       { className: "bt-activity-detail-head" },
-      (0, import_react96.createElement)(OwnerMark, { task: shown, roster, role, copy: copy2, size: 38 }),
-      (0, import_react96.createElement)(
+      (0, import_react97.createElement)(OwnerMark, { task: shown, roster, role, copy: copy2, size: 38 }),
+      (0, import_react97.createElement)(
         "div",
         null,
-        (0, import_react96.createElement)("b", null, shown.title || shown.sourceId),
-        (0, import_react96.createElement)("span", null, `${sourceLabel(shown.source, copy2)} · ${shown.ownerName || copy2.noOwner}`),
-        (0, import_react96.createElement)("small", { "data-main": role?.main || void 0 }, shown.ownerKind === "group" ? copy2.room : role ? `${shown.ownerRole || role.role || copy2.member} · ${permissionOf(role, copy2)}` : copy2.noOwner)
+        (0, import_react97.createElement)("b", null, shown.title || shown.sourceId),
+        (0, import_react97.createElement)("span", null, `${sourceLabel(shown.source, copy2)} · ${shown.ownerName || copy2.noOwner}`),
+        (0, import_react97.createElement)("small", { "data-main": role?.main || void 0 }, shown.ownerKind === "group" ? copy2.room : role ? `${shown.ownerRole || role.role || copy2.member} · ${permissionOf(role, copy2)}` : copy2.noOwner)
       )
     ),
     detailNotice,
-    (0, import_react96.createElement)(
+    (0, import_react97.createElement)(
       "dl",
       null,
-      (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("dt", null, copy2.status), (0, import_react96.createElement)("dd", null, (0, import_react96.createElement)("span", { className: "bt-activity-status", "data-status": shown.sourceStatus }, shown.sourceStatus))),
-      (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("dt", null, copy2.evidence), (0, import_react96.createElement)("dd", null, (0, import_react96.createElement)("span", { className: "bt-activity-task-evidence", "data-evidence-state": shown.evidenceState ?? "pending" }, evidenceStateLabel(shown.evidenceState, copy2)))),
-      (0, import_react96.createElement)("div", null, (0, import_react96.createElement)("dt", null, copy2.sourceId), (0, import_react96.createElement)("dd", { className: "bt-activity-id" }, shown.sourceId || shown.id)),
-      ...stageTitle ? [(0, import_react96.createElement)("div", { key: "stage" }, (0, import_react96.createElement)("dt", null, copy2.stage), (0, import_react96.createElement)("dd", null, stageTitle))] : [],
-      ...detail && attempt ? [(0, import_react96.createElement)("div", { key: "attempt" }, (0, import_react96.createElement)("dt", null, copy2.attempt), (0, import_react96.createElement)("dd", null, (0, import_react96.createElement)("span", { className: "bt-activity-id" }, `${attempt.id || copy2.none}${attempt.number ? ` · ${attempt.number}` : ""}${attempt.status ? ` · ${attempt.status}` : ""}`)))] : [],
-      ...detail && handoff ? [(0, import_react96.createElement)("div", { key: "handoff" }, (0, import_react96.createElement)("dt", null, copy2.handoffRoute), (0, import_react96.createElement)("dd", null, [handoff.from?.name || handoff.from?.id, handoff.to?.name || handoff.to?.id].filter(Boolean).join(" → ") || copy2.none, handoff.status ? ` · ${handoff.status}` : "", handoff.name ? ` · ${handoff.name}` : ""))] : [],
-      ...detail ? [(0, import_react96.createElement)("div", { key: "checkpoint" }, (0, import_react96.createElement)("dt", null, copy2.latestCheckpoint), (0, import_react96.createElement)("dd", null, detail.checkpoint?.text || copy2.none))] : [],
-      ...detail && recovery ? [(0, import_react96.createElement)("div", { key: "recovery" }, (0, import_react96.createElement)("dt", null, copy2.recovery), (0, import_react96.createElement)("dd", null, recovery.records?.length > 0 ? recovery.records.map((item) => `${item.kind}: ${item.summary}`).join(" · ") : copy2.none))] : [],
-      ...detail && rework?.count > 0 ? [(0, import_react96.createElement)("div", { key: "rework" }, (0, import_react96.createElement)("dt", null, copy2.rework), (0, import_react96.createElement)("dd", null, `${rework.count}${rework.max !== null && rework.max !== void 0 ? `/${rework.max}` : ""}${rework.records?.at(-1)?.feedback ? ` · ${copy2.reworkFeedback}: ${rework.records.at(-1).feedback}` : ""}`))] : [],
-      ...detail ? [(0, import_react96.createElement)("div", { key: "next" }, (0, import_react96.createElement)("dt", null, copy2.nextAction), (0, import_react96.createElement)("dd", null, detail.nextAction?.text || copy2.none))] : [],
-      ...detail ? [(0, import_react96.createElement)("div", { key: "blockers" }, (0, import_react96.createElement)("dt", null, copy2.blockers), (0, import_react96.createElement)("dd", null, blockers.length > 0 ? (0, import_react96.createElement)("ul", { className: "bt-task-blockers" }, blockers.map((item) => (0, import_react96.createElement)("li", { key: item.id, "data-kind": item.kind }, item.text))) : copy2.noBlockers))] : [],
-      ...parentText ? [(0, import_react96.createElement)("div", { key: "parent" }, (0, import_react96.createElement)("dt", null, copy2.parent), (0, import_react96.createElement)("dd", null, parentText))] : [],
-      ...childRows.length > 0 ? [(0, import_react96.createElement)("div", { key: "children" }, (0, import_react96.createElement)("dt", null, copy2.children), (0, import_react96.createElement)(
+      (0, import_react97.createElement)("div", null, (0, import_react97.createElement)("dt", null, copy2.status), (0, import_react97.createElement)("dd", null, (0, import_react97.createElement)("span", { className: "bt-activity-status", "data-status": shown.sourceStatus }, shown.sourceStatus))),
+      (0, import_react97.createElement)("div", null, (0, import_react97.createElement)("dt", null, copy2.evidence), (0, import_react97.createElement)("dd", null, (0, import_react97.createElement)("span", { className: "bt-activity-task-evidence", "data-evidence-state": shown.evidenceState ?? "pending" }, evidenceStateLabel(shown.evidenceState, copy2)))),
+      (0, import_react97.createElement)("div", null, (0, import_react97.createElement)("dt", null, copy2.sourceId), (0, import_react97.createElement)("dd", { className: "bt-activity-id" }, shown.sourceId || shown.id)),
+      ...stageTitle ? [(0, import_react97.createElement)("div", { key: "stage" }, (0, import_react97.createElement)("dt", null, copy2.stage), (0, import_react97.createElement)("dd", null, stageTitle))] : [],
+      ...detail && attempt ? [(0, import_react97.createElement)("div", { key: "attempt" }, (0, import_react97.createElement)("dt", null, copy2.attempt), (0, import_react97.createElement)("dd", null, (0, import_react97.createElement)("span", { className: "bt-activity-id" }, `${attempt.id || copy2.none}${attempt.number ? ` · ${attempt.number}` : ""}${attempt.status ? ` · ${attempt.status}` : ""}`)))] : [],
+      ...detail && handoff ? [(0, import_react97.createElement)("div", { key: "handoff" }, (0, import_react97.createElement)("dt", null, copy2.handoffRoute), (0, import_react97.createElement)("dd", null, [handoff.from?.name || handoff.from?.id, handoff.to?.name || handoff.to?.id].filter(Boolean).join(" → ") || copy2.none, handoff.status ? ` · ${handoff.status}` : "", handoff.name ? ` · ${handoff.name}` : ""))] : [],
+      ...detail ? [(0, import_react97.createElement)("div", { key: "checkpoint" }, (0, import_react97.createElement)("dt", null, copy2.latestCheckpoint), (0, import_react97.createElement)("dd", null, detail.checkpoint?.text || copy2.none))] : [],
+      ...detail && recovery ? [(0, import_react97.createElement)("div", { key: "recovery" }, (0, import_react97.createElement)("dt", null, copy2.recovery), (0, import_react97.createElement)("dd", null, recovery.records?.length > 0 ? recovery.records.map((item) => `${item.kind}: ${item.summary}`).join(" · ") : copy2.none))] : [],
+      ...detail && rework?.count > 0 ? [(0, import_react97.createElement)("div", { key: "rework" }, (0, import_react97.createElement)("dt", null, copy2.rework), (0, import_react97.createElement)("dd", null, `${rework.count}${rework.max !== null && rework.max !== void 0 ? `/${rework.max}` : ""}${rework.records?.at(-1)?.feedback ? ` · ${copy2.reworkFeedback}: ${rework.records.at(-1).feedback}` : ""}`))] : [],
+      ...detail ? [(0, import_react97.createElement)("div", { key: "next" }, (0, import_react97.createElement)("dt", null, copy2.nextAction), (0, import_react97.createElement)("dd", null, detail.nextAction?.text || copy2.none))] : [],
+      ...detail ? [(0, import_react97.createElement)("div", { key: "blockers" }, (0, import_react97.createElement)("dt", null, copy2.blockers), (0, import_react97.createElement)("dd", null, blockers.length > 0 ? (0, import_react97.createElement)("ul", { className: "bt-task-blockers" }, blockers.map((item) => (0, import_react97.createElement)("li", { key: item.id, "data-kind": item.kind }, item.text))) : copy2.noBlockers))] : [],
+      ...parentText ? [(0, import_react97.createElement)("div", { key: "parent" }, (0, import_react97.createElement)("dt", null, copy2.parent), (0, import_react97.createElement)("dd", null, parentText))] : [],
+      ...childRows.length > 0 ? [(0, import_react97.createElement)("div", { key: "children" }, (0, import_react97.createElement)("dt", null, copy2.children), (0, import_react97.createElement)(
         "dd",
         null,
-        (0, import_react96.createElement)("ul", { className: "bt-activity-children" }, childRows.map((child) => (0, import_react96.createElement)("li", { key: child.id }, child.title || child.sourceId || child.id)))
+        (0, import_react97.createElement)("ul", { className: "bt-activity-children" }, childRows.map((child) => (0, import_react97.createElement)("li", { key: child.id }, child.title || child.sourceId || child.id)))
       ))] : [],
-      ...shown.roomName ? [(0, import_react96.createElement)("div", { key: "room" }, (0, import_react96.createElement)("dt", null, copy2.room), (0, import_react96.createElement)("dd", null, shown.roomName))] : [],
-      ...shown.acceptance ? [(0, import_react96.createElement)("div", { key: "acceptance" }, (0, import_react96.createElement)("dt", null, copy2.acceptance), (0, import_react96.createElement)("dd", null, shown.acceptance))] : [],
-      ...shown.note ? [(0, import_react96.createElement)("div", { key: "note" }, (0, import_react96.createElement)("dt", null, copy2.note), (0, import_react96.createElement)("dd", null, shown.note))] : [],
-      ...!detail && shown.evidence ? [(0, import_react96.createElement)("div", { key: "evidence" }, (0, import_react96.createElement)("dt", null, copy2.evidence), (0, import_react96.createElement)("dd", null, shown.evidence))] : [],
-      ...detail ? [(0, import_react96.createElement)("div", { key: "verification" }, (0, import_react96.createElement)("dt", null, copy2.verification), (0, import_react96.createElement)("dd", null, `${detail.verification?.status || copy2.pending}${detail.verification?.reason ? ` · ${detail.verification.reason}` : ""}`))] : [],
-      ...warnings.length > 0 ? [(0, import_react96.createElement)("div", { key: "warning", className: "bt-activity-warning" }, (0, import_react96.createElement)("dt", null, copy2.warning), (0, import_react96.createElement)("dd", null, warnings.join(" · ")))] : []
+      ...shown.roomName ? [(0, import_react97.createElement)("div", { key: "room" }, (0, import_react97.createElement)("dt", null, copy2.room), (0, import_react97.createElement)("dd", null, shown.roomName))] : [],
+      ...shown.acceptance ? [(0, import_react97.createElement)("div", { key: "acceptance" }, (0, import_react97.createElement)("dt", null, copy2.acceptance), (0, import_react97.createElement)("dd", null, shown.acceptance))] : [],
+      ...shown.note ? [(0, import_react97.createElement)("div", { key: "note" }, (0, import_react97.createElement)("dt", null, copy2.note), (0, import_react97.createElement)("dd", null, shown.note))] : [],
+      ...!detail && shown.evidence ? [(0, import_react97.createElement)("div", { key: "evidence" }, (0, import_react97.createElement)("dt", null, copy2.evidence), (0, import_react97.createElement)("dd", null, shown.evidence))] : [],
+      ...detail ? [(0, import_react97.createElement)("div", { key: "verification" }, (0, import_react97.createElement)("dt", null, copy2.verification), (0, import_react97.createElement)("dd", null, `${detail.verification?.status || copy2.pending}${detail.verification?.reason ? ` · ${detail.verification.reason}` : ""}`))] : [],
+      ...warnings.length > 0 ? [(0, import_react97.createElement)("div", { key: "warning", className: "bt-activity-warning" }, (0, import_react97.createElement)("dt", null, copy2.warning), (0, import_react97.createElement)("dd", null, warnings.join(" · ")))] : []
     ),
-    detail ? (0, import_react96.createElement)(
+    detail ? (0, import_react97.createElement)(
       "section",
       { className: "bt-task-section" },
-      (0, import_react96.createElement)("h4", null, copy2.evidence),
-      (0, import_react96.createElement)(EvidenceList, { evidence, selectedId: selectedEvidenceId, copy: copy2, onSelect: setSelectedEvidenceId })
+      (0, import_react97.createElement)("h4", null, copy2.evidence),
+      (0, import_react97.createElement)(EvidenceList, { evidence, selectedId: selectedEvidenceId, copy: copy2, onSelect: setSelectedEvidenceId })
     ) : null,
-    detail && checks.length > 0 ? (0, import_react96.createElement)(
+    detail && checks.length > 0 ? (0, import_react97.createElement)(
       "section",
       { className: "bt-task-section" },
-      (0, import_react96.createElement)("h4", null, copy2.acceptanceChecks),
-      (0, import_react96.createElement)("ul", { className: "bt-task-checks" }, checks.map((check) => (0, import_react96.createElement)(
+      (0, import_react97.createElement)("h4", null, copy2.acceptanceChecks),
+      (0, import_react97.createElement)("ul", { className: "bt-task-checks" }, checks.map((check) => (0, import_react97.createElement)(
         "li",
         { key: check.id, "data-status": check.status },
-        (0, import_react96.createElement)("b", null, check.label || check.id),
-        (0, import_react96.createElement)("span", null, check.command || check.path || check.kind || ""),
-        (0, import_react96.createElement)("small", null, check.status)
+        (0, import_react97.createElement)("b", null, check.label || check.id),
+        (0, import_react97.createElement)("span", null, check.command || check.path || check.kind || ""),
+        (0, import_react97.createElement)("small", null, check.status)
       )))
     ) : null,
-    detail ? (0, import_react96.createElement)(
+    detail ? (0, import_react97.createElement)(
       "section",
       { className: "bt-task-section" },
-      (0, import_react96.createElement)("h4", null, copy2.artifacts),
-      artifacts.length > 0 ? (0, import_react96.createElement)("div", { className: "bt-task-artifacts" }, artifacts.map((item, index) => (0, import_react96.createElement)("div", {
+      (0, import_react97.createElement)("h4", null, copy2.artifacts),
+      artifacts.length > 0 ? (0, import_react97.createElement)("div", { className: "bt-task-artifacts" }, artifacts.map((item, index) => (0, import_react97.createElement)("div", {
         key: `${item.path}:${item.digest ?? index}`,
         className: "bt-task-artifact",
         "data-trust": item.trust
-      }, (0, import_react96.createElement)("b", null, item.name || item.path), (0, import_react96.createElement)("span", { className: "bt-activity-id" }, item.path), (0, import_react96.createElement)("small", null, item.digest || "")))) : (0, import_react96.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noArtifacts)
+      }, (0, import_react97.createElement)("b", null, item.name || item.path), (0, import_react97.createElement)("span", { className: "bt-activity-id" }, item.path), (0, import_react97.createElement)("small", null, item.digest || "")))) : (0, import_react97.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.noArtifacts)
     ) : null,
-    detail && detail.empty !== true ? (0, import_react96.createElement)(TraceExplorer, { trace: detail.trace, copy: copy2, onSelectEvidence: setSelectedEvidenceId }) : null
+    detail && detail.empty !== true ? (0, import_react97.createElement)(TraceExplorer, { trace: detail.trace, copy: copy2, onSelectEvidence: setSelectedEvidenceId }) : null
   );
 }
 function TeamActivityView({ data, roster, status = "ready", error = "", selectedId = null, filters = {}, detail = null, detailStatus = "idle", detailError = "", onSelect = () => {
@@ -66621,28 +66774,28 @@ function TeamActivityView({ data, roster, status = "ready", error = "", selected
   const partialData = data;
   const partialWarnings = Array.isArray(partialData?.warnings) ? partialData.warnings.map((item) => item.message).filter(Boolean) : [];
   if (status === "error" && !data) {
-    return (0, import_react96.createElement)(
+    return (0, import_react97.createElement)(
       "section",
       { className: "bt-team-activity", role: "dialog", "aria-modal": true, "aria-label": copy2.title, "aria-busy": false, "data-leaving": leaving || void 0 },
-      (0, import_react96.createElement)(DialogHead, { copy: copy2, onClose, roster }),
-      (0, import_react96.createElement)("p", { className: "bt-error bt-activity-error", role: "alert" }, error || copy2.error)
+      (0, import_react97.createElement)(DialogHead, { copy: copy2, onClose, roster }),
+      (0, import_react97.createElement)("p", { className: "bt-error bt-activity-error", role: "alert" }, error || copy2.error)
     );
   }
   if (status === "loading" && !data) {
-    return (0, import_react96.createElement)(
+    return (0, import_react97.createElement)(
       "section",
       { className: "bt-team-activity", role: "dialog", "aria-modal": true, "aria-label": copy2.title, "aria-busy": true, "data-leaving": leaving || void 0 },
-      (0, import_react96.createElement)(DialogHead, { copy: copy2, onClose, roster }),
-      (0, import_react96.createElement)("div", { className: "bt-activity-skeleton", role: "status", "aria-label": copy2.loading }, (0, import_react96.createElement)("span"), (0, import_react96.createElement)("span"), (0, import_react96.createElement)("span"))
+      (0, import_react97.createElement)(DialogHead, { copy: copy2, onClose, roster }),
+      (0, import_react97.createElement)("div", { className: "bt-activity-skeleton", role: "status", "aria-label": copy2.loading }, (0, import_react97.createElement)("span"), (0, import_react97.createElement)("span"), (0, import_react97.createElement)("span"))
     );
   }
   const dataMode = resolveDataMode(data);
   if (dataMode === "unknown") {
-    return (0, import_react96.createElement)(
+    return (0, import_react97.createElement)(
       "section",
       { className: "bt-team-activity", role: "dialog", "aria-modal": true, "aria-label": copy2.title, "aria-busy": false, "data-leaving": leaving || void 0 },
-      (0, import_react96.createElement)(DialogHead, { copy: copy2, onClose, dataMode, roster }),
-      (0, import_react96.createElement)("p", { className: "bt-error bt-activity-error", role: "alert" }, copy2.dataUnavailable)
+      (0, import_react97.createElement)(DialogHead, { copy: copy2, onClose, dataMode, roster }),
+      (0, import_react97.createElement)("p", { className: "bt-error bt-activity-error", role: "alert" }, copy2.dataUnavailable)
     );
   }
   const view = filterActivityModel(data, filters);
@@ -66664,15 +66817,15 @@ function TeamActivityView({ data, roster, status = "ready", error = "", selected
   const warningMessages = partialWarnings.length > 0 ? partialWarnings : allTasks.flatMap((task) => task.warnings ?? []);
   const partial = data?.partial === true || warningMessages.length > 0;
   const lockReason = typeof roster?.readOnly === "string" ? roster.readOnly.trim() : "";
-  const heatmap = (data?.heatmap ?? []).map((cell) => (0, import_react96.createElement)("span", {
+  const heatmap = (data?.heatmap ?? []).map((cell) => (0, import_react97.createElement)("span", {
     key: cell.day,
     className: "bt-activity-heat-cell",
     "data-day": cell.day,
     "data-count": cell.count,
     style: { "--bt-heat": Math.min(4, cell.count) / 4 },
     title: `${cell.day} · ${cell.count}`
-  }, (0, import_react96.createElement)("b", null, String(cell.count)), (0, import_react96.createElement)("small", null, cell.day.slice(5))));
-  const taskRows = tasks.map((task) => (0, import_react96.createElement)(TaskRow4, {
+  }, (0, import_react97.createElement)("b", null, String(cell.count)), (0, import_react97.createElement)("small", null, cell.day.slice(5))));
+  const taskRows = tasks.map((task) => (0, import_react97.createElement)(TaskRow4, {
     key: task.id,
     task,
     roster,
@@ -66681,7 +66834,7 @@ function TeamActivityView({ data, roster, status = "ready", error = "", selected
     copy: copy2,
     onSelect
   }));
-  const activityRows = activity.slice(0, 12).map((item) => (0, import_react96.createElement)(
+  const activityRows = activity.slice(0, 12).map((item) => (0, import_react97.createElement)(
     "div",
     {
       key: item.id,
@@ -66689,52 +66842,52 @@ function TeamActivityView({ data, roster, status = "ready", error = "", selected
       "data-source": item.source,
       "data-kind": item.kind
     },
-    (0, import_react96.createElement)("b", null, item.botName || "Anbot"),
-    (0, import_react96.createElement)("span", null, `${sourceLabel(item.source, copy2)}${item.kind ? ` · ${item.kind}` : ""} · ${item.text}`),
-    (0, import_react96.createElement)("time", null, when3(item.at))
+    (0, import_react97.createElement)("b", null, item.botName || "Anbot"),
+    (0, import_react97.createElement)("span", null, `${sourceLabel(item.source, copy2)}${item.kind ? ` · ${item.kind}` : ""} · ${item.text}`),
+    (0, import_react97.createElement)("time", null, when3(item.at))
   ));
   const taskMessage = noMatch ? copy2.noMatch : noCurrentTasks ? copy2.noCurrentTasks : "";
-  const body = empty ? (0, import_react96.createElement)("div", { className: "bt-empty bt-activity-empty", role: "status" }, copy2.empty) : (0, import_react96.createElement)(
+  const body = empty ? (0, import_react97.createElement)("div", { className: "bt-empty bt-activity-empty", role: "status" }, copy2.empty) : (0, import_react97.createElement)(
     "div",
     { className: "bt-activity-body" },
-    (0, import_react96.createElement)("div", { className: "bt-activity-list" }, taskMessage ? (0, import_react96.createElement)("p", { className: "bt-empty bt-activity-no-task" }, taskMessage) : taskRows),
-    (0, import_react96.createElement)(Detail2, { task: selected, detail: selectedDetail, detailStatus, detailError: selectedDetailError, roster, rolesById, allTasks, copy: copy2 }),
-    (0, import_react96.createElement)(
+    (0, import_react97.createElement)("div", { className: "bt-activity-list" }, taskMessage ? (0, import_react97.createElement)("p", { className: "bt-empty bt-activity-no-task" }, taskMessage) : taskRows),
+    (0, import_react97.createElement)(Detail2, { task: selected, detail: selectedDetail, detailStatus, detailError: selectedDetailError, roster, rolesById, allTasks, copy: copy2 }),
+    (0, import_react97.createElement)(
       "div",
       { className: "bt-activity-recent" },
-      (0, import_react96.createElement)("h3", null, copy2.recent),
-      activityRows.length > 0 ? activityRows : (0, import_react96.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.empty)
+      (0, import_react97.createElement)("h3", null, copy2.recent),
+      activityRows.length > 0 ? activityRows : (0, import_react97.createElement)("p", { className: "bt-activity-detail-empty" }, copy2.empty)
     )
   );
-  return (0, import_react96.createElement)(
+  return (0, import_react97.createElement)(
     "section",
     { className: "bt-team-activity", role: "dialog", "aria-modal": true, "aria-label": copy2.title, "data-leaving": leaving || void 0, "data-partial": partial || void 0 },
-    (0, import_react96.createElement)(DialogHead, { copy: copy2, onClose, dataMode, partial, roster }),
-    error ? (0, import_react96.createElement)("p", { className: "bt-activity-stale", role: "status" }, copy2.stale, (0, import_react96.createElement)("span", null, error)) : null,
-    lockReason ? (0, import_react96.createElement)("p", { className: "bt-activity-host-read-only", role: "status" }, copy2.readOnlyHost, (0, import_react96.createElement)("span", null, hostText(lockReason))) : null,
-    partial ? (0, import_react96.createElement)("p", { className: "bt-activity-partial-note", role: "status" }, `${copy2.partial}: ${warningMessages.join(" · ")}`) : null,
-    (0, import_react96.createElement)(
+    (0, import_react97.createElement)(DialogHead, { copy: copy2, onClose, dataMode, partial, roster }),
+    error ? (0, import_react97.createElement)("p", { className: "bt-activity-stale", role: "status" }, copy2.stale, (0, import_react97.createElement)("span", null, error)) : null,
+    lockReason ? (0, import_react97.createElement)("p", { className: "bt-activity-host-read-only", role: "status" }, copy2.readOnlyHost, (0, import_react97.createElement)("span", null, hostText(lockReason))) : null,
+    partial ? (0, import_react97.createElement)("p", { className: "bt-activity-partial-note", role: "status" }, `${copy2.partial}: ${warningMessages.join(" · ")}`) : null,
+    (0, import_react97.createElement)(
       "div",
       { className: "bt-activity-summary" },
-      (0, import_react96.createElement)("span", null, (0, import_react96.createElement)("b", null, String(data?.summary?.active ?? 0)), copy2.active),
-      (0, import_react96.createElement)("span", null, (0, import_react96.createElement)("b", null, String(data?.summary?.waiting ?? 0)), copy2.waiting),
-      (0, import_react96.createElement)("span", null, (0, import_react96.createElement)("b", null, String(data?.summary?.attention ?? 0)), copy2.attention),
-      (0, import_react96.createElement)("span", null, (0, import_react96.createElement)("b", null, String(data?.summary?.activity ?? 0)), copy2.activity)
+      (0, import_react97.createElement)("span", null, (0, import_react97.createElement)("b", null, String(data?.summary?.active ?? 0)), copy2.active),
+      (0, import_react97.createElement)("span", null, (0, import_react97.createElement)("b", null, String(data?.summary?.waiting ?? 0)), copy2.waiting),
+      (0, import_react97.createElement)("span", null, (0, import_react97.createElement)("b", null, String(data?.summary?.attention ?? 0)), copy2.attention),
+      (0, import_react97.createElement)("span", null, (0, import_react97.createElement)("b", null, String(data?.summary?.activity ?? 0)), copy2.activity)
     ),
-    (0, import_react96.createElement)(RoleStrip, { roles, copy: copy2 }),
-    (0, import_react96.createElement)(
+    (0, import_react97.createElement)(RoleStrip, { roles, copy: copy2 }),
+    (0, import_react97.createElement)(
       "div",
       { className: "bt-activity-heat-wrap" },
-      (0, import_react96.createElement)("div", { className: "bt-activity-section-head" }, (0, import_react96.createElement)("span", null, copy2.sevenDay), (0, import_react96.createElement)("small", null, copy2.activityOnly)),
-      (0, import_react96.createElement)("div", { className: "bt-activity-heatmap", "aria-label": copy2.sevenDay }, heatmap)
+      (0, import_react97.createElement)("div", { className: "bt-activity-section-head" }, (0, import_react97.createElement)("span", null, copy2.sevenDay), (0, import_react97.createElement)("small", null, copy2.activityOnly)),
+      (0, import_react97.createElement)("div", { className: "bt-activity-heatmap", "aria-label": copy2.sevenDay }, heatmap)
     ),
-    (0, import_react96.createElement)(
+    (0, import_react97.createElement)(
       "div",
       { className: "bt-activity-toolbar" },
-      (0, import_react96.createElement)(Filter, { label: copy2.role, value: filters.role ?? "all", allLabel: copy2.all, options: roles.map((role) => ({ value: role.id, label: role.role ? `${role.name} · ${role.role}` : role.name })), onChange: (value) => onFilter({ ...filters, role: value }) }),
-      (0, import_react96.createElement)(Filter, { label: copy2.source, value: filters.source ?? "all", allLabel: copy2.all, options: sourceKeys.map((source) => ({ value: source, label: sourceLabel(source, copy2) })), onChange: (value) => onFilter({ ...filters, source: value }) }),
-      (0, import_react96.createElement)(Filter, { label: copy2.status, value: filters.status ?? "all", allLabel: copy2.all, options: statuses, onChange: (value) => onFilter({ ...filters, status: value }) }),
-      (0, import_react96.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-activity-attention", "aria-pressed": filters.attention === true, "data-active": filters.attention || void 0, onClick: () => onFilter({ ...filters, attention: !filters.attention }) }, copy2.waitingAttention)
+      (0, import_react97.createElement)(Filter, { label: copy2.role, value: filters.role ?? "all", allLabel: copy2.all, options: roles.map((role) => ({ value: role.id, label: role.role ? `${role.name} · ${role.role}` : role.name })), onChange: (value) => onFilter({ ...filters, role: value }) }),
+      (0, import_react97.createElement)(Filter, { label: copy2.source, value: filters.source ?? "all", allLabel: copy2.all, options: sourceKeys.map((source) => ({ value: source, label: sourceLabel(source, copy2) })), onChange: (value) => onFilter({ ...filters, source: value }) }),
+      (0, import_react97.createElement)(Filter, { label: copy2.status, value: filters.status ?? "all", allLabel: copy2.all, options: statuses, onChange: (value) => onFilter({ ...filters, status: value }) }),
+      (0, import_react97.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-activity-attention", "aria-pressed": filters.attention === true, "data-active": filters.attention || void 0, onClick: () => onFilter({ ...filters, attention: !filters.attention }) }, copy2.waitingAttention)
     ),
     body
   );
@@ -66781,19 +66934,19 @@ function trapDialogFocus(root) {
 }
 function TeamActivity({ roster, onClose = () => {
 }, callImpl = call, leaving = false }) {
-  const [data, setData] = (0, import_react96.useState)(null);
-  const [status, setStatus] = (0, import_react96.useState)("loading");
-  const [error, setError] = (0, import_react96.useState)("");
-  const [selectedId, setSelectedId] = (0, import_react96.useState)(null);
-  const [filters, setFilters] = (0, import_react96.useState)({ role: "all", source: "all", status: "all", attention: false });
-  const [detail, setDetail] = (0, import_react96.useState)(null);
-  const [detailStatus, setDetailStatus] = (0, import_react96.useState)("idle");
-  const [detailError, setDetailError] = (0, import_react96.useState)("");
-  const detailRef = (0, import_react96.useRef)(null);
-  const layerRef = (0, import_react96.useRef)(null);
+  const [data, setData] = (0, import_react97.useState)(null);
+  const [status, setStatus] = (0, import_react97.useState)("loading");
+  const [error, setError] = (0, import_react97.useState)("");
+  const [selectedId, setSelectedId] = (0, import_react97.useState)(null);
+  const [filters, setFilters] = (0, import_react97.useState)({ role: "all", source: "all", status: "all", attention: false });
+  const [detail, setDetail] = (0, import_react97.useState)(null);
+  const [detailStatus, setDetailStatus] = (0, import_react97.useState)("idle");
+  const [detailError, setDetailError] = (0, import_react97.useState)("");
+  const detailRef = (0, import_react97.useRef)(null);
+  const layerRef = (0, import_react97.useRef)(null);
   useEscape(onClose);
-  (0, import_react96.useEffect)(() => trapDialogFocus(layerRef.current), []);
-  (0, import_react96.useEffect)(() => {
+  (0, import_react97.useEffect)(() => trapDialogFocus(layerRef.current), []);
+  (0, import_react97.useEffect)(() => {
     let alive = true;
     let loaded = false;
     let inFlight = false;
@@ -66828,7 +66981,7 @@ function TeamActivity({ roster, onClose = () => {
   const selectedTask = visibleTasks.find((task) => task.id === selectedId) ?? visibleTasks[0];
   const selectedTaskId = selectedTask?.id ?? null;
   const selectedTaskVersion = selectedTask === void 0 ? "" : `${selectedTask.sourceStatus}:${selectedTask.evidenceState ?? ""}:${selectedTask.updatedAt ?? ""}`;
-  (0, import_react96.useEffect)(() => {
+  (0, import_react97.useEffect)(() => {
     if (selectedTaskId === null) {
       detailRef.current = null;
       setDetail(null);
@@ -66853,11 +67006,11 @@ function TeamActivity({ roster, onClose = () => {
       alive = false;
     };
   }, [selectedTaskId, selectedTaskVersion, callImpl]);
-  return (0, import_react96.createElement)(
+  return (0, import_react97.createElement)(
     "div",
     { ref: layerRef, className: "bt-activity-layer", "data-leaving": leaving || void 0 },
-    (0, import_react96.createElement)("div", { className: "bt-scrim", onMouseDown: onClose }),
-    (0, import_react96.createElement)(TeamActivityView, { data, roster, status, error, selectedId, filters, detail, detailStatus, detailError, onSelect: setSelectedId, onFilter: setFilters, onClose })
+    (0, import_react97.createElement)("div", { className: "bt-scrim", onMouseDown: onClose }),
+    (0, import_react97.createElement)(TeamActivityView, { data, roster, status, error, selectedId, filters, detail, detailStatus, detailError, onSelect: setSelectedId, onFilter: setFilters, onClose })
   );
 }
 var TEAM_ACTIVITY_CSS = `
@@ -66931,7 +67084,7 @@ var TEAM_ACTIVITY_CSS = `
 `;
 
 // src/client/overlays.js
-var import_react97 = require("react");
+var import_react98 = require("react");
 var import_react_dom13 = require("react-dom");
 var DIALOG_EXIT_MS2 = 160;
 var MENU_EXIT_MS3 = 120;
@@ -66948,8 +67101,8 @@ function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity
   const frameSnap = useReadFrame((value) => value);
   const pref = useReadSidebarPref((value) => value);
   const current2 = useSessions((list) => Object.values(list.byId).find((session) => (session?.retainedBy?.mainView ?? 0) > 0)?.id ?? null);
-  const previous = (0, import_react97.useRef)(current2);
-  (0, import_react97.useEffect)(() => {
+  const previous = (0, import_react98.useRef)(current2);
+  (0, import_react98.useEffect)(() => {
     if (previous.current === current2) return;
     previous.current = current2;
     if (current2) actions.followPanel?.(current2);
@@ -66963,8 +67116,8 @@ function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity
     panel: open ? { view: open.view, yielded: ui.panelYield === true } : null
   });
   const shown = open !== null && layout.panel !== "folded" ? open : null;
-  const [kept, setKept] = (0, import_react97.useState)(shown);
-  (0, import_react97.useEffect)(() => {
+  const [kept, setKept] = (0, import_react98.useState)(shown);
+  (0, import_react98.useEffect)(() => {
     if (shown) {
       setKept(shown);
       return void 0;
@@ -66989,99 +67142,99 @@ function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity
   const opening = openingModel({ pending: ui.pendingOpen ?? null, current: current2, roster });
   const paletteToken = ui.palette?.token;
   const groupSearchToken = ui.groupSearch?.token;
-  return (0, import_react97.createElement)(
-    import_react97.Fragment,
+  return (0, import_react98.createElement)(
+    import_react98.Fragment,
     null,
     // The tab reads the surface mode; without that source (a bare overlay host) there is none.
-    useSurface ? (0, import_react97.createElement)(TeamOverviewTab, { useUi, useSurface, actions }) : null,
-    (0, import_react97.createElement)(
+    useSurface ? (0, import_react98.createElement)(TeamOverviewTab, { useUi, useSurface, actions }) : null,
+    (0, import_react98.createElement)(
       OverlayBoundary,
       { key: "ds-bot:notifications", name: "notifications", notify: false },
-      (0, import_react97.createElement)(NotificationWatcher, { useSessions, useSessionStatus, useRoster, useWork, actions })
+      (0, import_react98.createElement)(NotificationWatcher, { useSessions, useSessionStatus, useRoster, useWork, actions })
     ),
-    opening ? (0, import_react97.createElement)(
+    opening ? (0, import_react98.createElement)(
       OverlayBoundary,
       { name: "opening", reset: opening.id, notify: false },
-      (0, import_react_dom13.createPortal)((0, import_react97.createElement)(OpeningCover, { model: opening, column: layout.column }), document.body)
+      (0, import_react_dom13.createPortal)((0, import_react98.createElement)(OpeningCover, { model: opening, column: layout.column }), document.body)
     ) : null,
-    teamOverview ? (0, import_react97.createElement)(OverlayBoundary, {
+    teamOverview ? (0, import_react98.createElement)(OverlayBoundary, {
       name: "team-overview",
       active: !teamOverviewLeaving,
       notify: !teamOverviewLeaving,
       reset: "team-overview",
       onDismiss: () => actions.closeTeamOverview?.(),
       actions
-    }, (0, import_react_dom13.createPortal)((0, import_react97.createElement)(TeamOverviewPanel, { useRoster, useWork, useSessionStatus, useUi, actions, leaving: teamOverviewLeaving }), document.body)) : null,
-    pane ? (0, import_react97.createElement)(OverlayBoundary, {
+    }, (0, import_react_dom13.createPortal)((0, import_react98.createElement)(TeamOverviewPanel, { useRoster, useWork, useSessionStatus, useUi, actions, leaving: teamOverviewLeaving }), document.body)) : null,
+    pane ? (0, import_react98.createElement)(OverlayBoundary, {
       name: "panel",
       active: shown !== null,
       notify: shown !== null,
       reset: `${roster.byId[pane.id]?.id ?? roster.roomsById[pane.id]?.id ?? pane.id}:${pane.view}:${pane.tab ?? ""}:${pane.side ?? ""}:${pane.task?.botId ?? ""}:${pane.task?.taskId ?? ""}`,
       onDismiss: () => actions.closePanel?.(),
       actions
-    }, (0, import_react_dom13.createPortal)((0, import_react97.createElement)(BotPanel, { pane, leaving: shown === null, room: layout.room, overlay: layout.panel === "overlay", roster, actions, useSessions, useSessionStatus, useActivity, useWork, useComputer, useBrowserTabs, useBrowserPages, useBrowserHolds }), document.body)) : null,
-    ui.newChat ? (0, import_react97.createElement)(OverlayBoundary, {
+    }, (0, import_react_dom13.createPortal)((0, import_react98.createElement)(BotPanel, { pane, leaving: shown === null, room: layout.room, overlay: layout.panel === "overlay", roster, actions, useSessions, useSessionStatus, useActivity, useWork, useComputer, useBrowserTabs, useBrowserPages, useBrowserHolds }), document.body)) : null,
+    ui.newChat ? (0, import_react98.createElement)(OverlayBoundary, {
       name: "new-chat",
       reset: `${ui.newChat}:${ui.newChatSection ?? ""}`,
       onDismiss: () => (actions.closeNewChat ?? actions.closeOverlay)?.(),
       actions
-    }, (0, import_react_dom13.createPortal)((0, import_react97.createElement)(NewChat, { key: `${ui.newChat}:${ui.newChatSection ?? ""}`, mode: ui.newChat, sectionId: ui.newChatSection ?? null, paneLeft: layout.column, roster, actions }), document.body)) : null,
-    ui.palette ? (0, import_react97.createElement)(OverlayBoundary, {
+    }, (0, import_react_dom13.createPortal)((0, import_react98.createElement)(NewChat, { key: `${ui.newChat}:${ui.newChatSection ?? ""}`, mode: ui.newChat, sectionId: ui.newChatSection ?? null, paneLeft: layout.column, roster, actions }), document.body)) : null,
+    ui.palette ? (0, import_react98.createElement)(OverlayBoundary, {
       name: "palette",
       reset: paletteToken,
       onDismiss: () => actions.closePalette?.(paletteToken),
       actions
-    }, (0, import_react_dom13.createPortal)((0, import_react97.createElement)(CommandPalette, { key: ui.palette.token, start: ui.palette.query, token: ui.palette.token, roster, actions, useSessions }), document.body)) : null,
-    ui.groupSearch && roster.roomsById[ui.groupSearch.roomId] ? (0, import_react97.createElement)(OverlayBoundary, {
+    }, (0, import_react_dom13.createPortal)((0, import_react98.createElement)(CommandPalette, { key: ui.palette.token, start: ui.palette.query, token: ui.palette.token, roster, actions, useSessions }), document.body)) : null,
+    ui.groupSearch && roster.roomsById[ui.groupSearch.roomId] ? (0, import_react98.createElement)(OverlayBoundary, {
       name: "group-search",
       reset: groupSearchToken,
       onDismiss: () => actions.closeGroupSearch?.(groupSearchToken),
       actions
-    }, (0, import_react_dom13.createPortal)((0, import_react97.createElement)(GroupSearch, { key: ui.groupSearch.token, room: roster.roomsById[ui.groupSearch.roomId], roster, token: ui.groupSearch.token, actions }), document.body)) : null,
-    ui.exchange ? (0, import_react97.createElement)(OverlayBoundary, {
+    }, (0, import_react_dom13.createPortal)((0, import_react98.createElement)(GroupSearch, { key: ui.groupSearch.token, room: roster.roomsById[ui.groupSearch.roomId], roster, token: ui.groupSearch.token, actions }), document.body)) : null,
+    ui.exchange ? (0, import_react98.createElement)(OverlayBoundary, {
       name: "exchange",
       reset: Array.isArray(ui.exchange) ? ui.exchange.join(":") : String(ui.exchange),
       onDismiss: () => (actions.closeExchange ?? actions.closeOverlay)?.(),
       actions
-    }, (0, import_react_dom13.createPortal)((0, import_react97.createElement)(ExchangeDialog, { pair: ui.exchange, paneLeft: layout.column, roster, actions, useWork }), document.body)) : null,
-    ui.voice ? (0, import_react97.createElement)(OverlayBoundary, {
+    }, (0, import_react_dom13.createPortal)((0, import_react98.createElement)(ExchangeDialog, { pair: ui.exchange, paneLeft: layout.column, roster, actions, useWork }), document.body)) : null,
+    ui.voice ? (0, import_react98.createElement)(OverlayBoundary, {
       name: "voice",
       reset: ui.voice,
       onDismiss: () => actions.closeVoice?.(),
       actions
-    }, (0, import_react_dom13.createPortal)((0, import_react97.createElement)(VoiceMode, { key: ui.voice, sessionId: ui.voice, paneLeft: layout.column, roster, actions, useSessions, useSessionStatus }), document.body)) : null,
-    menu ? (0, import_react97.createElement)(OverlayBoundary, {
+    }, (0, import_react_dom13.createPortal)((0, import_react98.createElement)(VoiceMode, { key: ui.voice, sessionId: ui.voice, paneLeft: layout.column, roster, actions, useSessions, useSessionStatus }), document.body)) : null,
+    menu ? (0, import_react98.createElement)(OverlayBoundary, {
       name: "menu",
       active: !menuLeaving,
       notify: !menuLeaving,
       reset: `${menu.kind ?? ""}:${menu.id}:${menu.x}:${menu.y}`,
       onDismiss: () => actions.closeMenu?.(),
       actions
-    }, (0, import_react_dom13.createPortal)((0, import_react97.createElement)(ContextMenu, { key: `${menu.kind ?? ""}:${menu.id}:${menu.x}:${menu.y}`, menu, roster, actions, useWork, leaving: menuLeaving }), document.body)) : null,
-    settings ? (0, import_react97.createElement)(OverlayBoundary, {
+    }, (0, import_react_dom13.createPortal)((0, import_react98.createElement)(ContextMenu, { key: `${menu.kind ?? ""}:${menu.id}:${menu.x}:${menu.y}`, menu, roster, actions, useWork, leaving: menuLeaving }), document.body)) : null,
+    settings ? (0, import_react98.createElement)(OverlayBoundary, {
       name: "settings",
       active: !settingsLeaving,
       notify: !settingsLeaving,
       reset: `${settings.page}:${settings.id ?? ""}`,
       onDismiss: () => actions.closeSettings?.(),
       actions
-    }, (0, import_react_dom13.createPortal)((0, import_react97.createElement)(SettingsDialog, { page: settings.page, id: settings.id, roster, actions, useUpdate, leaving: settingsLeaving }), document.body)) : null,
-    owner ? (0, import_react97.createElement)(OverlayBoundary, {
+    }, (0, import_react_dom13.createPortal)((0, import_react98.createElement)(SettingsDialog, { page: settings.page, id: settings.id, roster, actions, useUpdate, leaving: settingsLeaving }), document.body)) : null,
+    owner ? (0, import_react98.createElement)(OverlayBoundary, {
       name: "memory",
       active: !memoryLeaving,
       notify: !memoryLeaving,
       reset: owner.id,
       onDismiss: () => actions.closeMemory?.(),
       actions
-    }, (0, import_react_dom13.createPortal)((0, import_react97.createElement)(MemoryDialog, { key: owner.id, owner, actions, leaving: memoryLeaving }), document.body)) : null,
-    teamActivity ? (0, import_react97.createElement)(OverlayBoundary, {
+    }, (0, import_react_dom13.createPortal)((0, import_react98.createElement)(MemoryDialog, { key: owner.id, owner, actions, leaving: memoryLeaving }), document.body)) : null,
+    teamActivity ? (0, import_react98.createElement)(OverlayBoundary, {
       name: "team-activity",
       active: !teamActivityLeaving,
       notify: !teamActivityLeaving,
       reset: "team-activity",
       onDismiss: () => actions.closeTeamActivity?.(),
       actions
-    }, (0, import_react_dom13.createPortal)((0, import_react97.createElement)(TeamActivity, { roster, onClose: actions.closeTeamActivity, leaving: teamActivityLeaving }), document.body)) : null
+    }, (0, import_react_dom13.createPortal)((0, import_react98.createElement)(TeamActivity, { roster, onClose: actions.closeTeamActivity, leaving: teamActivityLeaving }), document.body)) : null
   );
 }
 
@@ -68139,7 +68292,7 @@ function serveBrowserReads({ browsers, post, clientId = globalThis.crypto.random
 }
 
 // src/client/team-board.js
-var import_react98 = require("react");
+var import_react99 = require("react");
 var DEFAULT_CONFIG = Object.freeze({ defaultOpen: false, sort: "section", density: "two", showHistory: true });
 var CONFIG_URL = "./team-board.config.json";
 var SORTS = /* @__PURE__ */ new Set(["section", "role"]);
@@ -68246,33 +68399,33 @@ function Row4({ bot, doing, waiting, since, now, main }) {
   const running = doing !== void 0;
   const state = botState(running, running ? "working" : void 0, waiting);
   const line = running ? `${COPY.worked} ${durationOf(now - since)}` : waiting ? `${COPY.waited} ${durationOf(now - since)}` : COPY.idleFor;
-  return (0, import_react98.createElement)(
+  return (0, import_react99.createElement)(
     "article",
     { className: "tb-row", "data-running": running || void 0, "data-waiting": !running && waiting || void 0, "data-main": main || void 0 },
-    (0, import_react98.createElement)("div", { className: "tb-avatar" }, (0, import_react98.createElement)(BotAvatar, { bot, size: main ? 44 : 34, state, live: running, main })),
-    (0, import_react98.createElement)(
+    (0, import_react99.createElement)("div", { className: "tb-avatar" }, (0, import_react99.createElement)(BotAvatar, { bot, size: main ? 44 : 34, state, live: running, main })),
+    (0, import_react99.createElement)(
       "div",
       { className: "tb-body" },
-      (0, import_react98.createElement)(
+      (0, import_react99.createElement)(
         "div",
         { className: "tb-line" },
-        (0, import_react98.createElement)("span", { className: "tb-name" }, nameOf3(bot)),
-        roleOf(bot) === "" ? null : (0, import_react98.createElement)("span", { className: "tb-role" }, roleOf(bot)),
-        running ? (0, import_react98.createElement)("span", { className: "tb-pulse", "aria-hidden": true }) : null
+        (0, import_react99.createElement)("span", { className: "tb-name" }, nameOf3(bot)),
+        roleOf(bot) === "" ? null : (0, import_react99.createElement)("span", { className: "tb-role" }, roleOf(bot)),
+        running ? (0, import_react99.createElement)("span", { className: "tb-pulse", "aria-hidden": true }) : null
       ),
-      (0, import_react98.createElement)("div", { className: "tb-task" }, (0, import_react98.createElement)("span", { className: "tb-label" }, `${COPY.task}：`), (0, import_react98.createElement)("span", { className: "tb-phrase" }, running ? workPhrase(doing) : COPY.standby)),
-      (0, import_react98.createElement)("div", { className: "tb-who" }, `${COPY.who}：${nameOf3(bot)} · ${line}`)
+      (0, import_react99.createElement)("div", { className: "tb-task" }, (0, import_react99.createElement)("span", { className: "tb-label" }, `${COPY.task}：`), (0, import_react99.createElement)("span", { className: "tb-phrase" }, running ? workPhrase(doing) : COPY.standby)),
+      (0, import_react99.createElement)("div", { className: "tb-who" }, `${COPY.who}：${nameOf3(bot)} · ${line}`)
     )
   );
 }
 function TeamBoard({ roster, work, onClose, configUrl = CONFIG_URL, now = Date.now }) {
-  const [config, setConfig] = (0, import_react98.useState)(DEFAULT_CONFIG);
-  const [stamp, setStamp] = (0, import_react98.useState)(() => now());
-  const [tick, setTick] = (0, import_react98.useState)(0);
-  const [history, setHistory] = (0, import_react98.useState)({ status: "loading", rows: [] });
-  const [historyOpen, setHistoryOpen] = (0, import_react98.useState)(false);
-  const sinceRef = (0, import_react98.useRef)(/* @__PURE__ */ new Map());
-  (0, import_react98.useEffect)(() => {
+  const [config, setConfig] = (0, import_react99.useState)(DEFAULT_CONFIG);
+  const [stamp, setStamp] = (0, import_react99.useState)(() => now());
+  const [tick, setTick] = (0, import_react99.useState)(0);
+  const [history, setHistory] = (0, import_react99.useState)({ status: "loading", rows: [] });
+  const [historyOpen, setHistoryOpen] = (0, import_react99.useState)(false);
+  const sinceRef = (0, import_react99.useRef)(/* @__PURE__ */ new Map());
+  (0, import_react99.useEffect)(() => {
     let alive = true;
     const load = () => {
       readBoardConfig(configUrl).then((next) => {
@@ -68287,8 +68440,8 @@ function TeamBoard({ roster, work, onClose, configUrl = CONFIG_URL, now = Date.n
       window.removeEventListener("focus", onFocus);
     };
   }, [configUrl]);
-  const bots = (0, import_react98.useMemo)(() => visibleBots(roster), [roster]);
-  const doingById = (0, import_react98.useMemo)(() => {
+  const bots = (0, import_react99.useMemo)(() => visibleBots(roster), [roster]);
+  const doingById = (0, import_react99.useMemo)(() => {
     const map = /* @__PURE__ */ new Map();
     for (const bot of bots) {
       const doing = entryOf(bot, work);
@@ -68296,7 +68449,7 @@ function TeamBoard({ roster, work, onClose, configUrl = CONFIG_URL, now = Date.n
     }
     return map;
   }, [bots, work]);
-  const waitingById = (0, import_react98.useMemo)(() => {
+  const waitingById = (0, import_react99.useMemo)(() => {
     const map = /* @__PURE__ */ new Set();
     for (const bot of bots) if (!doingById.has(bot.id) && isWaiting(roster, work, bot)) map.add(bot.id);
     return map;
@@ -68305,7 +68458,7 @@ function TeamBoard({ roster, work, onClose, configUrl = CONFIG_URL, now = Date.n
   const waitingCount = waitingById.size;
   const idleCount = Math.max(0, bots.length - runningCount - waitingCount);
   const runningKey = [...doingById.keys()].sort().join(",");
-  (0, import_react98.useEffect)(() => {
+  (0, import_react99.useEffect)(() => {
     const at2 = now();
     const since = sinceRef.current;
     for (const id of since.keys()) {
@@ -68314,14 +68467,14 @@ function TeamBoard({ roster, work, onClose, configUrl = CONFIG_URL, now = Date.n
     for (const id of doingById.keys()) if (!since.has(id)) since.set(id, at2);
     for (const id of waitingById.keys()) if (!since.has(id)) since.set(id, at2);
   }, [runningKey, waitingCount]);
-  (0, import_react98.useEffect)(() => setStamp(now()), [roster, work]);
-  (0, import_react98.useEffect)(() => {
+  (0, import_react99.useEffect)(() => setStamp(now()), [roster, work]);
+  (0, import_react99.useEffect)(() => {
     if (reducedMotion()) return void 0;
     if (runningCount === 0) return void 0;
     const timer = setTimeout(() => setTick((value) => value + 1), 1e3);
     return () => clearTimeout(timer);
   }, [tick, runningCount]);
-  (0, import_react98.useEffect)(() => {
+  (0, import_react99.useEffect)(() => {
     const api = globalThis.window?.dsbot?.panelHistory;
     if (typeof api !== "function") {
       setHistory({ status: "absent", rows: [] });
@@ -68342,35 +68495,35 @@ function TeamBoard({ roster, work, onClose, configUrl = CONFIG_URL, now = Date.n
   const at = now();
   const groups = groupBots(bots, roster, config.sort);
   const showHistory = config.showHistory !== false && history.status !== "absent";
-  return (0, import_react98.createElement)(
+  return (0, import_react99.createElement)(
     "section",
     { className: "tb-board", "data-density": config.density, "aria-label": "团队看板" },
-    (0, import_react98.createElement)(
+    (0, import_react99.createElement)(
       "header",
       { className: "tb-head" },
-      (0, import_react98.createElement)(
+      (0, import_react99.createElement)(
         "div",
         { className: "tb-counts" },
-        (0, import_react98.createElement)("span", { className: "tb-count", "data-kind": "running" }, (0, import_react98.createElement)("b", null, String(runningCount)), COPY.running),
-        (0, import_react98.createElement)("span", { className: "tb-sep", "aria-hidden": true }, "/"),
-        (0, import_react98.createElement)("span", { className: "tb-count", "data-kind": "waiting" }, (0, import_react98.createElement)("b", null, String(waitingCount)), COPY.waiting),
-        (0, import_react98.createElement)("span", { className: "tb-sep", "aria-hidden": true }, "/"),
-        (0, import_react98.createElement)("span", { className: "tb-count", "data-kind": "idle" }, (0, import_react98.createElement)("b", null, String(idleCount)), COPY.idle)
+        (0, import_react99.createElement)("span", { className: "tb-count", "data-kind": "running" }, (0, import_react99.createElement)("b", null, String(runningCount)), COPY.running),
+        (0, import_react99.createElement)("span", { className: "tb-sep", "aria-hidden": true }, "/"),
+        (0, import_react99.createElement)("span", { className: "tb-count", "data-kind": "waiting" }, (0, import_react99.createElement)("b", null, String(waitingCount)), COPY.waiting),
+        (0, import_react99.createElement)("span", { className: "tb-sep", "aria-hidden": true }, "/"),
+        (0, import_react99.createElement)("span", { className: "tb-count", "data-kind": "idle" }, (0, import_react99.createElement)("b", null, String(idleCount)), COPY.idle)
       ),
-      (0, import_react98.createElement)("div", { className: "tb-stamp" }, `${COPY.updated} `, (0, import_react98.createElement)("time", { dateTime: new Date(stamp).toISOString() }, clockOf(stamp))),
-      typeof onClose === "function" ? (0, import_react98.createElement)("button", { type: "button", className: "tb-close", "aria-label": COPY.close, title: COPY.close, onClick: onClose }, "×") : null
+      (0, import_react99.createElement)("div", { className: "tb-stamp" }, `${COPY.updated} `, (0, import_react99.createElement)("time", { dateTime: new Date(stamp).toISOString() }, clockOf(stamp))),
+      typeof onClose === "function" ? (0, import_react99.createElement)("button", { type: "button", className: "tb-close", "aria-label": COPY.close, title: COPY.close, onClick: onClose }, "×") : null
     ),
-    bots.length === 0 ? (0, import_react98.createElement)("div", { className: "tb-empty", role: "status" }, COPY.empty) : (0, import_react98.createElement)(
+    bots.length === 0 ? (0, import_react99.createElement)("div", { className: "tb-empty", role: "status" }, COPY.empty) : (0, import_react99.createElement)(
       "div",
       { className: "tb-groups" },
-      groups.map((group) => (0, import_react98.createElement)(
+      groups.map((group) => (0, import_react99.createElement)(
         "div",
         { className: "tb-group", key: group.id },
-        group.name === "" ? null : (0, import_react98.createElement)("div", { className: "tb-group-name" }, (0, import_react98.createElement)("span", null, group.name), (0, import_react98.createElement)("span", { className: "tb-group-count" }, String(group.bots.length))),
-        (0, import_react98.createElement)(
+        group.name === "" ? null : (0, import_react99.createElement)("div", { className: "tb-group-name" }, (0, import_react99.createElement)("span", null, group.name), (0, import_react99.createElement)("span", { className: "tb-group-count" }, String(group.bots.length))),
+        (0, import_react99.createElement)(
           "div",
           { className: "tb-rows" },
-          group.bots.map((bot) => (0, import_react98.createElement)(Row4, {
+          group.bots.map((bot) => (0, import_react99.createElement)(Row4, {
             key: bot.id,
             bot,
             doing: doingById.get(bot.id),
@@ -68382,22 +68535,22 @@ function TeamBoard({ roster, work, onClose, configUrl = CONFIG_URL, now = Date.n
         )
       ))
     ),
-    showHistory ? (0, import_react98.createElement)(
+    showHistory ? (0, import_react99.createElement)(
       "footer",
       { className: "tb-history" },
-      (0, import_react98.createElement)("button", {
+      (0, import_react99.createElement)("button", {
         type: "button",
         className: "tb-history-toggle",
         "aria-expanded": historyOpen,
         onClick: () => setHistoryOpen((value) => !value)
-      }, (0, import_react98.createElement)("span", null, COPY.history), (0, import_react98.createElement)("span", { className: "tb-history-caret", "aria-hidden": true }, historyOpen ? "▾" : "▸")),
-      historyOpen ? history.status === "rows" ? (0, import_react98.createElement)("ul", { className: "tb-history-rows" }, history.rows.slice(0, 50).map((row, index) => (0, import_react98.createElement)(
+      }, (0, import_react99.createElement)("span", null, COPY.history), (0, import_react99.createElement)("span", { className: "tb-history-caret", "aria-hidden": true }, historyOpen ? "▾" : "▸")),
+      historyOpen ? history.status === "rows" ? (0, import_react99.createElement)("ul", { className: "tb-history-rows" }, history.rows.slice(0, 50).map((row, index) => (0, import_react99.createElement)(
         "li",
         { key: `${row?.ts ?? index}:${row?.bot ?? ""}` },
-        (0, import_react98.createElement)("span", { className: "tb-history-bot" }, String(row?.bot ?? "")),
-        (0, import_react98.createElement)("span", { className: "tb-history-state" }, historyState(row?.state)),
-        row?.doing ? (0, import_react98.createElement)("span", { className: "tb-history-doing" }, String(row.doing)) : null
-      ))) : (0, import_react98.createElement)("p", { className: "tb-history-note" }, COPY.historyPending) : null
+        (0, import_react99.createElement)("span", { className: "tb-history-bot" }, String(row?.bot ?? "")),
+        (0, import_react99.createElement)("span", { className: "tb-history-state" }, historyState(row?.state)),
+        row?.doing ? (0, import_react99.createElement)("span", { className: "tb-history-doing" }, String(row.doing)) : null
+      ))) : (0, import_react99.createElement)("p", { className: "tb-history-note" }, COPY.historyPending) : null
     ) : null
   );
 }
@@ -68451,7 +68604,7 @@ var TEAM_BOARD_CSS = `
 `;
 
 // src/client/team-board-host.js
-var import_react99 = require("react");
+var import_react100 = require("react");
 var TEAM_BOARD_CONFIG_URL = "/api/bot/team-board.config.json";
 var TEAM_BOARD_HOST_CSS = `
 /* At 521px and up the panel keeps a 204px column of the page beside it (100vw - 204px);
@@ -68470,9 +68623,9 @@ function TeamBoardHost({ useRoster, useWork, useUi = noUi, actions = {} }) {
   const roster = useRoster((value) => value);
   const work = useWork((value) => value);
   const ui = useUi((value) => value);
-  const uiNow = (0, import_react99.useRef)(ui);
+  const uiNow = (0, import_react100.useRef)(ui);
   uiNow.current = ui;
-  (0, import_react99.useEffect)(() => {
+  (0, import_react100.useEffect)(() => {
     let live = true;
     readBoardConfig(TEAM_BOARD_CONFIG_URL).then((config) => {
       if (live && config.defaultOpen && uiNow.current.details === null && uiNow.current.settings === null) actions.openTeamBoard?.();
@@ -68482,12 +68635,12 @@ function TeamBoardHost({ useRoster, useWork, useUi = noUi, actions = {} }) {
     };
   }, []);
   if (ui.teamBoardOpen !== true) {
-    return (0, import_react99.createElement)("button", { className: "tbh-toggle", type: "button", title: "Team board", onClick: () => actions.openTeamBoard?.() }, "团队看板");
+    return (0, import_react100.createElement)("button", { className: "tbh-toggle", type: "button", title: "Team board", onClick: () => actions.openTeamBoard?.() }, "团队看板");
   }
-  return (0, import_react99.createElement)(
+  return (0, import_react100.createElement)(
     "aside",
     { className: "tbh", "aria-label": "Team board" },
-    (0, import_react99.createElement)(TeamBoard, { roster, work, onClose: () => actions.closeTeamBoard?.(), configUrl: TEAM_BOARD_CONFIG_URL })
+    (0, import_react100.createElement)(TeamBoard, { roster, work, onClose: () => actions.closeTeamBoard?.(), configUrl: TEAM_BOARD_CONFIG_URL })
   );
 }
 
@@ -68582,16 +68735,16 @@ function proposalCards({ proposals = [], settled = [], failures = {} }) {
 }
 
 // src/client/learning-card-view.js
-var import_react100 = require("react");
+var import_react101 = require("react");
 function ProposalCard({ proposal, initialError = "", onFailure = () => {
 }, onResolved = () => {
 }, actions, disabledReason = "" }) {
   const outcome = proposal.outcome;
-  const [busy, setBusy] = (0, import_react100.useState)(false);
-  const [error, setError] = (0, import_react100.useState)(initialError);
-  const [open, setOpen] = (0, import_react100.useState)(false);
-  const busyRef = (0, import_react100.useRef)(false);
-  const titleId = (0, import_react100.useId)();
+  const [busy, setBusy] = (0, import_react101.useState)(false);
+  const [error, setError] = (0, import_react101.useState)(initialError);
+  const [open, setOpen] = (0, import_react101.useState)(false);
+  const busyRef = (0, import_react101.useRef)(false);
+  const titleId = (0, import_react101.useId)();
   const answer = (approve) => {
     if (busyRef.current) return;
     busyRef.current = true;
@@ -68607,93 +68760,93 @@ function ProposalCard({ proposal, initialError = "", onFailure = () => {
   };
   const update = proposal.action === "update";
   const agents = proposal.kind === "agents";
-  const rows2 = (0, import_react100.useMemo)(() => lineDiff(update ? proposal.previous?.content : "", proposal.content), [update, proposal.previous?.content, proposal.content]);
+  const rows2 = (0, import_react101.useMemo)(() => lineDiff(update ? proposal.previous?.content : "", proposal.content), [update, proposal.previous?.content, proposal.content]);
   const change = agents ? [
-    (0, import_react100.createElement)(FileBox, { key: "file", name: "AGENTS.md", path: proposal.folder, state: proposal.exists === false ? "Added" : "Modified", blocks: proposal.edits.map((edit) => [
+    (0, import_react101.createElement)(FileBox, { key: "file", name: "AGENTS.md", path: proposal.folder, state: proposal.exists === false ? "Added" : "Modified", blocks: proposal.edits.map((edit) => [
       ...(edit.op === "add" ? [] : editLines(edit.old)).map((line) => ({ kind: "removed", line })),
       ...(edit.op === "remove" ? [] : editLines(edit.text)).map((line) => ({ kind: "added", line }))
     ]) }),
-    ...proposal.edits.map((edit, index) => edit.why ? (0, import_react100.createElement)("p", { className: "bt-learning-why", key: `why-${index}` }, edit.why) : null)
+    ...proposal.edits.map((edit, index) => edit.why ? (0, import_react101.createElement)("p", { className: "bt-learning-why", key: `why-${index}` }, edit.why) : null)
   ] : [
-    (0, import_react100.createElement)(FileBox, { key: "file", name: "SKILL.md", path: `skills/${proposal.name}`, state: update ? "Updated" : "Added", blocks: [rows2] }),
-    proposal.why ? (0, import_react100.createElement)("p", { className: "bt-learning-why", key: "why" }, proposal.why) : null
+    (0, import_react101.createElement)(FileBox, { key: "file", name: "SKILL.md", path: `skills/${proposal.name}`, state: update ? "Updated" : "Added", blocks: [rows2] }),
+    proposal.why ? (0, import_react101.createElement)("p", { className: "bt-learning-why", key: "why" }, proposal.why) : null
   ];
   const kind = t(agents ? "AGENTS.md update" : update ? "Skill update" : "New skill");
   const reviewReason = proposal.requiresReview ? `${t("Review required")}: ${proposal.reviewReason}` : "";
   if (outcome) {
     const what = agents ? proposal.folder : proposal.name;
-    return (0, import_react100.createElement)(
+    return (0, import_react101.createElement)(
       "section",
       { className: "bt-q bt-q-settled bt-learning-card bt-learning-settled", role: "group", "aria-label": `${kind} · ${what}`, "data-outcome": outcome },
-      (0, import_react100.createElement)(
+      (0, import_react101.createElement)(
         "button",
         { type: "button", className: "bt-learning-fold", "aria-expanded": open, onClick: () => setOpen(!open) },
-        (0, import_react100.createElement)("span", { className: "bt-learning-icon", "aria-hidden": true }, (0, import_react100.createElement)(agents ? PencilIcon : MemoryIcon)),
-        (0, import_react100.createElement)("span", { className: "bt-learning-kind" }, kind),
-        (0, import_react100.createElement)("span", { className: "bt-learning-sum" }, `${t(outcome === "approved" ? "Approved" : "Declined")} · ${what}`)
+        (0, import_react101.createElement)("span", { className: "bt-learning-icon", "aria-hidden": true }, (0, import_react101.createElement)(agents ? PencilIcon : MemoryIcon)),
+        (0, import_react101.createElement)("span", { className: "bt-learning-kind" }, kind),
+        (0, import_react101.createElement)("span", { className: "bt-learning-sum" }, `${t(outcome === "approved" ? "Approved" : "Declined")} · ${what}`)
       ),
-      open ? [change, proposal.improvement ? (0, import_react100.createElement)(ImprovementDetails, { key: "improvement", improvement: proposal.improvement, proposal }) : null] : null
+      open ? [change, proposal.improvement ? (0, import_react101.createElement)(ImprovementDetails, { key: "improvement", improvement: proposal.improvement, proposal }) : null] : null
     );
   }
   const oldDetail = update && typeof proposal.previous?.description === "string" && proposal.previous.description !== proposal.description ? proposal.previous.description : void 0;
-  return (0, import_react100.createElement)(
+  return (0, import_react101.createElement)(
     "section",
     { className: "bt-q bt-learning-card", role: "group", "aria-labelledby": titleId, "aria-busy": busy },
-    agents ? (0, import_react100.createElement)(ProposalHead, { titleId, icon: PencilIcon, title: kind }) : (0, import_react100.createElement)(ProposalHead, { titleId, title: proposal.name, kind, detail: proposal.description, oldDetail }),
+    agents ? (0, import_react101.createElement)(ProposalHead, { titleId, icon: PencilIcon, title: kind }) : (0, import_react101.createElement)(ProposalHead, { titleId, title: proposal.name, kind, detail: proposal.description, oldDetail }),
     change,
-    proposal.improvement ? (0, import_react100.createElement)(ImprovementDetails, { improvement: proposal.improvement, proposal }) : null,
-    error ? (0, import_react100.createElement)("div", { className: "bt-learning-error", role: "alert" }, error) : null,
-    (0, import_react100.createElement)(ProposalFoot, { busy, answer, disabledReason, approveDisabledReason: reviewReason })
+    proposal.improvement ? (0, import_react101.createElement)(ImprovementDetails, { improvement: proposal.improvement, proposal }) : null,
+    error ? (0, import_react101.createElement)("div", { className: "bt-learning-error", role: "alert" }, error) : null,
+    (0, import_react101.createElement)(ProposalFoot, { busy, answer, disabledReason, approveDisabledReason: reviewReason })
   );
 }
 function ImprovementDetails({ improvement, proposal }) {
   const evidence = [...improvement.evidenceIds ?? [], ...improvement.sourceIds ?? []].join(", ");
   const audit = proposal.audit;
-  return (0, import_react100.createElement)(
+  return (0, import_react101.createElement)(
     "section",
     { className: "bt-learning-improvement", "aria-label": t("Verified improvement") },
-    (0, import_react100.createElement)("p", { className: "bt-learning-improvement-title" }, t("Verified improvement")),
-    (0, import_react100.createElement)(
+    (0, import_react101.createElement)("p", { className: "bt-learning-improvement-title" }, t("Verified improvement")),
+    (0, import_react101.createElement)(
       "dl",
       null,
-      (0, import_react100.createElement)("div", null, (0, import_react100.createElement)("dt", null, t("Affects")), (0, import_react100.createElement)("dd", null, `${improvement.affectedBot.name} · ${improvement.scope.label}`)),
-      (0, import_react100.createElement)("div", null, (0, import_react100.createElement)("dt", null, t("Observed problem")), (0, import_react100.createElement)("dd", null, improvement.observedProblem)),
-      (0, import_react100.createElement)("div", null, (0, import_react100.createElement)("dt", null, t("Proposed change")), (0, import_react100.createElement)("dd", null, improvement.proposedChange)),
-      (0, import_react100.createElement)("div", null, (0, import_react100.createElement)("dt", null, t("Expected benefit")), (0, import_react100.createElement)("dd", null, improvement.expectedBenefit)),
-      (0, import_react100.createElement)("div", null, (0, import_react100.createElement)("dt", null, t("Rollback path")), (0, import_react100.createElement)("dd", null, improvement.rollbackPath)),
-      (0, import_react100.createElement)("div", null, (0, import_react100.createElement)("dt", null, t("Source")), (0, import_react100.createElement)("dd", null, (0, import_react100.createElement)("span", { className: "bt-activity-id" }, `${improvement.taskId} · ${evidence}`))),
-      audit ? (0, import_react100.createElement)("div", null, (0, import_react100.createElement)("dt", null, t("Audit")), (0, import_react100.createElement)("dd", null, `${t("Version {version}", { version: audit.version })} · ${audit.beforeHash} → ${audit.afterHash}`)) : null
+      (0, import_react101.createElement)("div", null, (0, import_react101.createElement)("dt", null, t("Affects")), (0, import_react101.createElement)("dd", null, `${improvement.affectedBot.name} · ${improvement.scope.label}`)),
+      (0, import_react101.createElement)("div", null, (0, import_react101.createElement)("dt", null, t("Observed problem")), (0, import_react101.createElement)("dd", null, improvement.observedProblem)),
+      (0, import_react101.createElement)("div", null, (0, import_react101.createElement)("dt", null, t("Proposed change")), (0, import_react101.createElement)("dd", null, improvement.proposedChange)),
+      (0, import_react101.createElement)("div", null, (0, import_react101.createElement)("dt", null, t("Expected benefit")), (0, import_react101.createElement)("dd", null, improvement.expectedBenefit)),
+      (0, import_react101.createElement)("div", null, (0, import_react101.createElement)("dt", null, t("Rollback path")), (0, import_react101.createElement)("dd", null, improvement.rollbackPath)),
+      (0, import_react101.createElement)("div", null, (0, import_react101.createElement)("dt", null, t("Source")), (0, import_react101.createElement)("dd", null, (0, import_react101.createElement)("span", { className: "bt-activity-id" }, `${improvement.taskId} · ${evidence}`))),
+      audit ? (0, import_react101.createElement)("div", null, (0, import_react101.createElement)("dt", null, t("Audit")), (0, import_react101.createElement)("dd", null, `${t("Version {version}", { version: audit.version })} · ${audit.beforeHash} → ${audit.afterHash}`)) : null
     ),
-    proposal.requiresReview ? (0, import_react100.createElement)("p", { className: "bt-learning-review", role: "alert" }, `${t("Review required")}: ${proposal.reviewReason}`) : null
+    proposal.requiresReview ? (0, import_react101.createElement)("p", { className: "bt-learning-review", role: "alert" }, `${t("Review required")}: ${proposal.reviewReason}`) : null
   );
 }
 function ProposalHead({ titleId, icon: icon2 = MemoryIcon, title, kind, detail, oldDetail }) {
-  return (0, import_react100.createElement)(
+  return (0, import_react101.createElement)(
     "div",
     { className: "bt-q-head" },
-    (0, import_react100.createElement)("span", { className: "bt-learning-icon", "aria-hidden": true }, (0, import_react100.createElement)(icon2)),
-    (0, import_react100.createElement)(
+    (0, import_react101.createElement)("span", { className: "bt-learning-icon", "aria-hidden": true }, (0, import_react101.createElement)(icon2)),
+    (0, import_react101.createElement)(
       "div",
       { className: "bt-q-text" },
-      (0, import_react100.createElement)("p", { className: "bt-q-title", id: titleId }, title),
-      kind ? (0, import_react100.createElement)("div", { className: "bt-q-detail" }, kind) : null,
-      oldDetail ? (0, import_react100.createElement)("p", { className: "bt-learning-description bt-learning-old" }, (0, import_react100.createElement)("del", null, oldDetail)) : null,
-      detail ? (0, import_react100.createElement)("p", { className: "bt-learning-description" }, detail) : null
+      (0, import_react101.createElement)("p", { className: "bt-q-title", id: titleId }, title),
+      kind ? (0, import_react101.createElement)("div", { className: "bt-q-detail" }, kind) : null,
+      oldDetail ? (0, import_react101.createElement)("p", { className: "bt-learning-description bt-learning-old" }, (0, import_react101.createElement)("del", null, oldDetail)) : null,
+      detail ? (0, import_react101.createElement)("p", { className: "bt-learning-description" }, detail) : null
     ),
-    (0, import_react100.createElement)("span", { className: "bt-q-badge bt-learning-status" }, (0, import_react100.createElement)("span", { className: "bt-learning-dot", "aria-hidden": true }), t("Awaiting approval"))
+    (0, import_react101.createElement)("span", { className: "bt-q-badge bt-learning-status" }, (0, import_react101.createElement)("span", { className: "bt-learning-dot", "aria-hidden": true }), t("Awaiting approval"))
   );
 }
 function ProposalFoot({ busy, answer, disabledReason, approveDisabledReason = "" }) {
   const declineDisabled = busy || Boolean(disabledReason);
   const approveDisabled = declineDisabled || Boolean(approveDisabledReason);
-  return (0, import_react100.createElement)(
+  return (0, import_react101.createElement)(
     "div",
     { className: "bt-q-foot bt-learning-foot" },
-    (0, import_react100.createElement)("button", { type: "button", className: "bt-learning-btn bt-learning-decline", disabled: declineDisabled, title: disabledReason || void 0, onClick: () => answer(false) }, t("Decline")),
-    (0, import_react100.createElement)(
+    (0, import_react101.createElement)("button", { type: "button", className: "bt-learning-btn bt-learning-decline", disabled: declineDisabled, title: disabledReason || void 0, onClick: () => answer(false) }, t("Decline")),
+    (0, import_react101.createElement)(
       "button",
       { type: "button", className: "bt-learning-btn bt-learning-approve", disabled: approveDisabled, title: approveDisabledReason || disabledReason || void 0, onClick: () => answer(true) },
-      (0, import_react100.createElement)(CheckIcon),
+      (0, import_react101.createElement)(CheckIcon),
       t("Approve")
     )
   );
@@ -68701,43 +68854,43 @@ function ProposalFoot({ busy, answer, disabledReason, approveDisabledReason = ""
 var COLLAPSE_ROWS = 8;
 var SIGNS = { added: "+", removed: "−", same: "" };
 function FileBox({ name, path: path2, state, blocks }) {
-  const [open, setOpen] = (0, import_react100.useState)(false);
+  const [open, setOpen] = (0, import_react101.useState)(false);
   const all = blocks.flat();
   const added = all.filter((row) => row.kind === "added").length;
   const removed = all.filter((row) => row.kind === "removed").length;
   const folds = all.length > COLLAPSE_ROWS;
   const shut = folds && !open;
-  return (0, import_react100.createElement)(
+  return (0, import_react101.createElement)(
     "div",
     { className: "bt-learning-file" },
-    (0, import_react100.createElement)(
+    (0, import_react101.createElement)(
       "div",
       { className: "bt-learning-filehead" },
-      (0, import_react100.createElement)("span", { className: "bt-learning-name" }, name),
-      path2 ? (0, import_react100.createElement)("span", { className: "bt-learning-path" }, path2) : null,
-      (0, import_react100.createElement)("span", { className: "bt-learning-spacer" }),
-      added > 0 ? (0, import_react100.createElement)("span", { className: "bt-learning-plus" }, `+${added}`) : null,
-      removed > 0 ? (0, import_react100.createElement)("span", { className: "bt-learning-minus" }, `−${removed}`) : null,
-      (0, import_react100.createElement)("span", { className: `bt-learning-state bt-learning-state-${state.toLowerCase()}` }, t(state))
+      (0, import_react101.createElement)("span", { className: "bt-learning-name" }, name),
+      path2 ? (0, import_react101.createElement)("span", { className: "bt-learning-path" }, path2) : null,
+      (0, import_react101.createElement)("span", { className: "bt-learning-spacer" }),
+      added > 0 ? (0, import_react101.createElement)("span", { className: "bt-learning-plus" }, `+${added}`) : null,
+      removed > 0 ? (0, import_react101.createElement)("span", { className: "bt-learning-minus" }, `−${removed}`) : null,
+      (0, import_react101.createElement)("span", { className: `bt-learning-state bt-learning-state-${state.toLowerCase()}` }, t(state))
     ),
-    (0, import_react100.createElement)(
+    (0, import_react101.createElement)(
       "div",
       { className: shut ? "bt-learning-code bt-learning-shut" : "bt-learning-code" },
       blocks.map((rows2, blockIndex) => [
-        blockIndex > 0 ? (0, import_react100.createElement)("div", { className: "bt-learning-gap", key: `gap-${blockIndex}` }) : null,
-        ...rows2.map((row, rowIndex) => (0, import_react100.createElement)(
+        blockIndex > 0 ? (0, import_react101.createElement)("div", { className: "bt-learning-gap", key: `gap-${blockIndex}` }) : null,
+        ...rows2.map((row, rowIndex) => (0, import_react101.createElement)(
           "div",
           { className: `bt-learning-row bt-learning-${row.kind}`, key: `${blockIndex}-${rowIndex}` },
-          (0, import_react100.createElement)("span", { className: "bt-learning-num", "aria-hidden": true }, row.number ?? ""),
-          (0, import_react100.createElement)("span", { className: "bt-learning-sign", "aria-hidden": true }, SIGNS[row.kind]),
-          (0, import_react100.createElement)("span", { className: "bt-learning-text" }, row.line || " ")
+          (0, import_react101.createElement)("span", { className: "bt-learning-num", "aria-hidden": true }, row.number ?? ""),
+          (0, import_react101.createElement)("span", { className: "bt-learning-sign", "aria-hidden": true }, SIGNS[row.kind]),
+          (0, import_react101.createElement)("span", { className: "bt-learning-text" }, row.line || " ")
         ))
       ])
     ),
-    folds ? (0, import_react100.createElement)(
+    folds ? (0, import_react101.createElement)(
       "div",
       { className: shut ? "bt-learning-morebar bt-learning-morebar-shut" : "bt-learning-morebar" },
-      (0, import_react100.createElement)(
+      (0, import_react101.createElement)(
         "button",
         { type: "button", className: "bt-learning-more", "aria-expanded": open, onClick: () => setOpen(!open) },
         t(open ? "Show less" : "Show all {count} lines", { count: all.length })
@@ -68747,24 +68900,24 @@ function FileBox({ name, path: path2, state, blocks }) {
 }
 
 // src/client/learning-card.js
-var import_react101 = require("react");
+var import_react102 = require("react");
 var failedAnswers = /* @__PURE__ */ new Map();
 function PendingLearning({ sessionId, useRoster, actions }) {
   const roster = useRoster((value) => value);
   const bot = roster.byId?.[sessionId];
   const proposals = bot && currentPart(bot) === sessionId ? roster.learning?.[bot.id] ?? [] : [];
   const settledIds = (bot === void 0 ? [] : roster.learningSettled?.[bot.id] ?? []).map((entry) => entry.id);
-  const [open, setOpen] = (0, import_react101.useState)(false);
-  const root = (0, import_react101.useRef)(null);
+  const [open, setOpen] = (0, import_react102.useState)(false);
+  const root = (0, import_react102.useRef)(null);
   const [shown, leaving] = useLinger(open, 120);
-  (0, import_react101.useEffect)(() => {
+  (0, import_react102.useEffect)(() => {
     setOpen(false);
   }, [sessionId, proposals.length === 0]);
-  (0, import_react101.useEffect)(() => {
+  (0, import_react102.useEffect)(() => {
     if (settledIds.length === 0) return;
     for (const id of settledIds) failedAnswers.delete(id);
   }, [settledIds.join("|")]);
-  (0, import_react101.useEffect)(() => {
+  (0, import_react102.useEffect)(() => {
     if (!open) return;
     const outside = (event) => {
       if (!root.current?.contains(event.target)) setOpen(false);
@@ -68780,16 +68933,16 @@ function PendingLearning({ sessionId, useRoster, actions }) {
   const onResolved = (id) => {
     failedAnswers.delete(id);
   };
-  return (0, import_react101.createElement)(
+  return (0, import_react102.createElement)(
     "div",
     { className: "bt-learning-pending", ref: root },
-    (0, import_react101.createElement)(
+    (0, import_react102.createElement)(
       "button",
       { type: "button", className: "bt-learning-pending-toggle", "aria-expanded": open, onClick: () => setOpen(!open) },
-      (0, import_react101.createElement)("span", { className: "bt-learning-dot", "aria-hidden": true }),
-      (0, import_react101.createElement)("span", { className: "bt-learning-pending-label" }, t("Awaiting approval"), ` · ${proposals.length}`)
+      (0, import_react102.createElement)("span", { className: "bt-learning-dot", "aria-hidden": true }),
+      (0, import_react102.createElement)("span", { className: "bt-learning-pending-label" }, t("Awaiting approval"), ` · ${proposals.length}`)
     ),
-    shown ? (0, import_react101.createElement)(PendingLearningPanel, { proposals, actions, onFailure, onResolved, leaving, close: () => {
+    shown ? (0, import_react102.createElement)(PendingLearningPanel, { proposals, actions, onFailure, onResolved, leaving, close: () => {
       setOpen(false);
       root.current?.querySelector("button")?.focus();
     } }) : null
@@ -68797,10 +68950,10 @@ function PendingLearning({ sessionId, useRoster, actions }) {
 }
 function PendingLearningPanel({ proposals, actions, onFailure, onResolved, close, leaving }) {
   useEscape(close);
-  return (0, import_react101.createElement)(
+  return (0, import_react102.createElement)(
     "div",
     { className: "bt-learning-pending-panel", "data-leaving": leaving || void 0, role: "region", "aria-label": t("Awaiting approval") },
-    proposals.map((proposal) => (0, import_react101.createElement)(ProposalCard, {
+    proposals.map((proposal) => (0, import_react102.createElement)(ProposalCard, {
       key: proposal.id,
       proposal,
       initialError: failedAnswers.get(proposal.id)?.error,
@@ -68813,10 +68966,10 @@ function PendingLearningPanel({ proposals, actions, onFailure, onResolved, close
 function LearningProposals({ turn, dock, sessionId, useRoster, actions }) {
   const roster = useRoster((value) => value);
   const facts = useTurnFacts(sessionId, actions);
-  const [failed, setFailed] = (0, import_react101.useState)({});
+  const [failed, setFailed] = (0, import_react102.useState)({});
   const bot = roster.byId?.[sessionId] ?? roster.bots?.find((entry) => currentPart(entry) === sessionId);
   const settledIds = (bot === void 0 ? [] : roster.learningSettled?.[bot.id] ?? []).map((entry) => entry.id);
-  (0, import_react101.useEffect)(() => {
+  (0, import_react102.useEffect)(() => {
     if (settledIds.length === 0) return;
     for (const id of settledIds) failedAnswers.delete(id);
     setFailed((current2) => settledIds.reduce((next, id) => withoutEntry(next, id), current2));
@@ -68840,10 +68993,10 @@ function LearningProposals({ turn, dock, sessionId, useRoster, actions }) {
     failedAnswers.delete(id);
     return withoutEntry(current2, id);
   });
-  return (0, import_react101.createElement)("div", { className: dock ? "bt-learning-stack bt-learning-dock" : "bt-learning-stack" }, cards.map((proposal) => (0, import_react101.createElement)(
+  return (0, import_react102.createElement)("div", { className: dock ? "bt-learning-stack bt-learning-dock" : "bt-learning-stack" }, cards.map((proposal) => (0, import_react102.createElement)(
     "div",
     { className: "bt-q-inline", key: proposal.id },
-    (0, import_react101.createElement)(ProposalCard, {
+    (0, import_react102.createElement)(ProposalCard, {
       proposal,
       initialError: failed[proposal.id]?.error ?? failedAnswers.get(proposal.id)?.error,
       onFailure,
@@ -68853,10 +69006,10 @@ function LearningProposals({ turn, dock, sessionId, useRoster, actions }) {
   )));
 }
 function LearningTurnTail(props) {
-  return (0, import_react101.createElement)(LearningProposals, { ...props, dock: false });
+  return (0, import_react102.createElement)(LearningProposals, { ...props, dock: false });
 }
 function LearningDock(props) {
-  return (0, import_react101.createElement)(LearningProposals, { ...props, dock: true });
+  return (0, import_react102.createElement)(LearningProposals, { ...props, dock: true });
 }
 var LEARNING_CSS = `
 .bt-learning-pending{pointer-events:auto;position:static;flex:0 1 auto;min-width:0;max-width:45%;margin-left:8px;-webkit-app-region:no-drag}
@@ -69056,7 +69209,7 @@ function installBotMentionRule(userText, roster) {
 }
 
 // src/client/queue-dock.js
-var import_react102 = require("react");
+var import_react103 = require("react");
 var OWN_QUEUE_KINDS = /* @__PURE__ */ new Set(["user", "schedule", "user-question-reply"]);
 var EMPTY_QUEUE = [];
 var QUEUE_TEXT_FACTS = { collapseWhitespace: true, trimWhitespace: true };
@@ -69073,17 +69226,17 @@ function queueAttachments(content) {
 var fileSizeText2 = (bytes) => typeof bytes !== "number" || !Number.isFinite(bytes) ? "" : bytes < 1024 ? `${bytes} B` : bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
 function QueueFile({ attachment, label }) {
   const size = fileSizeText2(attachment.bytes);
-  return (0, import_react102.createElement)(
+  return (0, import_react103.createElement)(
     "span",
     { className: "bt-queue-file", "aria-label": label, title: attachment.name },
-    (0, import_react102.createElement)("span", { className: "bt-queue-fileicon", "aria-hidden": true }, (0, import_react102.createElement)(PaperclipIcon)),
-    (0, import_react102.createElement)("span", { className: "bt-queue-filename" }, attachment.name),
-    size !== "" ? (0, import_react102.createElement)("span", { className: "bt-queue-filesize" }, size) : null
+    (0, import_react103.createElement)("span", { className: "bt-queue-fileicon", "aria-hidden": true }, (0, import_react103.createElement)(PaperclipIcon)),
+    (0, import_react103.createElement)("span", { className: "bt-queue-filename" }, attachment.name),
+    size !== "" ? (0, import_react103.createElement)("span", { className: "bt-queue-filesize" }, size) : null
   );
 }
 function QueueThumb({ attachment, loadImage, label }) {
-  const [url, setUrl] = (0, import_react102.useState)(null);
-  (0, import_react102.useEffect)(() => {
+  const [url, setUrl] = (0, import_react103.useState)(null);
+  (0, import_react103.useEffect)(() => {
     let alive = true;
     loadImage(attachment).then((resolved) => {
       if (alive) setUrl(resolved);
@@ -69093,22 +69246,22 @@ function QueueThumb({ attachment, loadImage, label }) {
       alive = false;
     };
   }, [attachment, loadImage]);
-  return url === null ? (0, import_react102.createElement)("span", { className: "bt-queue-thumb", "aria-hidden": true }) : (0, import_react102.createElement)("img", { className: "bt-queue-thumb", src: url, alt: label });
+  return url === null ? (0, import_react103.createElement)("span", { className: "bt-queue-thumb", "aria-hidden": true }) : (0, import_react103.createElement)("img", { className: "bt-queue-thumb", src: url, alt: label });
 }
 function Preview({ text, renderFactorySlot }) {
   const rendered = renderFactorySlot?.("conversation.user.text", { text, facts: QUEUE_TEXT_FACTS, interactive: false, ellipsis: true });
-  return (0, import_react102.createElement)("span", { className: "bt-queue-preview" }, rendered ?? text);
+  return (0, import_react103.createElement)("span", { className: "bt-queue-preview" }, rendered ?? text);
 }
 function EditField({ text, onChange, onSave, onCancel }) {
-  const field = (0, import_react102.useRef)(null);
-  (0, import_react102.useEffect)(() => {
+  const field = (0, import_react103.useRef)(null);
+  (0, import_react103.useEffect)(() => {
     const node = field.current;
     if (node === null) return;
     node.focus();
     node.style.height = "auto";
     node.style.height = `${node.scrollHeight}px`;
   }, [text]);
-  return (0, import_react102.createElement)("textarea", {
+  return (0, import_react103.createElement)("textarea", {
     ref: field,
     className: "bt-queue-edit",
     value: text,
@@ -69127,28 +69280,28 @@ function EditField({ text, onChange, onSave, onCancel }) {
   });
 }
 function RowButton({ label, title, disabled, onClick, children }) {
-  return (0, import_react102.createElement)("button", { type: "button", className: "bt-queue-action", "aria-label": label, title: title ?? label, disabled, onClick }, children);
+  return (0, import_react103.createElement)("button", { type: "button", className: "bt-queue-action", "aria-label": label, title: title ?? label, disabled, onClick }, children);
 }
 function QueueDock({ useSession, useProjection, updateQueue, loadImage, renderFactorySlot, actions }) {
   const inbox = useProjection?.("inbox");
   const pendingSubmissions = useSession?.((s) => s.pendingSubmissions) ?? EMPTY_QUEUE;
-  const queue = (0, import_react102.useMemo)(() => {
+  const queue = (0, import_react103.useMemo)(() => {
     const rows2 = (inbox?.["next-turn"] ?? EMPTY_QUEUE).filter((row) => OWN_QUEUE_KINDS.has(row.source?.kind));
     const inChat = new Set(pendingSubmissions.filter((item) => item.placement === "transcript").map((item) => item.requestId));
     return inChat.size === 0 ? rows2 : rows2.filter(({ source }) => source === null || typeof source !== "object" || !("rpcId" in source) || !inChat.has(source.rpcId));
   }, [inbox, pendingSubmissions]);
-  const pendingQueue = (0, import_react102.useMemo)(() => {
+  const pendingQueue = (0, import_react103.useMemo)(() => {
     const admitted = new Set(queue.flatMap(({ source }) => source !== null && typeof source === "object" && "rpcId" in source ? [source.rpcId] : []));
     return pendingSubmissions.filter((submission) => submission.placement === "queued" && !admitted.has(submission.requestId));
   }, [pendingSubmissions, queue]);
   const rowCount = queue.length + pendingQueue.length;
   const running = useSession?.((s) => s.running) === true;
   const queueMutable = useSession?.((s) => s.subagent === null || s.subagent === void 0 || s.subagent.address?.mode === "continuable") ?? true;
-  const [editing, setEditing] = (0, import_react102.useState)(null);
-  const [busy, setBusy] = (0, import_react102.useState)(null);
-  const [collapsed, setCollapsed] = (0, import_react102.useState)(true);
-  const listId = (0, import_react102.useId)();
-  (0, import_react102.useEffect)(() => {
+  const [editing, setEditing] = (0, import_react103.useState)(null);
+  const [busy, setBusy] = (0, import_react103.useState)(null);
+  const [collapsed, setCollapsed] = (0, import_react103.useState)(true);
+  const listId = (0, import_react103.useId)();
+  (0, import_react103.useEffect)(() => {
     if (rowCount === 0 && !collapsed) setCollapsed(true);
     if (editing !== null && (!queueMutable || !queue.some((row) => row.id === editing.id))) setEditing(null);
   }, [collapsed, editing, queue, queueMutable, rowCount]);
@@ -69176,77 +69329,77 @@ function QueueDock({ useSession, useProjection, updateQueue, loadImage, renderFa
     if (editing === null || editing.text.trim() === "") return;
     if (await applyAction(editing.id, { kind: "edit", content: [{ type: "text", text: editing.text }] }, t("Couldn’t edit the queued message — it may have started already."))) setEditing(null);
   };
-  return (0, import_react102.createElement)(
+  return (0, import_react103.createElement)(
     "div",
     { className: "bt-queue-dock", "data-queue-dock": "" },
-    (0, import_react102.createElement)(
+    (0, import_react103.createElement)(
       "div",
       { className: "bt-queue-panel" },
-      rowCount > 1 && (0, import_react102.createElement)(
+      rowCount > 1 && (0, import_react103.createElement)(
         "button",
         { type: "button", className: "bt-queue-head", "aria-controls": listId, "aria-expanded": expanded, disabled: interactionActive, onClick: () => setCollapsed((value) => !value) },
-        (0, import_react102.createElement)("span", { className: "bt-queue-lead", "aria-hidden": true }, (0, import_react102.createElement)(QueueIcon)),
-        (0, import_react102.createElement)("span", { className: "bt-queue-count" }, t("{n} queued messages", { n: rowCount })),
-        !listVisible && pendingQueue.length > 0 && (0, import_react102.createElement)("span", { className: "bt-queue-status", role: "status" }, t("Sending…")),
-        (0, import_react102.createElement)("span", { className: "bt-queue-chev", "aria-hidden": true }, expanded ? (0, import_react102.createElement)(ChevronDownIcon) : (0, import_react102.createElement)(ChevronUpIcon))
+        (0, import_react103.createElement)("span", { className: "bt-queue-lead", "aria-hidden": true }, (0, import_react103.createElement)(QueueIcon)),
+        (0, import_react103.createElement)("span", { className: "bt-queue-count" }, t("{n} queued messages", { n: rowCount })),
+        !listVisible && pendingQueue.length > 0 && (0, import_react103.createElement)("span", { className: "bt-queue-status", role: "status" }, t("Sending…")),
+        (0, import_react103.createElement)("span", { className: "bt-queue-chev", "aria-hidden": true }, expanded ? (0, import_react103.createElement)(ChevronDownIcon) : (0, import_react103.createElement)(ChevronUpIcon))
       ),
-      (0, import_react102.createElement)(
+      (0, import_react103.createElement)(
         "ul",
         { id: listId, className: "bt-queue-list", hidden: !listVisible },
         listVisible && queue.map((row) => {
           const attachments = queueAttachments(row.content);
           const text = textOf(row.content);
-          return (0, import_react102.createElement)(
+          return (0, import_react103.createElement)(
             "li",
             { key: row.id, className: "bt-queue-row" },
-            rowCount === 1 && (0, import_react102.createElement)("span", { className: "bt-queue-lead", "aria-hidden": true }, (0, import_react102.createElement)(QueueIcon)),
-            editing?.id === row.id ? (0, import_react102.createElement)(EditField, { text: editing.text, onChange: (text2) => setEditing({ id: row.id, text: text2 }), onSave: saveEdit, onCancel: () => setEditing(null) }) : (0, import_react102.createElement)(
-              import_react102.Fragment,
+            rowCount === 1 && (0, import_react103.createElement)("span", { className: "bt-queue-lead", "aria-hidden": true }, (0, import_react103.createElement)(QueueIcon)),
+            editing?.id === row.id ? (0, import_react103.createElement)(EditField, { text: editing.text, onChange: (text2) => setEditing({ id: row.id, text: text2 }), onSave: saveEdit, onCancel: () => setEditing(null) }) : (0, import_react103.createElement)(
+              import_react103.Fragment,
               null,
-              attachments.length > 0 && (0, import_react102.createElement)(
+              attachments.length > 0 && (0, import_react103.createElement)(
                 "span",
                 { className: "bt-queue-attachments" },
-                attachments.map((item, index) => item.type === "image" ? (0, import_react102.createElement)(QueueThumb, { key: `${item.attachment.attachmentId}:${index}`, attachment: item.attachment, loadImage, label: t("Queued image") }) : (0, import_react102.createElement)(QueueFile, { key: `${item.attachment.attachmentId}:${item.attachment.name}:${index}`, attachment: item.attachment, label: t("Queued file {name}", { name: item.attachment.name }) }))
+                attachments.map((item, index) => item.type === "image" ? (0, import_react103.createElement)(QueueThumb, { key: `${item.attachment.attachmentId}:${index}`, attachment: item.attachment, loadImage, label: t("Queued image") }) : (0, import_react103.createElement)(QueueFile, { key: `${item.attachment.attachmentId}:${item.attachment.name}:${index}`, attachment: item.attachment, label: t("Queued file {name}", { name: item.attachment.name }) }))
               ),
-              (0, import_react102.createElement)(Preview, { text: row.content.filter((block) => block.type === "text").map((block) => block.text).join(""), renderFactorySlot })
+              (0, import_react103.createElement)(Preview, { text: row.content.filter((block) => block.type === "text").map((block) => block.text).join(""), renderFactorySlot })
             ),
-            queueMutable && (0, import_react102.createElement)(
+            queueMutable && (0, import_react103.createElement)(
               "div",
               { className: "bt-queue-actions" },
-              editing?.id === row.id ? (0, import_react102.createElement)(
-                import_react102.Fragment,
+              editing?.id === row.id ? (0, import_react103.createElement)(
+                import_react103.Fragment,
                 null,
-                (0, import_react102.createElement)(RowButton, { label: t("Save queued message"), disabled: busy !== null || editing.text.trim() === "", onClick: saveEdit }, (0, import_react102.createElement)(CheckIcon)),
-                (0, import_react102.createElement)(RowButton, { label: t("Cancel editing"), disabled: busy !== null, onClick: () => setEditing(null) }, (0, import_react102.createElement)(CloseIcon))
-              ) : (0, import_react102.createElement)(
-                import_react102.Fragment,
+                (0, import_react103.createElement)(RowButton, { label: t("Save queued message"), disabled: busy !== null || editing.text.trim() === "", onClick: saveEdit }, (0, import_react103.createElement)(CheckIcon)),
+                (0, import_react103.createElement)(RowButton, { label: t("Cancel editing"), disabled: busy !== null, onClick: () => setEditing(null) }, (0, import_react103.createElement)(CloseIcon))
+              ) : (0, import_react103.createElement)(
+                import_react103.Fragment,
                 null,
-                (0, import_react102.createElement)(RowButton, { label: t("Edit queued message"), title: text === null ? t("Contains non-text content, so editing is not supported yet") : void 0, disabled: busy !== null || text === null, onClick: () => {
+                (0, import_react103.createElement)(RowButton, { label: t("Edit queued message"), title: text === null ? t("Contains non-text content, so editing is not supported yet") : void 0, disabled: busy !== null || text === null, onClick: () => {
                   if (text !== null) setEditing({ id: row.id, text });
-                } }, (0, import_react102.createElement)(PencilIcon)),
-                (0, import_react102.createElement)(RowButton, { label: t("Delete queued message"), disabled: busy !== null, onClick: () => applyAction(row.id, { kind: "remove" }, t("Couldn’t delete the queued message — it may have started already.")) }, (0, import_react102.createElement)(TrashIcon)),
-                (0, import_react102.createElement)(RowButton, { label: t("Steer queued message"), title: running ? void 0 : t("Only while a turn is running"), disabled: busy !== null || !running, onClick: () => applyAction(row.id, { kind: "steer" }, t("Couldn’t steer the queued message. Try again.")) }, (0, import_react102.createElement)(ArrowUpIcon))
+                } }, (0, import_react103.createElement)(PencilIcon)),
+                (0, import_react103.createElement)(RowButton, { label: t("Delete queued message"), disabled: busy !== null, onClick: () => applyAction(row.id, { kind: "remove" }, t("Couldn’t delete the queued message — it may have started already.")) }, (0, import_react103.createElement)(TrashIcon)),
+                (0, import_react103.createElement)(RowButton, { label: t("Steer queued message"), title: running ? void 0 : t("Only while a turn is running"), disabled: busy !== null || !running, onClick: () => applyAction(row.id, { kind: "steer" }, t("Couldn’t steer the queued message. Try again.")) }, (0, import_react103.createElement)(ArrowUpIcon))
               )
             )
           );
         }),
-        listVisible && pendingQueue.map((submission) => (0, import_react102.createElement)(
+        listVisible && pendingQueue.map((submission) => (0, import_react103.createElement)(
           "li",
           { key: submission.requestId, className: "bt-queue-row bt-queue-pending" },
-          rowCount === 1 && (0, import_react102.createElement)("span", { className: "bt-queue-lead", "aria-hidden": true }, (0, import_react102.createElement)(QueueIcon)),
-          submission.attachments.length > 0 && (0, import_react102.createElement)(
+          rowCount === 1 && (0, import_react103.createElement)("span", { className: "bt-queue-lead", "aria-hidden": true }, (0, import_react103.createElement)(QueueIcon)),
+          submission.attachments.length > 0 && (0, import_react103.createElement)(
             "span",
             { className: "bt-queue-attachments" },
-            submission.attachments.map((attachment, index) => attachment.type === "image" ? (0, import_react102.createElement)("img", { key: `${attachment.value.previewUrl}:${index}`, className: "bt-queue-thumb", src: attachment.value.previewUrl, alt: t("Queued image") }) : (0, import_react102.createElement)(QueueFile, { key: `${attachment.value.attachmentId}:${attachment.value.name}:${index}`, attachment: attachment.value, label: t("Queued file {name}", { name: attachment.value.name }) }))
+            submission.attachments.map((attachment, index) => attachment.type === "image" ? (0, import_react103.createElement)("img", { key: `${attachment.value.previewUrl}:${index}`, className: "bt-queue-thumb", src: attachment.value.previewUrl, alt: t("Queued image") }) : (0, import_react103.createElement)(QueueFile, { key: `${attachment.value.attachmentId}:${attachment.value.name}:${index}`, attachment: attachment.value, label: t("Queued file {name}", { name: attachment.value.name }) }))
           ),
-          (0, import_react102.createElement)(Preview, { text: submission.text, renderFactorySlot }),
-          (0, import_react102.createElement)("span", { className: "bt-queue-status", role: "status" }, t("Sending…")),
-          queueMutable && (0, import_react102.createElement)(
+          (0, import_react103.createElement)(Preview, { text: submission.text, renderFactorySlot }),
+          (0, import_react103.createElement)("span", { className: "bt-queue-status", role: "status" }, t("Sending…")),
+          queueMutable && (0, import_react103.createElement)(
             "div",
             { className: "bt-queue-actions" },
-            (0, import_react102.createElement)(RowButton, { label: t("Edit queued message"), title: t("Sending…"), disabled: true }, (0, import_react102.createElement)(PencilIcon)),
-            (0, import_react102.createElement)(RowButton, { label: t("Delete queued message"), title: t("Sending…"), disabled: true }, (0, import_react102.createElement)(TrashIcon)),
-            (0, import_react102.createElement)(RowButton, { label: t("Steer queued message"), title: t("Sending…"), disabled: true }, (0, import_react102.createElement)(ArrowUpIcon))
+            (0, import_react103.createElement)(RowButton, { label: t("Edit queued message"), title: t("Sending…"), disabled: true }, (0, import_react103.createElement)(PencilIcon)),
+            (0, import_react103.createElement)(RowButton, { label: t("Delete queued message"), title: t("Sending…"), disabled: true }, (0, import_react103.createElement)(TrashIcon)),
+            (0, import_react103.createElement)(RowButton, { label: t("Steer queued message"), title: t("Sending…"), disabled: true }, (0, import_react103.createElement)(ArrowUpIcon))
           )
         ))
       )
@@ -69583,7 +69736,7 @@ function singleFlight(map, key, run2) {
 }
 
 // src/client/text-annotation.js
-var import_react103 = require("react");
+var import_react104 = require("react");
 var quoteMarkdown = (text) => text.replace(/\r\n?/gu, "\n").split("\n").map((line) => `> ${line}`).join("\n");
 var withAnnotation = (text, annotation) => annotation.trim() ? `${text}
 
@@ -69596,23 +69749,23 @@ function insertAnnotation(inputActions, text, annotation) {
 function TextSelectionAction({ sessionId, dismiss, readText, clearSelection, inputActions, useSession, useRoster, actions, t: hostT }) {
   const enabled = useSession((state) => !state.removed && (state.subagent === null || state.subagent.address.mode === "continuable" && state.subagent.parentAvailable === true));
   const team = useRoster((state) => state.byId[sessionId] !== void 0 || state.roomsById[sessionId] !== void 0);
-  const [editing, setEditing] = (0, import_react103.useState)(false);
-  const [excerpt, setExcerpt] = (0, import_react103.useState)(null);
-  const [annotation, setAnnotation] = (0, import_react103.useState)("");
-  const [sending, setSending] = (0, import_react103.useState)(false);
-  const [closing, setClosing] = (0, import_react103.useState)(false);
-  const field = (0, import_react103.useRef)(null);
-  const pending = (0, import_react103.useRef)(false);
-  const closeTimer = (0, import_react103.useRef)(null);
-  (0, import_react103.useEffect)(() => {
+  const [editing, setEditing] = (0, import_react104.useState)(false);
+  const [excerpt, setExcerpt] = (0, import_react104.useState)(null);
+  const [annotation, setAnnotation] = (0, import_react104.useState)("");
+  const [sending, setSending] = (0, import_react104.useState)(false);
+  const [closing, setClosing] = (0, import_react104.useState)(false);
+  const field = (0, import_react104.useRef)(null);
+  const pending = (0, import_react104.useRef)(false);
+  const closeTimer = (0, import_react104.useRef)(null);
+  (0, import_react104.useEffect)(() => {
     if (!enabled) dismiss();
   }, [enabled, dismiss]);
-  (0, import_react103.useEffect)(() => {
+  (0, import_react104.useEffect)(() => {
     if (!team || !enabled || !editing) return;
     field.current?.focus();
     if (typeof window !== "undefined") window.dispatchEvent(new Event("resize"));
   }, [team, enabled, editing]);
-  (0, import_react103.useEffect)(() => () => clearTimeout(closeTimer.current), []);
+  (0, import_react104.useEffect)(() => () => clearTimeout(closeTimer.current), []);
   if (!enabled) return null;
   const close = () => {
     clearSelection();
@@ -69685,7 +69838,7 @@ function TextSelectionAction({ sessionId, dismiss, readText, clearSelection, inp
     else void send();
   };
   if (!team) {
-    return (0, import_react103.createElement)("button", {
+    return (0, import_react104.createElement)("button", {
       type: "button",
       className: "bt-quote-plain",
       "aria-label": hostT("quote.add"),
@@ -69694,17 +69847,17 @@ function TextSelectionAction({ sessionId, dismiss, readText, clearSelection, inp
     }, hostT("quote.add"));
   }
   if (!editing) {
-    return (0, import_react103.createElement)(
+    return (0, import_react104.createElement)(
       "div",
       { className: "bt-selection-actions" },
-      (0, import_react103.createElement)("button", {
+      (0, import_react104.createElement)("button", {
         type: "button",
         className: "bt-selection-action",
         "aria-label": hostT("quote.add"),
         onPointerDown: (event) => event.preventDefault(),
         onClick: quoteOnly
       }, hostT("quote.add")),
-      (0, import_react103.createElement)("button", {
+      (0, import_react104.createElement)("button", {
         type: "button",
         className: "bt-selection-action bt-quote-annotate",
         "aria-label": t("Annotate"),
@@ -69713,7 +69866,7 @@ function TextSelectionAction({ sessionId, dismiss, readText, clearSelection, inp
       }, t("Annotate"))
     );
   }
-  return (0, import_react103.createElement)(
+  return (0, import_react104.createElement)(
     "section",
     {
       className: "bt-annotation",
@@ -69728,9 +69881,9 @@ function TextSelectionAction({ sessionId, dismiss, readText, clearSelection, inp
         }
       }
     },
-    (0, import_react103.createElement)("label", { className: "bt-annotation-label", htmlFor: "bt-annotation-field" }, t("Annotation")),
-    (0, import_react103.createElement)("blockquote", { className: "bt-annotation-quote" }, quoteText()),
-    (0, import_react103.createElement)("textarea", {
+    (0, import_react104.createElement)("label", { className: "bt-annotation-label", htmlFor: "bt-annotation-field" }, t("Annotation")),
+    (0, import_react104.createElement)("blockquote", { className: "bt-annotation-quote" }, quoteText()),
+    (0, import_react104.createElement)("textarea", {
       id: "bt-annotation-field",
       ref: field,
       value: annotation,
@@ -69741,11 +69894,11 @@ function TextSelectionAction({ sessionId, dismiss, readText, clearSelection, inp
       onChange: (event) => setAnnotation(event.target.value),
       onKeyDown
     }),
-    (0, import_react103.createElement)(
+    (0, import_react104.createElement)(
       "div",
       { className: "bt-annotation-actions" },
-      (0, import_react103.createElement)("button", { type: "button", className: "bt-annotation-add", disabled: sending || closing, onClick: add, title: t("Add quote and annotation to the composer · Enter") }, t("Add")),
-      (0, import_react103.createElement)("button", { type: "button", className: "bt-annotation-send", disabled: sending || closing, onClick: () => void send(), title: (() => {
+      (0, import_react104.createElement)("button", { type: "button", className: "bt-annotation-add", disabled: sending || closing, onClick: add, title: t("Add quote and annotation to the composer · Enter") }, t("Add")),
+      (0, import_react104.createElement)("button", { type: "button", className: "bt-annotation-send", disabled: sending || closing, onClick: () => void send(), title: (() => {
         const label = t("Send quote and annotation · Ctrl+Enter");
         return typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || "") ? label.replace("Ctrl+Enter", "⌘↵") : label;
       })() }, sending ? t("Sending…") : t("Send"))
@@ -70915,10 +71068,15 @@ function apply(ctx) {
         browsers.activate(bot.id, tabId);
         ui.set((state) => ({ ...state, details: id, view: "browser", panelYield: yieldBrowser(state) }));
       },
-      browserEnsure: (botId) => browsers.ensureTabs(botId),
+      browserEnsure: (botId) => {
+        if (roster.getSnapshot().plugins?.slots?.browser?.active === "builtin:ego") return;
+        browsers.ensureTabs(botId);
+      },
       browserCloseTab: (botId, tabId) => browsers.closeTab(botId, tabId),
       browserActivate: (botId, tabId) => browsers.activate(botId, tabId),
       browserShow: (tabId, box) => browsers.show(tabId, box),
+      egoFrame: (botId, since) => call("browser-frame", { botId, since }),
+      egoInput: (botId, event) => call("ego-input", { botId, event }),
       browserNavigate: (tabId, input) => browsers.navigate(tabId, input),
       browserCommand: (tabId, name) => browsers.command(tabId, name),
       browserFocus: (tabId) => browsers.focus(tabId),

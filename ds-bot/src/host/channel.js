@@ -1083,9 +1083,18 @@ export function install(rt) {
           return ok(await rt.repoStars())
         case 'browser-frame': {
           if (rt.browserFrame === undefined && rt.browserChannel === undefined) return fail('Bot browsers are off on this host', 'bot/browser-off')
-          const frame = typeof rt.browserFrame === 'function' ? await rt.browserFrame(String(body.botId ?? '')) : undefined
+          const frame = typeof rt.browserFrame === 'function' ? await rt.browserFrame(String(body.botId ?? ''), typeof body.since === 'number' ? body.since : undefined) : undefined
           if (frame === undefined) return fail('This Bot has no open browser', 'bot/not-found')
           return ok(frame)
+        }
+        // Pointer and keyboard from the panel go to the Bot's ego page.
+        case 'ego-input': {
+          if (typeof rt.egoInput !== 'function') return fail('The ego browser is not active on this host', 'bot/browser-off')
+          await rt.load()
+          const botId = String(body.botId ?? '')
+          if (!rt.botOf(botId)) return fail('Unknown Bot', 'bot/not-found')
+          if (rt.egoInput(botId, body.event) !== true) return fail('That input was not understood', 'bot/invalid')
+          return ok(true)
         }
         // The Desktop window's long poll for read_browser, and its answers.
         case 'browser-wait': {

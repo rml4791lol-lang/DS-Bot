@@ -88,3 +88,36 @@ test('ego: the provider registers into the browser slot and only defaults in the
   assert.equal(installEgo(off, { findEgoCli: () => undefined, findEgoApp: () => undefined }), false)
   assert.equal(off.defaultBrowserTarget, undefined)
 })
+
+test('ego: the driver carries the loopback port and token', async () => {
+  const { buildDriver } = await import('../src/host/browser/ego/bridge.js')
+  const script = buildDriver({ space: 'Anbot · 小安', profileName: 'Anbot · 小安', port: 41234, token: 'secret-token' })
+  assert.match(script, /port: 41234/)
+  assert.match(script, /secret-token/)
+  assert.match(script, /Page\.captureScreenshot/)
+  assert.match(script, /Input\.dispatchMouseEvent/)
+  assert.match(script, /taskSpace\(spaceName/)
+})
+
+test('ego: the bridge keeps the newest frame and wakes a waiter', async () => {
+  const { EgoBridge } = await import('../src/host/browser/ego/bridge.js')
+  const bridge = new EgoBridge({ cli: '/bin/ego-browser', space: 'Anbot · 小安' })
+  const waiting = bridge.waitForFrame(undefined, 1000)
+  bridge._onLine(JSON.stringify({ type: 'ready', token: bridge.token, spaceId: 3, profileId: null, profileName: null }))
+  bridge._onLine(JSON.stringify({ type: 'frame', token: bridge.token, seq: 1, data: 'aGk=', width: 100, height: 50, url: 'https://example.com', title: 'Example' }))
+  const frame = await waiting
+  assert.equal(frame.seq, 1)
+  assert.equal(frame.url, 'https://example.com')
+  assert.equal(bridge.latest().data, 'aGk=')
+  bridge._onLine(JSON.stringify({ type: 'frame', token: 'wrong', seq: 2, data: 'no' }))
+  assert.equal(bridge.latest().seq, 1)
+  bridge.stop()
+})
+
+test('ego: the bridge reports a fatal driver message as an error', async () => {
+  const { EgoBridge } = await import('../src/host/browser/ego/bridge.js')
+  const bridge = new EgoBridge({ cli: '/bin/ego-browser', space: 'Anbot · 小安' })
+  bridge._onLine(JSON.stringify({ type: 'fatal', token: bridge.token, message: 'EGO_NOT_RUNNING' }))
+  assert.match(bridge.error, /EGO_NOT_RUNNING/)
+  bridge.stop()
+})

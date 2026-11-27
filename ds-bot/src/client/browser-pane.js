@@ -21,6 +21,7 @@ import { t } from './i18n.js'
 import { rectsOverlap } from './browser-overlap.js'
 import { useEscape } from './overlay-hooks.js'
 import { writeClipboard } from './dsh-primitives.js'
+import { EgoBrowserView } from './ego-browser-view.js'
 
 export const PANEL_LINGER_MS = 300
 const WIDTH_KEY = STORAGE.browserWidth
@@ -1038,7 +1039,9 @@ export function BotPanel({ pane, leaving, room, overlay, roster, actions, useSes
   const bot = roster.byId[pane.id]
   const roomSubject = roster.roomsById?.[pane.id]
   const subjectId = bot?.id ?? roomSubject?.id ?? pane.id
-  const canBrowse = Boolean(bot && roster.browser === true && actions.browserShow)
+  // ego drives the user's own browser, so its panel works without the app webview relay.
+  const egoBrowser = roster.plugins?.slots?.browser?.active === 'builtin:ego'
+  const canBrowse = Boolean(bot && (egoBrowser || (roster.browser === true && actions.browserShow)))
   const sideChats = bot ? sideChatsOf(roster, bot.id) : []
   const sideChat = sideChats.find(chat => chat?.id === pane.side)
   const taskBot = pane.task?.botId ? roster.byId?.[pane.task.botId] : undefined
@@ -1111,7 +1114,7 @@ export function BotPanel({ pane, leaving, room, overlay, roster, actions, useSes
   }, [])
 
   // A Bot's strip restores as soon as the panel opens for it.
-  useEffect(() => { if (canBrowse) actions.browserEnsure(bot.id) }, [bot?.id, canBrowse])
+  useEffect(() => { if (canBrowse && !egoBrowser) actions.browserEnsure(bot.id) }, [bot?.id, canBrowse, egoBrowser])
   // With the last tab closed the browser view folds back into the details view.
   useEffect(() => {
     if (view === 'browser' && (active === null || !tabState.ids.includes(active))) actions.setPanelView('details')
@@ -1269,7 +1272,9 @@ export function BotPanel({ pane, leaving, room, overlay, roster, actions, useSes
     dragging ? createPortal(h('div', { className: 'bt-drag-shield', 'aria-hidden': true }), document.body) : null,
     hasStrip ? h(PanelStrip, { bot, roomSubject, subject: pane.id, view, ids: tabState.ids, active, sides: sideChats, side: pane.side, task: taskEntry, canBrowse, reading, onView: switchView, actions: panelActions, useBrowserPages }) : null,
     view === 'browser' && bot
-      ? h(BrowserView, { key: `browser:${active}`, bot, tabId: active, leaving, landed: landed && !settling, actions, useBrowserPages, hold })
+      ? egoBrowser
+        ? h(EgoBrowserView, { key: `ego:${bot.id}`, bot, actions, leaving, landed: landed && !settling })
+        : h(BrowserView, { key: `browser:${active}`, bot, tabId: active, leaving, landed: landed && !settling, actions, useBrowserPages, hold })
       : view === 'side' && sideChat
         ? h('div', { key: `side:${sideChat.id}`, className: 'bt-panel-view' }, h(SideChatView, { subject: pane.id, chat: sideChat, roster, actions: panelActions }))
         : view === 'task' && taskEntry && taskBot
@@ -1338,6 +1343,16 @@ export const BROWSER_CSS = `
 .bt-browser-progress{position:absolute;left:0;right:0;bottom:-1px;height:2px;overflow:hidden;pointer-events:none}
 .bt-browser-progress::after{content:"";position:absolute;inset:0;width:40%;background:var(--bt-accent,#4D6BFE);border-radius:2px;animation:bt-browser-load 1.1s cubic-bezier(.4,0,.2,1) infinite}
 @keyframes bt-browser-load{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+.bt-ego{position:relative;display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.bt-ego-bar{display:flex;align-items:center;gap:8px;padding:8px 10px 7px;border-bottom:.5px solid var(--bt-line);flex:none;min-width:0}
+.bt-ego-badge{font:600 10px/1 ui-sans-serif,system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--bt-ink-3);flex:none}
+.bt-ego-address{flex:1;min-width:0;height:24px;border:0;border-radius:4px;padding:0 7px;background:var(--bt-card);color:var(--bt-ink);font:12px/1.2 ui-sans-serif,system-ui;outline:none}
+.bt-ego-address:focus{box-shadow:0 0 0 1px var(--bt-line)}
+.bt-ego-title{flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--bt-ink-3)}
+.bt-ego-stage{flex:1;min-height:0;overflow:hidden;background:var(--bt-card);outline:none;cursor:default}
+.bt-ego-stage:focus-visible{box-shadow:inset 0 0 0 2px var(--bt-accent)}
+.bt-ego-frame{width:100%;height:auto;display:block;user-select:none;-webkit-user-drag:none}
+.bt-ego-empty{display:flex;align-items:center;justify-content:center;height:100%;padding:24px;color:var(--bt-ink-3);font-size:12px;text-align:center}
 .bt-browser-frame{position:relative;flex:1;min-height:0;background:var(--bt-main)}
 .bt-browser-frame[data-guest]{background:#fff}
 .bt-browser-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:32px;text-align:center;animation:bt-foot-in .3s ease}

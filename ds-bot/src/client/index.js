@@ -898,10 +898,16 @@ export function apply(ctx) {
         browsers.activate(bot.id, tabId)
         ui.set(state => ({ ...state, details: id, view: 'browser', panelYield: yieldBrowser(state) }))
       },
-      browserEnsure: botId => browsers.ensureTabs(botId),
+      browserEnsure: botId => {
+        // ego has no webview tabs: its page lives in ego lite, shown by the mirror view.
+        if (roster.getSnapshot().plugins?.slots?.browser?.active === 'builtin:ego') return
+        browsers.ensureTabs(botId)
+      },
       browserCloseTab: (botId, tabId) => browsers.closeTab(botId, tabId),
       browserActivate: (botId, tabId) => browsers.activate(botId, tabId),
       browserShow: (tabId, box) => browsers.show(tabId, box),
+      egoFrame: (botId, since) => call('browser-frame', { botId, since }),
+      egoInput: (botId, event) => call('ego-input', { botId, event }),
       browserNavigate: (tabId, input) => browsers.navigate(tabId, input),
       browserCommand: (tabId, name) => browsers.command(tabId, name),
       browserFocus: (tabId) => browsers.focus(tabId),
